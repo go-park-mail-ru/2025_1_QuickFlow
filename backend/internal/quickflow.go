@@ -1,32 +1,25 @@
 package internal
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
+	"quickflow/config"
 
 	"github.com/gorilla/mux"
 
-	"quickflow/config"
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/repository"
 	"quickflow/internal/usecase"
 )
 
-func Run() error {
+func Run(cfg *config.Config) error {
+	if cfg == nil {
+		return fmt.Errorf("config is nil")
+	}
+
 	newRepo := repository.NewInMemory()
 	newProcessor := usecase.NewProcessor(newRepo)
 	newHandler := qfhttp.NewHandler(newProcessor)
-
-	// Supporting config path via flags
-	configPath := flag.String("config", "", "Path to config file")
-	flag.Parse()
-
-	// Loading config
-	cfg, err := config.LoadConfig(*configPath)
-	if err != nil {
-		return fmt.Errorf("internal.Run: %w", err)
-	}
 
 	// routing
 	r := mux.NewRouter()
@@ -43,7 +36,7 @@ func Run() error {
 	}
 
 	fmt.Printf("starting server at %s\n", cfg.Addr)
-	err = server.ListenAndServe()
+	err := server.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("internal.Run: %w", err)
 	}
