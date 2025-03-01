@@ -1,0 +1,4 @@
+
+addr = ":8080"
+read_timeout = "10s"
+write_timeout = "10s"
