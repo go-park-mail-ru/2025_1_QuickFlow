@@ -4,9 +4,9 @@ type repository interface {
 }
 
 type Processor struct {
-    repo repository
+	repo repository
 }
 
 func NewProcessor(repo repository) *Processor {
-    return &Processor{repo: repo}
+	return &Processor{repo: repo}
 }
