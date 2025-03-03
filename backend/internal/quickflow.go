@@ -27,6 +27,8 @@ func Run(cfg *config.Config) error {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
 	r.HandleFunc("/hello", newHandler.Greet).Methods(http.MethodGet)
+	r.HandleFunc("/signup", newHandler.SignUp).Methods(http.MethodPost)
+	r.HandleFunc("/login", newHandler.Login).Methods(http.MethodPost)
 
 	server := http.Server{
 		Addr:         cfg.Addr,
