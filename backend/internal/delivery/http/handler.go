@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
+	"quickflow/utils"
 )
 
 type useCase interface {
@@ -44,15 +45,15 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validation
-	if err := models.Validate(user); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	if err := utils.Validate(user.Login, user.Password); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// process data
 	id, session, err := h.useCase.CreateUser(user)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
 
@@ -71,8 +72,6 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(&body)
 
-	http.Redirect(w, r, "/feed", http.StatusFound)
-
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +85,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	// process data
 	session, err := h.useCase.GetUser(authData)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -97,9 +96,5 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 	})
-
-	json.NewEncoder(w).Encode("залогинились")
-
-	http.Redirect(w, r, "/feed", http.StatusFound)
 
 }

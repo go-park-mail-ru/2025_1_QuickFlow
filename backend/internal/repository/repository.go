@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
+	"quickflow/utils"
 )
 
 type InMemory struct {
@@ -21,8 +22,12 @@ func NewInMemory() *InMemory {
 }
 
 func (p *InMemory) SaveUser(user models.User) (uuid.UUID, models.Session, error) {
+	var err error
+	if user, err = models.CreateUser(user, p.users); err != nil {
+		return uuid.Nil, models.Session{}, err
+	}
+
 	session := models.CreateSession(p.sessions)
-	user = models.CreateUser(user, p.users)
 
 	p.sessions[session.SessionId] = user
 	p.users[user.Login] = user
@@ -33,7 +38,7 @@ func (p *InMemory) SaveUser(user models.User) (uuid.UUID, models.Session, error)
 func (p *InMemory) GetUser(authData models.AuthForm) (models.Session, error) {
 	user, exists := p.users[authData.Login]
 
-	if !exists || !models.CheckPassword(authData.Password, user) {
+	if !exists || !utils.CheckPassword(authData.Password, user.Password, user.Salt) {
 		return models.Session{}, fmt.Errorf("incorrect login or password")
 	}
 
