@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"quickflow/config"
 
+	"quickflow/config"
 	"quickflow/internal"
 )
 
