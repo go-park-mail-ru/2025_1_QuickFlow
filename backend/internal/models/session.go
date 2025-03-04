@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Session struct {
@@ -10,9 +11,15 @@ type Session struct {
 	ExpireDate time.Time
 }
 
-func CreateSession() Session {
+func CreateSession(sessions map[uuid.UUID]User) Session {
+	sessionId := uuid.New()
+
+	for _, exists := sessions[sessionId]; exists; _, exists = sessions[sessionId] {
+		sessionId = uuid.New()
+	}
+
 	return Session{
-		SessionId:  uuid.New(),
+		SessionId:  sessionId,
 		ExpireDate: time.Now().Add(10 * 24 * time.Hour),
 	}
 }

@@ -3,11 +3,12 @@ package models
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/google/uuid"
 	"math/rand"
 	//"regexp"
 	//"time"
 	"unicode"
+
+	"github.com/google/uuid"
 )
 
 type Sex int
@@ -26,11 +27,6 @@ type User struct {
 	DateOfBirth string
 	Password    string
 	Salt        string
-}
-
-type AuthForm struct {
-	Login    string
-	Password string
 }
 
 const randLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"
@@ -125,11 +121,16 @@ func genLogin() string {
 	return "id" + string(res)
 }
 
-func CreateUser(user User) User {
+func CreateUser(user User, users map[string]User) User {
 	id := uuid.New()
 	salt := genSalt()
-	login := genLogin()
 	hashedPassword := hashPassword(user.Password, salt)
+
+	login := genLogin()
+
+	for _, exists := users[login]; exists; _, exists = users[login] {
+		login = genLogin()
+	}
 
 	newUser := User{
 		Id:          id,
