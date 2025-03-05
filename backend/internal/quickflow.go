@@ -21,19 +21,21 @@ func Run(cfg *config.Config) error {
 	newUserRepo := in_memory.NewInMemoryUserRepository()
 	newPostRepo := in_memory.NewInMemoryPostRepository()
 	newSessionRepo := in_memory.NewInMemorySessionRepository()
-	newProcessor := usecase.NewProcessor(newUserRepo, newPostRepo, newSessionRepo)
-	newHandler := qfhttp.NewHandler(newProcessor)
+	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
+	newPostService := usecase.NewPostService(newPostRepo)
+	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
+	newPostHandler := qfhttp.NewPostHandler(newPostService, newAuthService)
 
 	// routing
 	r := mux.NewRouter()
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
-	r.HandleFunc("/hello", newHandler.Greet).Methods(http.MethodGet)
-	r.HandleFunc("/feed", newHandler.GetFeed).Methods(http.MethodGet)
-	r.HandleFunc("/post", newHandler.AddPost).Methods(http.MethodPost)
-	r.HandleFunc("/signup", newHandler.SignUp).Methods(http.MethodPost)
-	r.HandleFunc("/login", newHandler.Login).Methods(http.MethodPost)
+	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
+	r.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
+	r.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
+	r.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
+	r.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
 
 	server := http.Server{
 		Addr:         cfg.Addr,
