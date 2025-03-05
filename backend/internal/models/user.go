@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 
 	"quickflow/utils"
@@ -27,11 +25,7 @@ type User struct {
 }
 
 // CreateUser creates new user.
-func CreateUser(user User, users map[string]User) (User, error) {
-	if _, ok := users[user.Login]; ok {
-		return User{}, fmt.Errorf("this login already exists")
-	}
-
+func CreateUser(user User) (User, error) {
 	id := uuid.New()
 	salt := utils.GenSalt()
 	hashedPassword := utils.HashPassword(user.Password, salt)

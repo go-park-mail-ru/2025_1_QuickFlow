@@ -45,7 +45,10 @@ func (s *InMemorySessionRepository) LookupUserSession(ctx context.Context, sessi
 	return userId, nil
 }
 
-func (s *InMemorySessionRepository) GetSessions() map[uuid.UUID]uuid.UUID {
-	return s.sessions
+func (s *InMemorySessionRepository) IsExists(sessionId uuid.UUID) bool {
+	if _, ok := s.sessions[sessionId]; ok {
+		return true
+	}
 
+	return false
 }

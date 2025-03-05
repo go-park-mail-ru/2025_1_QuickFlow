@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -13,13 +14,13 @@ type UserRepository interface {
 	SaveUser(user models.User) (uuid.UUID, error)
 	GetUser(authData models.AuthForm) (models.User, error)
 	GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error)
-	GetUsers() map[string]models.User
+	IsExists(login string) bool
 }
 
 type SessionRepository interface {
 	SaveSession(userId uuid.UUID, session models.Session) models.Session
 	LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error)
-	GetSessions() map[uuid.UUID]uuid.UUID
+	IsExists(sessionId uuid.UUID) bool
 }
 
 type AuthService struct {
@@ -35,11 +36,13 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository) *Aut
 }
 
 func (a *AuthService) CreateUser(user models.User) (uuid.UUID, models.Session, error) {
-	users := a.userRepo.GetUsers()
-
-	user, err := models.CreateUser(user, users)
-	if err != nil {
+	var err error
+	if user, err = models.CreateUser(user); err != nil {
 		return uuid.Nil, models.Session{}, err
+	}
+
+	if a.userRepo.IsExists(user.Login) {
+		return uuid.Nil, models.Session{}, errors.New("user already exists")
 	}
 
 	userId, err := a.userRepo.SaveUser(user)
@@ -47,9 +50,12 @@ func (a *AuthService) CreateUser(user models.User) (uuid.UUID, models.Session, e
 		return uuid.Nil, models.Session{}, err
 	}
 
-	sessions := a.sessionRepo.GetSessions()
+	session := models.CreateSession()
+	for a.sessionRepo.IsExists(session.SessionId) {
+		session = models.CreateSession()
+	}
 
-	session := models.CreateSession(sessions)
+	a.sessionRepo.SaveSession(userId, session)
 
 	return userId, session, nil
 }
@@ -60,9 +66,10 @@ func (a *AuthService) GetUser(authData models.AuthForm) (models.Session, error) 
 		return models.Session{}, err
 	}
 
-	sessions := a.sessionRepo.GetSessions()
-
-	session := models.CreateSession(sessions)
+	session := models.CreateSession()
+	for a.sessionRepo.IsExists(session.SessionId) {
+		session = models.CreateSession()
+	}
 
 	a.sessionRepo.SaveSession(user.Id, session)
 

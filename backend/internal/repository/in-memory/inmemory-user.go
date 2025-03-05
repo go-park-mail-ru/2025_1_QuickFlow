@@ -66,6 +66,10 @@ func (i *InMemoryUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 	return models.User{}, errors.New("user not found")
 }
 
-func (i *InMemoryUserRepository) GetUsers() map[string]models.User {
-	return i.users
+func (i *InMemoryUserRepository) IsExists(login string) bool {
+	if _, exists := i.users[login]; exists {
+		return true
+	}
+
+	return false
 }

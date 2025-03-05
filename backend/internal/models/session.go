@@ -11,15 +11,9 @@ type Session struct {
 	ExpireDate time.Time
 }
 
-func CreateSession(sessions map[uuid.UUID]uuid.UUID) Session {
-	sessionId := uuid.New()
-
-	for _, exists := sessions[sessionId]; exists; _, exists = sessions[sessionId] {
-		sessionId = uuid.New()
-	}
-
+func CreateSession() Session {
 	return Session{
-		SessionId:  sessionId,
+		SessionId:  uuid.New(),
 		ExpireDate: time.Now().Add(10 * 24 * time.Hour),
 	}
 
