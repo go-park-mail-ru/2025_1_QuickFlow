@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -85,7 +86,7 @@ func Validate(login string, password string) error {
 
 func CheckPassword(password string, userPassword string, userSalt string) bool {
 	passwordCheck := sha256.Sum256([]byte(password + userSalt))
-	if string(passwordCheck[:]) == userPassword {
+	if hex.EncodeToString(passwordCheck[:]) == userPassword {
 		return true
 	}
 	return false
@@ -95,7 +96,7 @@ func HashPassword(password string, salt string) string {
 	data := password + salt
 	hash := sha256.Sum256([]byte(data))
 
-	return string(hash[:])
+	return hex.EncodeToString(hash[:])
 
 }
 

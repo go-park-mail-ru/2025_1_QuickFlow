@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"quickflow/utils"
 
 	"github.com/google/uuid"
 
+	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
+	"quickflow/utils"
 )
 
 type AuthUseCase interface {
-	CreateUser(user models.User) (uuid.UUID, models.Session, error)
-	GetUser(authData models.AuthForm) (models.Session, error)
+	CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error)
+	GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
 	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
 }
 
@@ -36,11 +37,21 @@ func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
 
 // SignUp creates new user.
 func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+	var form forms.SignUpForm
 
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
+	}
+
+	// converting transport form to domain model
+	user := models.User{
+		Login:       form.Login,
+		Name:        form.Name,
+		Surname:     form.Surname,
+		Sex:         form.Sex,
+		DateOfBirth: form.DateOfBirth,
+		Password:    form.Password,
 	}
 
 	// validation
@@ -50,7 +61,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	id, session, err := a.authUseCase.CreateUser(user)
+	id, session, err := a.authUseCase.CreateUser(r.Context(), user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
@@ -74,15 +85,21 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 // Login logs in user.
 func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var authData models.AuthForm
+	var form forms.AuthForm
 
-	if err := json.NewDecoder(r.Body).Decode(&authData); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
+	// converting transport form to domain model
+	loginData := models.LoginData{
+		Login:    form.Login,
+		Password: form.Password,
+	}
+
 	// process data
-	session, err := a.authUseCase.GetUser(authData)
+	session, err := a.authUseCase.GetUser(r.Context(), loginData)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

@@ -23,7 +23,7 @@ func NewInMemorySessionRepository() *InMemorySessionRepository {
 }
 
 // SaveSession creates new session for user.
-func (s *InMemorySessionRepository) SaveSession(userId uuid.UUID, session models.Session) models.Session {
+func (s *InMemorySessionRepository) SaveSession(_ context.Context, userId uuid.UUID, session models.Session) models.Session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -33,7 +33,7 @@ func (s *InMemorySessionRepository) SaveSession(userId uuid.UUID, session models
 }
 
 // LookupUserSession returns user by session.
-func (s *InMemorySessionRepository) LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error) {
+func (s *InMemorySessionRepository) LookupUserSession(_ context.Context, session models.Session) (uuid.UUID, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -45,7 +45,7 @@ func (s *InMemorySessionRepository) LookupUserSession(ctx context.Context, sessi
 	return userId, nil
 }
 
-func (s *InMemorySessionRepository) IsExists(sessionId uuid.UUID) bool {
+func (s *InMemorySessionRepository) IsExists(_ context.Context, sessionId uuid.UUID) bool {
 	if _, ok := s.sessions[sessionId]; ok {
 		return true
 	}

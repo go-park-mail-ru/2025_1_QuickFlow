@@ -11,16 +11,16 @@ import (
 )
 
 type UserRepository interface {
-	SaveUser(user models.User) (uuid.UUID, error)
-	GetUser(authData models.AuthForm) (models.User, error)
+	SaveUser(ctx context.Context, user models.User) (uuid.UUID, error)
+	GetUser(ctx context.Context, authData models.LoginData) (models.User, error)
 	GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error)
-	IsExists(login string) bool
+	IsExists(ctx context.Context, login string) bool
 }
 
 type SessionRepository interface {
-	SaveSession(userId uuid.UUID, session models.Session) models.Session
+	SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) models.Session
 	LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error)
-	IsExists(sessionId uuid.UUID) bool
+	IsExists(ctx context.Context, sessionId uuid.UUID) bool
 }
 
 type AuthService struct {
@@ -35,43 +35,43 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository) *Aut
 	}
 }
 
-func (a *AuthService) CreateUser(user models.User) (uuid.UUID, models.Session, error) {
+func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error) {
 	var err error
 	if user, err = models.CreateUser(user); err != nil {
 		return uuid.Nil, models.Session{}, err
 	}
 
-	if a.userRepo.IsExists(user.Login) {
+	if a.userRepo.IsExists(ctx, user.Login) {
 		return uuid.Nil, models.Session{}, errors.New("user already exists")
 	}
 
-	userId, err := a.userRepo.SaveUser(user)
+	userId, err := a.userRepo.SaveUser(ctx, user)
 	if err != nil {
 		return uuid.Nil, models.Session{}, err
 	}
 
 	session := models.CreateSession()
-	for a.sessionRepo.IsExists(session.SessionId) {
+	for a.sessionRepo.IsExists(ctx, session.SessionId) {
 		session = models.CreateSession()
 	}
 
-	a.sessionRepo.SaveSession(userId, session)
+	a.sessionRepo.SaveSession(ctx, userId, session)
 
 	return userId, session, nil
 }
 
-func (a *AuthService) GetUser(authData models.AuthForm) (models.Session, error) {
-	user, err := a.userRepo.GetUser(authData)
+func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
+	user, err := a.userRepo.GetUser(ctx, authData)
 	if err != nil {
 		return models.Session{}, err
 	}
 
 	session := models.CreateSession()
-	for a.sessionRepo.IsExists(session.SessionId) {
+	for a.sessionRepo.IsExists(ctx, session.SessionId) {
 		session = models.CreateSession()
 	}
 
-	a.sessionRepo.SaveSession(user.Id, session)
+	a.sessionRepo.SaveSession(ctx, user.Id, session)
 
 	return session, nil
 }

@@ -9,6 +9,7 @@ import (
 	"quickflow/config"
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/repository/in-memory"
+	"quickflow/internal/repository/postgres_redis"
 	"quickflow/internal/usecase"
 )
 
@@ -18,8 +19,8 @@ func Run(cfg *config.Config) error {
 	}
 
 	//newRepo := repository.NewInMemory()
-	newUserRepo := in_memory.NewInMemoryUserRepository()
-	newPostRepo := in_memory.NewInMemoryPostRepository()
+	newUserRepo := postgres_redis.NewPostgresUserRepository()
+	newPostRepo := postgres_redis.NewPostgresPostRepository()
 	newSessionRepo := in_memory.NewInMemorySessionRepository()
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
 	newPostService := usecase.NewPostService(newPostRepo)

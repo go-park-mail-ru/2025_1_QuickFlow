@@ -1,6 +1,6 @@
 package models
 
-type AuthForm struct {
+type LoginData struct {
 	Login    string
 	Password string
 }

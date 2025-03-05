@@ -24,7 +24,7 @@ func NewInMemoryUserRepository() *InMemoryUserRepository {
 }
 
 // SaveUser saves user to the repository.
-func (i *InMemoryUserRepository) SaveUser(user models.User) (uuid.UUID, error) {
+func (i *InMemoryUserRepository) SaveUser(_ context.Context, user models.User) (uuid.UUID, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -34,18 +34,18 @@ func (i *InMemoryUserRepository) SaveUser(user models.User) (uuid.UUID, error) {
 }
 
 // GetUser returns user by login and password.
-func (i *InMemoryUserRepository) GetUser(authData models.AuthForm) (models.User, error) {
+func (i *InMemoryUserRepository) GetUser(_ context.Context, loginData models.LoginData) (models.User, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
-	user, exists := i.users[authData.Login]
+	user, exists := i.users[loginData.Login]
 
 	switch {
 
 	case !exists:
 		return models.User{}, errors.New("user not found")
 
-	case !utils.CheckPassword(authData.Password, user.Password, user.Salt):
+	case !utils.CheckPassword(loginData.Password, user.Password, user.Salt):
 		return models.User{}, errors.New("incorrect login or password")
 	}
 
@@ -53,7 +53,7 @@ func (i *InMemoryUserRepository) GetUser(authData models.AuthForm) (models.User,
 }
 
 // GetUserByUId returns user by id.
-func (i *InMemoryUserRepository) GetUserByUId(ctx context.Context, userId uuid.UUID) (models.User, error) {
+func (i *InMemoryUserRepository) GetUserByUId(_ context.Context, userId uuid.UUID) (models.User, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -66,7 +66,7 @@ func (i *InMemoryUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 	return models.User{}, errors.New("user not found")
 }
 
-func (i *InMemoryUserRepository) IsExists(login string) bool {
+func (i *InMemoryUserRepository) IsExists(_ context.Context, login string) bool {
 	if _, exists := i.users[login]; exists {
 		return true
 	}
