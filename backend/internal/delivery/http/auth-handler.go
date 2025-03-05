@@ -35,7 +35,7 @@ func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
 }
 
 // SignUp creates new user.
-func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -50,7 +50,7 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	id, session, err := h.authUseCase.CreateUser(user)
+	id, session, err := a.authUseCase.CreateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
@@ -73,7 +73,7 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 // Login logs in user.
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var authData models.AuthForm
 
 	if err := json.NewDecoder(r.Body).Decode(&authData); err != nil {
@@ -82,7 +82,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	session, err := h.authUseCase.GetUser(authData)
+	session, err := a.authUseCase.GetUser(authData)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -96,7 +96,4 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 	})
 
-	json.NewEncoder(w).Encode("залогинились")
-
-	//http.Redirect(w, r, "/feed", http.StatusFound)
 }

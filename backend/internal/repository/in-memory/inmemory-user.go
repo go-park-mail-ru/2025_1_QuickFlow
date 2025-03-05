@@ -2,7 +2,7 @@ package in_memory
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -28,11 +28,6 @@ func (i *InMemoryUserRepository) SaveUser(user models.User) (uuid.UUID, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	user, err := models.CreateUser(user, i.users)
-	if err != nil {
-		return uuid.Nil, err
-	}
-
 	i.users[user.Login] = user
 
 	return user.Id, nil
@@ -44,8 +39,14 @@ func (i *InMemoryUserRepository) GetUser(authData models.AuthForm) (models.User,
 	defer i.mu.RUnlock()
 
 	user, exists := i.users[authData.Login]
-	if !exists || !utils.CheckPassword(authData.Password, user.Password, user.Salt) {
-		return models.User{}, fmt.Errorf("incorrect login or password")
+
+	switch {
+
+	case !exists:
+		return models.User{}, errors.New("user not found")
+
+	case !utils.CheckPassword(authData.Password, user.Password, user.Salt):
+		return models.User{}, errors.New("incorrect login or password")
 	}
 
 	return user, nil
@@ -62,5 +63,9 @@ func (i *InMemoryUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 		}
 	}
 
-	return models.User{}, fmt.Errorf("user not found")
+	return models.User{}, errors.New("user not found")
+}
+
+func (i *InMemoryUserRepository) GetUsers() map[string]models.User {
+	return i.users
 }

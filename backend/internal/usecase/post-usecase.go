@@ -30,6 +30,7 @@ func (p *PostService) AddPost(ctx context.Context, post models.Post) error {
 	if err != nil {
 		return fmt.Errorf("p.repo.AddPost: %w", err)
 	}
+
 	return nil
 }
 
@@ -39,6 +40,7 @@ func (p *PostService) DeletePost(ctx context.Context, postId uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("p.repo.AddPost: %w", err)
 	}
+
 	return nil
 }
 

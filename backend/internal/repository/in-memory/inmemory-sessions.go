@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -23,21 +22,10 @@ func NewInMemorySessionRepository() *InMemorySessionRepository {
 	}
 }
 
-// CreateSession creates new session for user.
-func (s *InMemorySessionRepository) CreateSession(userId uuid.UUID) models.Session {
+// SaveSession creates new session for user.
+func (s *InMemorySessionRepository) SaveSession(userId uuid.UUID, session models.Session) models.Session {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	sessionId := uuid.New()
-
-	for _, exists := s.sessions[sessionId]; exists; _, exists = s.sessions[sessionId] {
-		sessionId = uuid.New()
-	}
-
-	session := models.Session{
-		SessionId:  sessionId,
-		ExpireDate: time.Now().Add(10 * 24 * time.Hour),
-	}
 
 	s.sessions[session.SessionId] = userId
 
@@ -55,4 +43,9 @@ func (s *InMemorySessionRepository) LookupUserSession(ctx context.Context, sessi
 	}
 
 	return userId, nil
+}
+
+func (s *InMemorySessionRepository) GetSessions() map[uuid.UUID]uuid.UUID {
+	return s.sessions
+
 }

@@ -26,9 +26,6 @@ type User struct {
 	Salt        string
 }
 
-const randLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"
-const randDigits = "0123456789"
-
 // CreateUser creates new user.
 func CreateUser(user User, users map[string]User) (User, error) {
 	if _, ok := users[user.Login]; ok {
