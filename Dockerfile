@@ -10,7 +10,7 @@ RUN cd backend && go mod download
 
 # 4. Копируем исходный код с сохранением структуры
 COPY backend /quickflow_app/backend
-COPY deploy /quickflow_app
+COPY deploy/config /quickflow_app/deploy/config
 
 # 5. Собираем Go-приложение
 WORKDIR /quickflow_app/backend
