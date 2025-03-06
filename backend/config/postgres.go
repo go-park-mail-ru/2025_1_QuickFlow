@@ -1,36 +1,26 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 )
 
 const (
-	defaultName     string = "quickflow_bd"
-	defaultUserName string = "user"
-	defaultPassword string = "password"
-	defaultPort     int    = 5432
+	defaultDataBaseURL string = "postgresql://user:password@localhost:5432/quickflow_db"
 )
 
 type PostgresConfig struct {
-	dbName   string
-	username string
-	password string
-	dbPort   int
+	dataBaseURL string
 }
 
 func NewPostgresConfig() *PostgresConfig {
 	return &PostgresConfig{
-		dbName:   getEnvWithDefault("DB_NAME", defaultName),
-		username: getEnvWithDefault("DB_USERNAME", defaultUserName),
-		password: getEnvWithDefault("DB_PASSWORD", defaultPassword),
-		dbPort:   getEnvAsInt("DB_PORT", defaultPort),
+		dataBaseURL: getEnvWithDefault("DATABASE_URL", defaultDataBaseURL),
 	}
 }
 
 func (p *PostgresConfig) GetURL() string {
-	return fmt.Sprintf("postgres://%s:%s@localhost:%d/%s", p.username, p.password, p.dbPort, p.dbName)
+	return p.dataBaseURL
 }
 
 func getEnvWithDefault(name string, defaultVal string) string {

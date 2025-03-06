@@ -3,18 +3,16 @@ package main
 import (
 	"log"
 
-	"github.com/joho/godotenv"
-
 	"quickflow/config"
 	"quickflow/internal"
 )
 
-func init() {
-	// loads values from .env into the system
-	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found")
-	}
-}
+//func init() {
+//	// loads values from .env into the system
+//	if err := godotenv.Load(); err != nil {
+//		log.Print("No .env file found")
+//	}
+//}
 
 func main() {
 	cfg, err := config.Parse()
