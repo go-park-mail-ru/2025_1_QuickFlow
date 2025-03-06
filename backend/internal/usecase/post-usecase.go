@@ -20,12 +20,14 @@ type PostService struct {
 	postRepo PostRepository
 }
 
+// NewPostService creates new post service.
 func NewPostService(postRepo PostRepository) *PostService {
 	return &PostService{postRepo: postRepo}
 }
 
 // AddPost adds post to the repository.
 func (p *PostService) AddPost(ctx context.Context, post models.Post) error {
+	post.Id = uuid.New()
 	err := p.postRepo.AddPost(ctx, post)
 	if err != nil {
 		return fmt.Errorf("p.repo.AddPost: %w", err)

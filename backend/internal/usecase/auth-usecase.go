@@ -14,13 +14,13 @@ type UserRepository interface {
 	SaveUser(ctx context.Context, user models.User) (uuid.UUID, error)
 	GetUser(ctx context.Context, authData models.LoginData) (models.User, error)
 	GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error)
-	IsExists(ctx context.Context, login string) bool
+	IsExists(ctx context.Context, login string) (bool, error)
 }
 
 type SessionRepository interface {
 	SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) models.Session
 	LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error)
-	IsExists(ctx context.Context, sessionId uuid.UUID) bool
+	IsExists(ctx context.Context, sessionId uuid.UUID) (bool, error)
 }
 
 type AuthService struct {
@@ -28,6 +28,7 @@ type AuthService struct {
 	sessionRepo SessionRepository
 }
 
+// NewAuthService creates new auth service.
 func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository) *AuthService {
 	return &AuthService{
 		userRepo:    userRepo,
@@ -35,13 +36,19 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository) *Aut
 	}
 }
 
+// CreateUser creates new user.
 func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error) {
 	var err error
 	if user, err = models.CreateUser(user); err != nil {
 		return uuid.Nil, models.Session{}, err
 	}
 
-	if a.userRepo.IsExists(ctx, user.Login) {
+	exists, err := a.userRepo.IsExists(ctx, user.Login)
+	if err != nil {
+		return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.IsExists: %w", err)
+	}
+
+	if exists {
 		return uuid.Nil, models.Session{}, errors.New("user already exists")
 	}
 
@@ -51,7 +58,12 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UU
 	}
 
 	session := models.CreateSession()
-	for a.sessionRepo.IsExists(ctx, session.SessionId) {
+	exists, err = a.sessionRepo.IsExists(ctx, session.SessionId)
+	if err != nil {
+		return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.IsExists: %w", err)
+	}
+
+	if exists {
 		session = models.CreateSession()
 	}
 
@@ -60,6 +72,7 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UU
 	return userId, session, nil
 }
 
+// GetUser checks if user exists and creates session.
 func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
 	user, err := a.userRepo.GetUser(ctx, authData)
 	if err != nil {
@@ -67,7 +80,12 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 	}
 
 	session := models.CreateSession()
-	for a.sessionRepo.IsExists(ctx, session.SessionId) {
+	exists, err := a.sessionRepo.IsExists(ctx, session.SessionId)
+	if err != nil {
+		return models.Session{}, fmt.Errorf("p.repo.IsExists: %w", err)
+	}
+
+	if exists {
 		session = models.CreateSession()
 	}
 

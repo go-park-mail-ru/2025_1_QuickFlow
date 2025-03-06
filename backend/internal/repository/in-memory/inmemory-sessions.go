@@ -45,10 +45,10 @@ func (s *InMemorySessionRepository) LookupUserSession(_ context.Context, session
 	return userId, nil
 }
 
-func (s *InMemorySessionRepository) IsExists(_ context.Context, sessionId uuid.UUID) bool {
+func (s *InMemorySessionRepository) IsExists(_ context.Context, sessionId uuid.UUID) (bool, error) {
 	if _, ok := s.sessions[sessionId]; ok {
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }
