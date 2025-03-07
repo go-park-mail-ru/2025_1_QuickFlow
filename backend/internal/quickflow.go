@@ -33,7 +33,7 @@ func Run(cfg *config.Config) error {
         http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
     })
     r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
-    r.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
+    r.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodPost)
     r.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
     r.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
     r.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
