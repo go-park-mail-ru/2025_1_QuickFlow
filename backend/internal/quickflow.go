@@ -2,18 +2,20 @@ package internal
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
-	"quickflow/internal/delivery/http/middleware"
+
+	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 
 	"quickflow/config"
 	qfhttp "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/middleware"
 	"quickflow/internal/repository/in-memory"
 	"quickflow/internal/repository/postgres_redis"
 	"quickflow/internal/usecase"
 )
 
-func Run(cfg *config.Config) error {
+func Run(cfg *config.Config, corsCfg *cors.Cors) error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
@@ -51,7 +53,7 @@ func Run(cfg *config.Config) error {
 
 	server := http.Server{
 		Addr:         cfg.Addr,
-		Handler:      r,
+		Handler:      corsCfg.Handler(r),
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 	}

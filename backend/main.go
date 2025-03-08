@@ -13,7 +13,12 @@ func main() {
 		log.Fatalf("failed to load QuickFlow configuration: %v", err)
 	}
 
-	if err = internal.Run(cfg); err != nil {
+	corsCfg, err := config.ParseCORS()
+	if err != nil {
+		log.Fatalf("failed to load CORS configuration: %v", err)
+	}
+
+	if err = internal.Run(cfg, corsCfg); err != nil {
 		log.Fatalf("failed to start QuickFlow: %v", err)
 	}
 }
