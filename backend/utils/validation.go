@@ -9,11 +9,13 @@ import (
 	"unicode"
 )
 
-const randLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789_"
+const lowerLetters = "abcdefghijklmnopqrstuvwxyz"
+const upperLetter = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const randDigits = "0123456789"
+const randSpecialSymbols = "/!@#$%^&*(),.?\":{}|<>"
 
 func validateLogin(login string) bool {
-	if len(login) < 1 || len(login) > 20 {
+	if len(login) < 1 || len(login) > 21 {
 		return false
 	}
 
@@ -24,7 +26,7 @@ func validateLogin(login string) bool {
 	}
 
 	for _, ch := range login {
-		if !strings.ContainsRune(randLetters, ch) {
+		if !strings.ContainsRune(lowerLetters, ch) || !strings.ContainsRune(upperLetter, ch) {
 			return false
 		}
 	}
@@ -38,9 +40,16 @@ func validatePassword(password string) bool {
 		return false
 	}
 
+	if strings.ContainsRune(password, ' ') {
+		return false
+	}
+
 	var hasUpper, hasLower, hasSpecial, hasDigit bool
 	for _, char := range password {
 		switch {
+
+		case !strings.ContainsRune(lowerLetters, char) || !strings.ContainsRune(upperLetter, char):
+			return false
 
 		case unicode.IsUpper(char):
 			hasUpper = true
@@ -51,7 +60,7 @@ func validatePassword(password string) bool {
 		case unicode.IsDigit(char):
 			hasDigit = true
 
-		case unicode.IsPunct(char):
+		case strings.ContainsRune(randSpecialSymbols, char):
 			hasSpecial = true
 
 		}
@@ -59,17 +68,6 @@ func validatePassword(password string) bool {
 
 	return hasUpper && hasLower && hasDigit && hasSpecial
 }
-
-//func validatePhone(phone string) bool {
-//	re := regexp.MustCompile("^((\\+7|7|8)+([0-9]){10})$")
-//	return re.MatchString(phone)
-//}
-
-//func validateEmail(email string) bool {
-//	re := regexp.MustCompile("[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9_-]")
-//	return re.MatchString(email)
-//
-//}
 
 func Validate(login string, password string) error {
 	switch {
@@ -103,7 +101,7 @@ func HashPassword(password string, salt string) string {
 func GenSalt() string {
 	res := make([]byte, 10)
 	for i := 0; i < 10; i++ {
-		res[i] = randLetters[rand.Intn(len(randLetters))]
+		res[i] = lowerLetters[rand.Intn(len(lowerLetters))]
 	}
 
 	return string(res)
