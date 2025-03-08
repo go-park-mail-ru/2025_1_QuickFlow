@@ -3,52 +3,27 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"math/rand"
 	"strings"
 	"unicode"
 )
 
-const lowerLetters = "abcdefghijklmnopqrstuvwxyz"
-const upperLetter = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const randLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const randDigits = "0123456789"
-const randSpecialSymbols = "/!@#$%^&*(),.?\":{}|<>"
+const randSpecialSymbols = "_/!@#$%^&*(),.?\":{}|<>"
 
-func validateLogin(login string) bool {
-	if len(login) < 1 || len(login) > 21 {
-		return false
-	}
-
-	for _, digit := range randDigits {
-		if login[1] == byte(digit) {
-			return false
-		}
-	}
-
-	for _, ch := range login {
-		if !strings.ContainsRune(lowerLetters, ch) || !strings.ContainsRune(upperLetter, ch) {
-			return false
-		}
-	}
-
-	return true
-
-}
-
-func validatePassword(password string) bool {
-	if len(password) < 8 || len(password) > 32 {
-		return false
-	}
-
-	if strings.ContainsRune(password, ' ') {
+func basicValidation(str string) bool {
+	if strings.ContainsRune(str, ' ') {
 		return false
 	}
 
 	var hasUpper, hasLower, hasSpecial, hasDigit bool
-	for _, char := range password {
+
+	for _, char := range str {
 		switch {
 
-		case !strings.ContainsRune(lowerLetters, char) || !strings.ContainsRune(upperLetter, char):
+		case !strings.ContainsRune(randLetters, char):
 			return false
 
 		case unicode.IsUpper(char):
@@ -69,14 +44,56 @@ func validatePassword(password string) bool {
 	return hasUpper && hasLower && hasDigit && hasSpecial
 }
 
-func Validate(login string, password string) error {
+func validateLogin(login string) bool {
+	if len(login) < 1 || len(login) > 21 {
+		return false
+	}
+
+	if strings.ContainsRune(randDigits, rune(login[1])) {
+		return false
+	}
+
+	return basicValidation(login)
+}
+
+func validatePassword(password string) bool {
+	if len(password) < 8 || len(password) > 32 {
+		return false
+	}
+
+	return basicValidation(password)
+}
+
+func validateCreds(str string) bool {
+	runeName := []rune(str)
+	if len(runeName) < 2 || len(runeName) > 10 {
+		return false
+	}
+
+	for _, char := range str {
+		if !unicode.IsLetter(char) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func Validate(login string, password string, firstName string, lastName string) error {
 	switch {
 
 	case !validateLogin(login):
-		return fmt.Errorf("invalid login")
+		return errors.New("invalid login")
 
 	case !validatePassword(password):
-		return fmt.Errorf("invalid password")
+		return errors.New("invalid password")
+
+	case !validateCreds(firstName):
+		return errors.New("invalid first name")
+
+	case !validateCreds(lastName):
+		return errors.New("invalid last name")
+
 	}
 
 	return nil
@@ -101,7 +118,7 @@ func HashPassword(password string, salt string) string {
 func GenSalt() string {
 	res := make([]byte, 10)
 	for i := 0; i < 10; i++ {
-		res[i] = lowerLetters[rand.Intn(len(lowerLetters))]
+		res[i] = randLetters[rand.Intn(len(randLetters))]
 	}
 
 	return string(res)
