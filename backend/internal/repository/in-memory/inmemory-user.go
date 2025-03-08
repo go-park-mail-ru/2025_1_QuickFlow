@@ -48,7 +48,7 @@ func (i *InMemoryUserRepository) GetUser(_ context.Context, loginData models.Log
 func (i *InMemoryUserRepository) GetUserByUId(_ context.Context, userId uuid.UUID) (models.User, error) {
 	var user models.User
 
-	for user = range i.users.GetValues() {
+	for _, user = range i.users.GetValues() {
 		if user.Id == userId {
 			return user, nil
 		}

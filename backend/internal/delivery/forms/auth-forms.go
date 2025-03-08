@@ -3,15 +3,15 @@ package forms
 import "quickflow/internal/models"
 
 type SignUpForm struct {
-	Login       string     `json:"login"`
+	Login       string     `json:"username"`
 	Password    string     `json:"password"`
-	Name        string     `json:"name"`
-	Surname     string     `json:"surname"`
+	Name        string     `json:"firstname"`
+	Surname     string     `json:"lastname"`
 	Sex         models.Sex `json:"sex"`
-	DateOfBirth string     `json:"date_of_birth"`
+	DateOfBirth string     `json:"birth_date"`
 }
 
 type AuthForm struct {
-	Login    string `json:"login"`
+	Login    string `json:"username"`
 	Password string `json:"password"`
 }
