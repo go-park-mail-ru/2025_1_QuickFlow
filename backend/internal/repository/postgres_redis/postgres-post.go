@@ -78,14 +78,14 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 	}
 	defer dbPool.Close()
 
-	rows, err := dbPool.Query(ctx, "select * from posts where created_at < $1", timestamp)
+	rows, err := dbPool.Query(ctx, "select * from posts where created_at < $1 order by created_at limit $2", timestamp, numPosts)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get posts from database: %w", err)
 	}
 	defer rows.Close()
 
 	var result []models.Post
-	for rows.Next() && len(result) <= numPosts {
+	for rows.Next() {
 		var postPostgres postgres_models.PostPostgres
 		err = rows.Scan(
 			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,

@@ -3,13 +3,11 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
-
+	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 )
@@ -24,6 +22,7 @@ type FeedHandler struct {
 	authUseCase AuthUseCase
 }
 
+// NewFeedHandler creates new feed handler.
 func NewFeedHandler(postUseCase PostUseCase, authUseCase AuthUseCase) *FeedHandler {
 	return &FeedHandler{
 		postUseCase: postUseCase,
@@ -33,31 +32,16 @@ func NewFeedHandler(postUseCase PostUseCase, authUseCase AuthUseCase) *FeedHandl
 
 // AddPost adds post to the feed.
 func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		http.Error(w, "Invalid content type", http.StatusUnsupportedMediaType)
+	// extracting user from context
+	user, ok := r.Context().Value("user").(models.User)
+	if !ok {
+		http.Error(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
 
-	session, err := r.Cookie("session")
-	if errors.Is(err, http.ErrNoCookie) {
-		http.Error(w, "Authorization needed", http.StatusUnauthorized)
-		return
-	}
-
-	sessionUuid, err := uuid.Parse(session.Value)
-	if err != nil {
-		http.Error(w, "Failed to parse session", http.StatusBadRequest)
-		return
-	}
-
-	user, err := f.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid})
-	if err != nil {
-		http.Error(w, "Failed to authorize user", http.StatusUnauthorized)
-		return
-	}
+	// parsing JSON
 	var postForm forms.PostForm
-
-	err = json.NewDecoder(r.Body).Decode(&postForm)
+	err := json.NewDecoder(r.Body).Decode(&postForm)
 	if err != nil {
 		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
 		return
@@ -80,37 +64,22 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 
 // GetFeed returns feed for user using JSON format
 func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
-	session, err := r.Cookie("session")
-	if errors.Is(err, http.ErrNoCookie) {
-		http.Error(w, "Authorization needed", http.StatusUnauthorized)
+	// extracting user from context
+	user, ok := r.Context().Value("user").(models.User)
+	if !ok {
+		http.Error(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
 
-	sessionUuid, err := uuid.Parse(session.Value)
-	if err != nil {
-		http.Error(w, "Failed to parse session", http.StatusBadRequest)
-		return
-	}
-
-	user, err := f.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid, ExpireDate: session.Expires})
-	if err != nil {
-		http.Error(w, "Failed to authorize user", http.StatusUnauthorized)
-		return
-	}
-
+	// parsing JSON
 	var feedForm forms.FeedForm
-
-	err = json.NewDecoder(r.Body).Decode(&feedForm)
+	err := json.NewDecoder(r.Body).Decode(&feedForm)
 	if err != nil {
 		http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
 		return
 	}
 
-	// TODO: move to config
-	const layout = "2006-01-02 15:04:05"
-
-	// TODO: confirm layout with frontend
-	ts, err := time.Parse(layout, feedForm.Ts)
+	ts, err := time.Parse(config.TimeStampLayout, feedForm.Ts)
 	if err != nil {
 		ts = time.Now()
 	}

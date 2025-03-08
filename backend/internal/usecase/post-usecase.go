@@ -40,7 +40,7 @@ func (p *PostService) AddPost(ctx context.Context, post models.Post) error {
 func (p *PostService) DeletePost(ctx context.Context, postId uuid.UUID) error {
 	err := p.postRepo.DeletePost(ctx, postId)
 	if err != nil {
-		return fmt.Errorf("p.repo.AddPost: %w", err)
+		return fmt.Errorf("p.repo.DeletePost: %w", err)
 	}
 
 	return nil

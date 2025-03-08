@@ -3,7 +3,7 @@ package in_memory
 import (
 	"context"
 	"errors"
-	"sync"
+	tsmap "quickflow/pkg/thread-safe-map"
 
 	"github.com/google/uuid"
 
@@ -11,33 +11,27 @@ import (
 )
 
 type InMemorySessionRepository struct {
-	mu       sync.RWMutex
-	sessions map[uuid.UUID]uuid.UUID // sessionId -> userId
+	sessions tsmap.ThreadSafeMap[uuid.UUID, uuid.UUID] // sessionId -> userId
 }
 
 // NewInMemorySessionRepository creates new storage instance.
 func NewInMemorySessionRepository() *InMemorySessionRepository {
 	return &InMemorySessionRepository{
-		sessions: make(map[uuid.UUID]uuid.UUID),
+		sessions: *tsmap.NewThreadSafeMap[uuid.UUID, uuid.UUID](),
 	}
 }
 
 // SaveSession creates new session for user.
 func (s *InMemorySessionRepository) SaveSession(_ context.Context, userId uuid.UUID, session models.Session) models.Session {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
-	s.sessions[session.SessionId] = userId
-
+	s.sessions.Set(session.SessionId, userId)
 	return session
 }
 
 // LookupUserSession returns user by session.
 func (s *InMemorySessionRepository) LookupUserSession(_ context.Context, session models.Session) (uuid.UUID, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 
-	userId, found := s.sessions[session.SessionId]
+	userId, found := s.sessions.Get(session.SessionId)
 	if !found {
 		return uuid.Nil, errors.New("session not found")
 	}
@@ -46,7 +40,7 @@ func (s *InMemorySessionRepository) LookupUserSession(_ context.Context, session
 }
 
 func (s *InMemorySessionRepository) IsExists(_ context.Context, sessionId uuid.UUID) (bool, error) {
-	if _, ok := s.sessions[sessionId]; ok {
+	if _, ok := s.sessions.Get(sessionId); ok {
 		return true, nil
 	}
 

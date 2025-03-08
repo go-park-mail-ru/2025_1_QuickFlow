@@ -1,6 +1,7 @@
 package postgres_models
 
 import (
+	"quickflow/config"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -43,8 +44,7 @@ func convertStringToPostgresText(s string) pgtype.Text {
 // ConvertUserToPostgres converts models.User to UserPostgres.
 func ConvertUserToPostgres(u models.User) UserPostgres {
 	var dob pgtype.Date
-	// TODO: approve with frontend the layout of date
-	t, err := time.Parse("2006-01-02", u.DateOfBirth)
+	t, err := time.Parse(config.DateLayout, u.DateOfBirth)
 	if err == nil {
 		dob = pgtype.Date{Time: t, Valid: true}
 	} else {

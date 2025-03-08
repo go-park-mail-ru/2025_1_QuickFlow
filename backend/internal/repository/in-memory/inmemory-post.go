@@ -1,69 +1,59 @@
 package in_memory
 
 import (
-	"context"
-	"errors"
-	"sync"
-	"time"
+    "context"
+    "errors"
+    "slices"
+    "time"
 
-	"github.com/google/uuid"
+    "github.com/google/uuid"
 
-	"quickflow/internal/models"
+    "quickflow/internal/models"
+    tsslice "quickflow/pkg/thread-safe-slice"
 )
 
 type InMemoryPostRepository struct {
-	mu    sync.RWMutex
-	posts []models.Post
+    posts *tsslice.ThreadSafeSlice[models.Post]
 }
 
+// NewInMemoryPostRepository creates new storage instance.
 func NewInMemoryPostRepository() *InMemoryPostRepository {
-	return &InMemoryPostRepository{
-		posts: make([]models.Post, 0),
-	}
+    return &InMemoryPostRepository{
+        posts: tsslice.NewThreadSafeSlice[models.Post](),
+    }
 }
 
+// AddPost adds post to the repository.
 func (r *InMemoryPostRepository) AddPost(ctx context.Context, post models.Post) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.posts = append(r.posts, post)
-
-	return nil
+    r.posts.Add(post)
+    return nil
 }
 
+// DeletePost removes post from the repository.
 func (r *InMemoryPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for idx, post := range r.posts {
-		if post.Id == postId {
-			r.posts = append(r.posts[:idx], r.posts[idx+1:]...)
-			return nil
-		}
-	}
-
-	return errors.New("post not found")
+    return r.posts.DeleteIf(func(post models.Post) bool {
+        return post.Id == postId
+    })
 }
 
+// GetPostsForUId returns posts for user.
 func (r *InMemoryPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+    posts := r.posts.Filter(func(post models.Post) bool {
+        return post.CreatedAt.Before(timestamp)
+    }, numPosts)
 
-	var result []models.Post
-	for _, post := range r.posts {
-		if len(result) == numPosts {
-			break
-		}
+    if len(posts) == 0 {
+        return nil, errors.New("no posts found for user")
+    }
 
-		// TODO: Пока выводим все посты, что есть
-		if post.CreatedAt.Before(timestamp) {
-			result = append(result, post)
-		}
-	}
-
-	if len(result) == 0 {
-		return nil, errors.New("no posts found for user")
-	}
-
-	return result, nil
+    slices.SortFunc(posts, func(p1, p2 models.Post) int {
+        if p1.CreatedAt.Before(p2.CreatedAt) {
+            return 1
+        }
+        if p1.CreatedAt.After(p2.CreatedAt) {
+            return -1
+        }
+        return 0
+    })
+    return posts, nil
 }

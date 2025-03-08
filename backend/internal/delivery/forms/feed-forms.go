@@ -1,6 +1,9 @@
 package forms
 
-import "quickflow/internal/models"
+import (
+	"quickflow/config"
+	"quickflow/internal/models"
+)
 
 type PostForm struct {
 	Desc string   `json:"text"`
@@ -28,7 +31,7 @@ func (p *PostOut) FromPost(post models.Post) {
 	p.CreatorId = post.CreatorId.String()
 	p.Desc = post.Desc
 	p.Pics = post.Pics
-	p.CreatedAt = post.CreatedAt.Format("2006-01-02 15:04:05")
+	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount

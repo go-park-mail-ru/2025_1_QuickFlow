@@ -3,42 +3,34 @@ package in_memory
 import (
 	"context"
 	"errors"
-	"sync"
-
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
+	tsmap "quickflow/pkg/thread-safe-map"
 	"quickflow/utils"
 )
 
 type InMemoryUserRepository struct {
-	mu    sync.RWMutex
-	users map[string]models.User
+	users tsmap.ThreadSafeMap[string, models.User]
 }
 
 // NewInMemoryUserRepository creates new storage instance.
 func NewInMemoryUserRepository() *InMemoryUserRepository {
 	return &InMemoryUserRepository{
-		users: make(map[string]models.User),
+		users: *tsmap.NewThreadSafeMap[string, models.User](),
 	}
 }
 
 // SaveUser saves user to the repository.
 func (i *InMemoryUserRepository) SaveUser(_ context.Context, user models.User) (uuid.UUID, error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	i.users[user.Login] = user
+	i.users.Set(user.Login, user)
 
 	return user.Id, nil
 }
 
 // GetUser returns user by login and password.
 func (i *InMemoryUserRepository) GetUser(_ context.Context, loginData models.LoginData) (models.User, error) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	user, exists := i.users[loginData.Login]
+	user, exists := i.users.Get(loginData.Login)
 
 	switch {
 
@@ -54,10 +46,9 @@ func (i *InMemoryUserRepository) GetUser(_ context.Context, loginData models.Log
 
 // GetUserByUId returns user by id.
 func (i *InMemoryUserRepository) GetUserByUId(_ context.Context, userId uuid.UUID) (models.User, error) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+	var user models.User
 
-	for _, user := range i.users {
+	for user = range i.users.GetValues() {
 		if user.Id == userId {
 			return user, nil
 		}
@@ -67,7 +58,7 @@ func (i *InMemoryUserRepository) GetUserByUId(_ context.Context, userId uuid.UUI
 }
 
 func (i *InMemoryUserRepository) IsExists(_ context.Context, login string) bool {
-	if _, exists := i.users[login]; exists {
+	if _, exists := i.users.Get(login); exists {
 		return true
 	}
 
