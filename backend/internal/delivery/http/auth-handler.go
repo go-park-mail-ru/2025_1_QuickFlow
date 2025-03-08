@@ -55,7 +55,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validation
-	if err := utils.Validate(user.Login, user.Password); err != nil {
+	if err := utils.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
