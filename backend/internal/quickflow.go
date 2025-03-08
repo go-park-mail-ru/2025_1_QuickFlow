@@ -13,10 +13,6 @@ import (
 	"quickflow/internal/usecase"
 )
 
-func WithMiddleware(h http.HandlerFunc, m func(http.Handler) http.Handler) http.Handler {
-	return m(h)
-}
-
 func Run(cfg *config.Config) error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
