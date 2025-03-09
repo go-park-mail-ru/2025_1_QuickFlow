@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+
+	httpUtils "quickflow/utils/http"
 )
 
 func ContentTypeMiddleware(allowedTypes ...string) mux.MiddlewareFunc {
@@ -17,7 +19,7 @@ func ContentTypeMiddleware(allowedTypes ...string) mux.MiddlewareFunc {
 					return
 				}
 			}
-			http.Error(w, "Unsupported Content-Type", http.StatusUnsupportedMediaType)
+			httpUtils.WriteJSONError(w, "Unsupported Content-Type", http.StatusUnsupportedMediaType)
 		})
 	}
 }

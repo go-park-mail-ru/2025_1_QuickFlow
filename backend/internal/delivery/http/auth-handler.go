@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
+	http2 "quickflow/utils/http"
 
 	"github.com/google/uuid"
 
@@ -18,7 +18,6 @@ type AuthUseCase interface {
 	CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error)
 	GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
 	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
-	DeleteUserSession(ctx context.Context, session string) error
 }
 
 type AuthHandler struct {
@@ -43,7 +42,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var form forms.SignUpForm
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -59,7 +58,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// validation
 	if err := utils.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -67,7 +66,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	id, session, err := a.authUseCase.CreateUser(r.Context(), user)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusConflict)
+		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
 		return
 	}
 
@@ -92,7 +91,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var form forms.AuthForm
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -105,7 +104,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// process data
 	session, err := a.authUseCase.GetUser(r.Context(), loginData)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http2.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -116,34 +115,5 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 	})
-}
 
-func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		log.Println("zdes")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	cookieUUID, err := uuid.Parse(cookie.Value)
-	if err != nil {
-		log.Println("tut")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	}
-
-	if _, err = a.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: cookieUUID}); err == nil {
-		log.Println("kuku")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	}
-
-	if err = a.authUseCase.DeleteUserSession(r.Context(), cookie.Value); err != nil {
-		log.Println("polychetsya ades")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	}
-
-	cookie.Expires = time.Now().AddDate(0, 0, -1)
-	http.SetCookie(w, cookie)
-
-	json.NewEncoder(w).Encode("удалили кайф")
 }

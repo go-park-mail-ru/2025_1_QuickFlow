@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	httpUtils "quickflow/utils/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -18,21 +19,21 @@ func SessionMiddleware(authUseCase *usecase.AuthService) mux.MiddlewareFunc {
 			// Check if session exists
 			session, err := r.Cookie("session")
 			if errors.Is(err, http.ErrNoCookie) {
-				http.Error(w, "Authorization needed", http.StatusUnauthorized)
+				httpUtils.WriteJSONError(w, "Authorization needed", http.StatusUnauthorized)
 				return
 			}
 
 			// parse session
 			sessionUuid, err := uuid.Parse(session.Value)
 			if err != nil {
-				http.Error(w, "Failed to parse session", http.StatusBadRequest)
+				httpUtils.WriteJSONError(w, "Failed to parse session", http.StatusBadRequest)
 				return
 			}
 
 			// lookup user by session
 			user, err := authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid})
 			if err != nil {
-				http.Error(w, "Failed to authorize user", http.StatusUnauthorized)
+				httpUtils.WriteJSONError(w, "Failed to authorize user", http.StatusUnauthorized)
 				return
 			}
 
