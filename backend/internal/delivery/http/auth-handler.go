@@ -41,7 +41,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var form forms.SignUpForm
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// validation
 	if err := utils.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	id, session, err := a.authUseCase.CreateUser(r.Context(), user)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusConflict)
+		WriteJSONError(w, err.Error(), http.StatusConflict)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var form forms.AuthForm
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// process data
 	session, err := a.authUseCase.GetUser(r.Context(), loginData)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
