@@ -1,5 +1,5 @@
 
-allowed_origins = ["https://quickflowapp.ru"]
+allowed_origins = ["https://www.quickflowapp.ru"]
 allowed_methos = ["GET", "POST"]
 allowed_headers = ["Cookie", "Content-Type"]
 exposed_headers = ["Content-Type"]
