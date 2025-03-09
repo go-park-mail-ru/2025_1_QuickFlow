@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	http2 "quickflow/utils/http"
 
 	"github.com/google/uuid"
 
@@ -41,7 +42,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var form forms.SignUpForm
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -57,7 +58,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// validation
 	if err := utils.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
-		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -65,7 +66,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	id, session, err := a.authUseCase.CreateUser(r.Context(), user)
 	if err != nil {
 		log.Println(err.Error())
-		WriteJSONError(w, err.Error(), http.StatusConflict)
+		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
 		return
 	}
 
@@ -90,7 +91,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var form forms.AuthForm
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -103,7 +104,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// process data
 	session, err := a.authUseCase.GetUser(r.Context(), loginData)
 	if err != nil {
-		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		http2.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

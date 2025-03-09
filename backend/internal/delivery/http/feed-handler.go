@@ -10,6 +10,7 @@ import (
     "quickflow/config"
     "quickflow/internal/delivery/forms"
     "quickflow/internal/models"
+    http2 "quickflow/utils/http"
 )
 
 type PostUseCase interface {
@@ -35,7 +36,7 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
     // extracting user from context
     user, ok := r.Context().Value("user").(models.User)
     if !ok {
-        WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+        http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
         return
     }
 
@@ -43,7 +44,7 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
     var postForm forms.PostForm
     err := json.NewDecoder(r.Body).Decode(&postForm)
     if err != nil {
-        WriteJSONError(w, "Failed to parse JSON", http.StatusBadRequest)
+        http2.WriteJSONError(w, "Failed to parse JSON", http.StatusBadRequest)
         return
     }
 
@@ -56,7 +57,7 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 
     err = f.postUseCase.AddPost(r.Context(), post)
     if err != nil {
-        WriteJSONError(w, "Failed to add post", http.StatusInternalServerError)
+        http2.WriteJSONError(w, "Failed to add post", http.StatusInternalServerError)
         return
     }
     log.Printf("Post added: %v\n", post)
@@ -67,7 +68,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
     // extracting user from context
     user, ok := r.Context().Value("user").(models.User)
     if !ok {
-        WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+        http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
         return
     }
 
@@ -75,7 +76,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
     var feedForm forms.FeedForm
     err := json.NewDecoder(r.Body).Decode(&feedForm)
     if err != nil {
-        WriteJSONError(w, "Failed to parse JSON", http.StatusBadRequest)
+        http2.WriteJSONError(w, "Failed to parse JSON", http.StatusBadRequest)
         return
     }
 
@@ -86,7 +87,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 
     posts, err := f.postUseCase.FetchFeed(r.Context(), user, feedForm.Posts, ts)
     if err != nil {
-        WriteJSONError(w, "Failed to load feed", http.StatusInternalServerError)
+        http2.WriteJSONError(w, "Failed to load feed", http.StatusInternalServerError)
         return
     }
 
@@ -100,7 +101,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     err = json.NewEncoder(w).Encode(postsOut)
     if err != nil {
-        WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
+        http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
         return
     }
 }
