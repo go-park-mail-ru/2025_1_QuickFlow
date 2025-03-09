@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 
@@ -21,6 +22,7 @@ type SessionRepository interface {
 	SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) error
 	LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error)
 	IsExists(ctx context.Context, sessionId uuid.UUID) (bool, error)
+	DeleteSession(ctx context.Context, sessionId string) error
 }
 
 type AuthService struct {
@@ -98,13 +100,19 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 func (a *AuthService) LookupUserSession(ctx context.Context, session models.Session) (models.User, error) {
 	userID, err := a.sessionRepo.LookupUserSession(ctx, session)
 	if err != nil {
+		log.Println("ошибка тут")
 		return models.User{}, fmt.Errorf("p.repo.LookupUserSession: %w", err)
 	}
 
 	user, err := a.userRepo.GetUserByUId(ctx, userID)
 	if err != nil {
+		log.Println("ошибка тут не получили айди")
 		return models.User{}, fmt.Errorf("p.repo.GetUserByUId: %w", err)
 	}
 
 	return user, nil
+}
+
+func (a *AuthService) DeleteUserSession(ctx context.Context, sessionId string) error {
+	return a.sessionRepo.DeleteSession(ctx, sessionId)
 }

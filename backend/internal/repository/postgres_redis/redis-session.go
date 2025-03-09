@@ -27,7 +27,7 @@ func (r *RedisSessionRepository) SaveSession(ctx context.Context, userId uuid.UU
 
 	defer rdb.Close()
 
-	if err := rdb.Set(ctx, session.SessionId.String(), userId, time.Until(session.ExpireDate)).Err(); err != nil {
+	if err := rdb.Set(ctx, session.SessionId.String(), userId.String(), time.Until(session.ExpireDate)).Err(); err != nil {
 		return fmt.Errorf("saving session error: %w", err)
 	}
 
@@ -74,5 +74,18 @@ func (r *RedisSessionRepository) IsExists(ctx context.Context, session uuid.UUID
 	default:
 		return true, nil
 	}
+}
 
+func (r *RedisSessionRepository) DeleteSession(ctx context.Context, session string) error {
+	rdb := redis.NewClient(&redis.Options{
+		Addr: config.NewRedisConfig().GetURL(),
+	})
+
+	defer rdb.Close()
+
+	if err := rdb.Del(ctx, session).Err(); err != nil {
+		return fmt.Errorf("unable to delete session: %w", err)
+	}
+
+	return nil
 }
