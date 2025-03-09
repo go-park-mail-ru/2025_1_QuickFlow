@@ -1,51 +1,54 @@
 package middleware
 
 import (
-	"log"
-	"net/http"
-	"quickflow/config"
-	"strings"
+    "log"
+    "net/http"
+    "quickflow/config"
+    "strings"
 )
 
 // CORSMiddleware adds CORS headers to the response.
 func CORSMiddleware(config config.CORSConfig) func(http.Handler) http.Handler {
-	allowedOrigins := strings.Join(config.AllowedOrigins, ", ")
-	allowedMethods := strings.Join(config.AllowedMethods, ", ")
-	allowedHeaders := strings.Join(config.AllowedHeaders, ", ")
-	exposedHeaders := strings.Join(config.ExposedHeaders, ", ")
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            origin := r.Header.Get("Origin")
 
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// setting CORS headers
-			w.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
-			w.Header().Set("Access-Control-Allow-Methods", allowedMethods)
-			w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
+            // Проверяем, входит ли Origin в список разрешенных
+            allowed := false
+            for _, o := range config.AllowedOrigins {
+                if o == origin {
+                    allowed = true
+                    break
+                }
+            }
 
-			// Exposing headers
-			if exposedHeaders != "" {
-				w.Header().Set("Access-Control-Expose-Headers", exposedHeaders)
-			}
+            if allowed {
+                w.Header().Set("Access-Control-Allow-Origin", origin)
+                w.Header().Set("Vary", "Origin") // Важно для кэширования CORS
+            }
 
-			// Enabling credentials if allowed
-			if config.AllowCredentials {
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-			}
+            w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
+            w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
 
-			if config.Debug {
-				log.Printf("CORS debug: %s %s", r.Method, r.URL.Path)
-			}
+            if len(config.ExposedHeaders) > 0 {
+                w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
+            }
 
-			// Handling preflight requests
-			if r.Method == http.MethodOptions {
-				if config.OptionsPassthrough {
-					next.ServeHTTP(w, r)
-				} else {
-					w.WriteHeader(http.StatusNoContent)
-				}
-				return
-			}
+            if config.AllowCredentials {
+                w.Header().Set("Access-Control-Allow-Credentials", "true")
+            }
 
-			next.ServeHTTP(w, r)
-		})
-	}
+            if config.Debug {
+                log.Printf("CORS Debug: %s %s - Origin: %s", r.Method, r.URL.Path, origin)
+            }
+
+            // Preflight-запрос (OPTIONS)
+            if r.Method == http.MethodOptions {
+                w.WriteHeader(http.StatusNoContent)
+                return
+            }
+
+            next.ServeHTTP(w, r)
+        })
+    }
 }
