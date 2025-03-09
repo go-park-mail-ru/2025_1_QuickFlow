@@ -18,7 +18,7 @@ type UserRepository interface {
 }
 
 type SessionRepository interface {
-	SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) models.Session
+	SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) error
 	LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error)
 	IsExists(ctx context.Context, sessionId uuid.UUID) (bool, error)
 }
