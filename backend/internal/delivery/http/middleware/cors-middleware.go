@@ -2,9 +2,8 @@ package middleware
 
 import (
 	"net/http"
-	"strings"
-
 	"quickflow/config"
+	"strings"
 )
 
 // CORSMiddleware adds CORS headers to the response.
@@ -18,13 +17,15 @@ func CORSMiddleware(config config.CORSConfig) func(http.Handler) http.Handler {
 				"https://www.quickflowapp.ru": true,
 			}
 
-			// Если origin разрешен, добавляем заголовок
-			if allowedOrigins[origin] {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Vary", "Origin")
-				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
-				w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
+			// Проверяем, не установлен ли уже CORS-заголовок
+			if _, exists := w.Header()["Access-Control-Allow-Origin"]; !exists {
+				if allowedOrigins[origin] {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Set("Vary", "Origin")
+					w.Header().Set("Access-Control-Allow-Credentials", "true")
+					w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
+					w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
+				}
 			}
 
 			// Если OPTIONS-запрос, отвечаем 204
