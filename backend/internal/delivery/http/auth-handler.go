@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	http2 "quickflow/utils/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -18,6 +19,7 @@ type AuthUseCase interface {
 	CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error)
 	GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
 	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
+	DeleteUserSession(ctx context.Context, session string) error
 }
 
 type AuthHandler struct {
@@ -115,5 +117,28 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 	})
+}
 
+func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	cookieUUID, err := uuid.Parse(cookie.Value)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	}
+
+	if _, err = a.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: cookieUUID}); err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	}
+
+	if err = a.authUseCase.DeleteUserSession(r.Context(), cookie.Value); err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	}
+
+	cookie.Expires = time.Now().AddDate(0, 0, -1)
+	http.SetCookie(w, cookie)
 }

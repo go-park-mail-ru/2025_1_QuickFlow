@@ -49,7 +49,7 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 
 	apiRouter.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
 	apiRouter.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
-	//apiRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
 
 	// Subrouter for protected routes
 	protected := apiRouter.PathPrefix("/").Subrouter()
