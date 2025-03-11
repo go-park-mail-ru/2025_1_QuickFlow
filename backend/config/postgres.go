@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"strconv"
 )
 
 const (
@@ -29,14 +28,4 @@ func getEnvWithDefault(name string, defaultVal string) string {
 	}
 
 	return defaultVal
-}
-
-func getEnvAsInt(name string, defaultVal int) int {
-	numString := os.Getenv(name)
-	num, err := strconv.Atoi(numString)
-	if err != nil {
-		return defaultVal
-	}
-
-	return num
 }
