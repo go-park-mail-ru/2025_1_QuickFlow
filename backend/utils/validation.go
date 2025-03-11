@@ -12,6 +12,7 @@ import (
 const (
 	randSpecialSymbols = "_/!@#$%^&*(),.?\":{}|<>"
 	acceptableSymbols  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/!@#$%^&*(),.?\":{}|<>"
+	acceptableLogin    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._"
 )
 
 func validateLogin(login string) bool {
@@ -22,15 +23,15 @@ func validateLogin(login string) bool {
 	case strings.ContainsRune(login, ' '):
 		return false
 
-	case unicode.IsDigit(rune(login[0])):
+	case rune(login[0]) == '.':
 		return false
 
-	case strings.ContainsRune(randSpecialSymbols, rune(login[1])):
+	case rune(login[0]) == '_':
 		return false
 	}
 
 	for _, char := range login {
-		if !strings.ContainsRune(acceptableSymbols, char) {
+		if !strings.ContainsRune(acceptableLogin, char) {
 			return false
 		}
 	}
@@ -66,23 +67,38 @@ func validatePassword(password string) bool {
 
 		case strings.ContainsRune(randSpecialSymbols, char):
 			hasSpecial = true
-
 		}
 	}
 
 	return hasUpper && hasLower && hasDigit && hasSpecial
-
 }
 
 func validateCreds(str string) bool {
 	runeName := []rune(str)
-	if len(runeName) < 2 || len(runeName) > 10 {
+	if len(runeName) < 2 || len(runeName) > 25 {
 		return false
 	}
 
-	for _, char := range str {
-		if !unicode.IsLetter(char) {
-			return false
+	if runeName[len(runeName)-1] == '-' || runeName[0] == '-' {
+		return false
+	}
+
+	underline := strings.Count(str, "_")
+	if underline > 1 {
+		return false
+	}
+
+	splitedStr := strings.Split(str, "-")
+
+	if len(splitedStr) > 2 {
+		return false
+	}
+
+	for _, chunk := range splitedStr {
+		for _, char := range chunk {
+			if !unicode.IsLetter(char) {
+				return false
+			}
 		}
 	}
 
