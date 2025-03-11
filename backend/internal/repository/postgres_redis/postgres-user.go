@@ -10,9 +10,26 @@ import (
 
 	"quickflow/config"
 	"quickflow/internal/models"
-	"quickflow/internal/repository/postgres_redis/postgres-models"
+	pgmodels "quickflow/internal/repository/postgres_redis/postgres-models"
 	"quickflow/utils"
 )
+
+const insertUserQuery = `
+	insert into users (uuid, login, name, surname, sex, birth_date, psw_hash, salt)
+	values ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+const getUserByLogin = `
+	select uuid, name, surname, sex, birth_date, psw_hash, salt
+	from users 
+	where login = $1
+`
+
+const getUserByUIdQuery = `
+	select uuid, name, surname, sex, birth_date, psw_hash, salt 
+	from users
+	where uuid = $1
+`
 
 type PostgresUserRepository struct {
 }
@@ -28,8 +45,7 @@ func (i *PostgresUserRepository) IsExists(ctx context.Context, login string) (bo
 
 	var id int64
 
-	err = conn.QueryRow(ctx, "select id from users where login = $1",
-		login).Scan(&id)
+	err = conn.QueryRow(ctx, "select id from users where login = $1", login).Scan(&id)
 	if err != nil {
 		return false, nil
 	}
@@ -50,12 +66,9 @@ func (i *PostgresUserRepository) SaveUser(ctx context.Context, user models.User)
 	}
 	defer conn.Close(ctx)
 
-	userPostgres := postgres_models.ConvertUserToPostgres(user)
+	userPostgres := pgmodels.ConvertUserToPostgres(user)
 
-	_, err = conn.Exec(ctx,
-		"insert into users "+
-			"(uuid, login, name, surname, sex, birth_date, psw_hash, salt) values "+
-			"($1, $2, $3, $4, $5, $6, $7, $8)",
+	_, err = conn.Exec(ctx, insertUserQuery,
 		userPostgres.Id, userPostgres.Login, userPostgres.Name,
 		userPostgres.Surname, userPostgres.Sex, userPostgres.DateOfBirth,
 		userPostgres.Password, userPostgres.Salt,
@@ -75,13 +88,10 @@ func (i *PostgresUserRepository) GetUser(ctx context.Context, loginData models.L
 	}
 	defer conn.Close(ctx)
 
-	var userPostgres postgres_models.UserPostgres
+	var userPostgres pgmodels.UserPostgres
 
-	err = conn.QueryRow(ctx,
-		"select uuid, name, surname, sex, birth_date, psw_hash, salt "+
-			"from users "+
-			"where login = $1",
-		loginData.Login).Scan(&userPostgres.Id, &userPostgres.Name,
+	err = conn.QueryRow(ctx, getUserByLogin, loginData.Login).Scan(
+		&userPostgres.Id, &userPostgres.Name,
 		&userPostgres.Surname, &userPostgres.Sex,
 		&userPostgres.DateOfBirth, &userPostgres.Password, &userPostgres.Salt)
 	if err != nil {
@@ -103,12 +113,9 @@ func (i *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 	}
 	defer conn.Close(ctx)
 
-	var userPostgres postgres_models.UserPostgres
+	var userPostgres pgmodels.UserPostgres
 
-	err = conn.QueryRow(ctx,
-		"select uuid, name, surname, sex, birth_date, psw_hash, salt "+
-			"from users "+
-			"where uuid = $1",
+	err = conn.QueryRow(ctx, getUserByUIdQuery,
 		userId).Scan(&userPostgres.Id, &userPostgres.Name,
 		&userPostgres.Surname, &userPostgres.Sex,
 		&userPostgres.DateOfBirth, &userPostgres.Password, &userPostgres.Salt)

@@ -35,7 +35,7 @@ func (u *UserPostgres) ConvertToUser() models.User {
 }
 
 func convertStringToPostgresText(s string) pgtype.Text {
-	if s == "" {
+	if len(s) == 0 {
 		return pgtype.Text{Valid: false}
 	}
 	return pgtype.Text{String: s, Valid: true}
@@ -45,11 +45,7 @@ func convertStringToPostgresText(s string) pgtype.Text {
 func ConvertUserToPostgres(u models.User) UserPostgres {
 	var dob pgtype.Date
 	t, err := time.Parse(config.DateLayout, u.DateOfBirth)
-	if err == nil {
-		dob = pgtype.Date{Time: t, Valid: true}
-	} else {
-		dob = pgtype.Date{Valid: false} // NULL
-	}
+	dob = pgtype.Date{Time: t, Valid: err != nil}
 
 	return UserPostgres{
 		Id:          pgtype.UUID{Bytes: u.Id, Valid: true},

@@ -13,8 +13,32 @@ import (
 
 	"quickflow/config"
 	"quickflow/internal/models"
-	"quickflow/internal/repository/postgres_redis/postgres-models"
+	pgmodels "quickflow/internal/repository/postgres_redis/postgres-models"
 )
+
+const getPhotosQuery = `
+	select photo_path
+	from post_photos
+	where post_id = $1
+`
+
+const getOlderPostsLimitQuery = `
+	select * 
+	from posts 
+	where created_at < $1 
+	order by created_at 
+	limit $2
+`
+
+const insertPostQuery = `
+	insert into posts (id, creator_id, desc, created_at, like_count, repost_count, comment_count)
+	values ($1, $2, $3, $4, $5, $6, $7)
+`
+
+const insertPhotoQuery = `
+	insert into post_photos (post_id, photo_path)
+	values ($1, $2)
+`
 
 type PostgresPostRepository struct {
 }
@@ -31,11 +55,9 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 	}
 	defer conn.Close(ctx)
 
-	postPostgres := postgres_models.ConvertPostToPostgres(post)
+	postPostgres := pgmodels.ConvertPostToPostgres(post)
 
-	_, err = conn.Exec(ctx,
-		"insert into posts "+
-			"values ($1, $2, $3, $4, $5, $6, $7)",
+	_, err = conn.Exec(ctx, insertPostQuery,
 		postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
 		postPostgres.CreatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
 		postPostgres.CommentCount)
@@ -44,7 +66,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 	}
 
 	for _, picture := range postPostgres.Pics {
-		_, err = conn.Exec(ctx, "insert into post_photos (post_id, photo_path) values ($1, $2)",
+		_, err = conn.Exec(ctx, insertPhotoQuery,
 			postPostgres.Id, picture)
 		if err != nil {
 			return fmt.Errorf("unable to save user to database: %w", err)
@@ -78,7 +100,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 	}
 	defer dbPool.Close()
 
-	rows, err := dbPool.Query(ctx, "select * from posts where created_at < $1 order by created_at limit $2", timestamp, numPosts)
+	rows, err := dbPool.Query(ctx, getOlderPostsLimitQuery, timestamp, numPosts)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get posts from database: %w", err)
 	}
@@ -86,7 +108,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 
 	var result []models.Post
 	for rows.Next() {
-		var postPostgres postgres_models.PostPostgres
+		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
 			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
 			&postPostgres.CreatedAt, &postPostgres.LikeCount,
@@ -95,10 +117,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
 		}
 
-		pics, err := dbPool.Query(ctx,
-			"select photo_path "+
-				"from post_photos "+
-				"where post_id = $1", postPostgres.Id)
+		pics, err := dbPool.Query(ctx, getPhotosQuery, postPostgres.Id)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
 		}
