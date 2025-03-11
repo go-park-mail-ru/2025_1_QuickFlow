@@ -12,7 +12,7 @@ import (
 const (
 	randSpecialSymbols = "_/!@#$%^&*(),.?\":{}|<>"
 	acceptableSymbols  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_/!@#$%^&*(),.?\":{}|<>"
-	acceptableLogin    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._"
+	acceptableLogin    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._123456789"
 )
 
 func validateLogin(login string) bool {
