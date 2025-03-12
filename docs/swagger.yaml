@@ -1,0 +1,234 @@
+basePath: /api
+definitions:
+  forms.AuthForm:
+    properties:
+      password:
+        example: SuperSecurePassword123!
+        type: string
+      username:
+        example: Nok1onNok1on
+        type: string
+    type: object
+  forms.ErrorForm:
+    properties:
+      error:
+        type: string
+    type: object
+  forms.FeedForm:
+    properties:
+      posts_count:
+        example: 10
+        type: integer
+      ts:
+        example: "2025-03-09 15:04:05"
+        type: string
+    type: object
+  forms.PostForm:
+    properties:
+      pics:
+        example:
+        - https://example.com/image1.jpg
+        - https://example.com/image2.jpg
+        items:
+          type: string
+        type: array
+      text:
+        example: "Hello, this is my first post!"
+        type: string
+    type: object
+  forms.PostOut:
+    properties:
+      comment_count:
+        example: 7
+        type: integer
+      created_at:
+        example: "2025-03-09 15:04:05"
+        type: string
+      creator_id:
+        example: a1b2c3d4-e5f6-7g8h-9i10-jk11lm12no13
+        type: string
+      id:
+        example: cf420298-775f-4ec1-8890-254d7f2dabbc
+        type: string
+      like_count:
+        example: 42
+        type: integer
+      pics:
+        example:
+        - https://example.com/image1.jpg
+        - https://example.com/image2.jpg
+        items:
+          type: string
+        type: array
+      repost_count:
+        example: 3
+        type: integer
+      text:
+        example: "This is an example post!"
+        type: string
+    type: object
+  forms.SignUpForm:
+    properties:
+      birth_date:
+        example: "2004-04-03"
+        type: string
+      firstname:
+        example: Nikita
+        type: string
+      lastname:
+        example: Mogilin
+        type: string
+      password:
+        example: SuperSecurePassword123!
+        type: string
+      sex:
+        example: 1
+        type: integer
+      username:
+        example: Nok1onNok1on
+        type: string
+    type: object
+host: quickflowapp.ru
+info:
+  contact:
+    email: support@quickflow.com
+    name: API Support
+  description: "This is the API for QuickFlow, a social network backend."
+  license:
+    name: MIT
+  title: QuickFlow API
+  version: "1.0"
+paths:
+  /api/feed:
+    post:
+      consumes:
+      - application/json
+      description: "Returns a list of posts published before a specified time."
+      parameters:
+      - description: "Feed parameters"
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.FeedForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: "Array of posts."
+          schema:
+            items:
+              $ref: '#/definitions/forms.PostOut'
+            type: array
+        "400":
+          description: "Invalid JSON format."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "Invalid JSON format"}
+        "401":
+          description: "User is not authorized."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "User is not authorized"}
+        "500":
+          description: "Error loading feed."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "Error loading feed"}
+      summary: "Get feed."
+      tags:
+      - Feed
+  /api/hello:
+    get:
+      description: "Checks API availability. Always returns 'Hello, world!'."
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: "Successful response."
+          schema:
+            type: string
+          examples:
+            application/json: "Hello, world!"
+      summary: "Ping."
+      tags:
+      - Misc
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: "Authenticates the user and establishes a session."
+      parameters:
+      - description: "Login credentials."
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.AuthForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: "Successful login."
+          schema:
+            type: string
+          examples:
+            application/json: "OK"
+        "400":
+          description: "Invalid request data."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "Invalid request data"}
+        "401":
+          description: "Invalid username or password."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "Invalid username or password"}
+      summary: "User login."
+      tags:
+      - Auth
+  /api/signup:
+    post:
+      consumes:
+      - application/json
+      description: "Creates a new user account."
+      parameters:
+      - description: "Registration data."
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.SignUpForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: "User ID of the newly created account."
+          schema:
+            type: object
+          examples:
+            application/json: {"user_id": "a1b2c3d4-e5f6-7g8h-9i10-jk11lm12no13"}
+        "400":
+          description: "Invalid request data."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "Invalid request data"}
+        "409":
+          description: "Username already taken."
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+          examples:
+            application/json: {"error": "Username already taken"}
+      summary: "User registration."
+      tags:
+      - Auth
+schemes:
+- http
+- https
+swagger: "2.0"
