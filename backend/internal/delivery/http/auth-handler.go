@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	http2 "quickflow/utils/http"
 	"time"
@@ -67,7 +66,6 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	// process data
 	id, session, err := a.authUseCase.CreateUser(r.Context(), user)
 	if err != nil {
-		log.Println(err.Error())
 		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
 		return
 	}
