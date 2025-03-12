@@ -27,7 +27,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		inputPostForm  string // JSON строка для теста
+		inputPostForm  string
 		contextUser    *models.User
 		mockError      error
 		expectedStatus int
@@ -64,7 +64,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			inputPostForm: `{
 				"desc": "Should fail due to missing user"
 			}`,
-			contextUser:    nil, // Пользователь отсутствует
+			contextUser:    nil,
 			mockError:      nil,
 			expectedStatus: http.StatusInternalServerError,
 		},
