@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	http2 "quickflow/internal/delivery/http"
 	httpUtils "quickflow/utils/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
 	"quickflow/internal/models"
-	"quickflow/internal/usecase"
 )
 
-func SessionMiddleware(authUseCase *usecase.AuthService) mux.MiddlewareFunc {
+func SessionMiddleware(authUseCase http2.AuthUseCase) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check if session exists
