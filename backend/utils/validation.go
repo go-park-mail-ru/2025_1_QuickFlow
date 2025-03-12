@@ -75,7 +75,7 @@ func validatePassword(password string) bool {
 
 func validateCreds(str string) bool {
 	runeName := []rune(str)
-	if len(runeName) < 2 || len(runeName) > 25 {
+	if len(str) < 2 || len(str) > 25 {
 		return false
 	}
 
@@ -138,7 +138,6 @@ func HashPassword(password string, salt string) string {
 	hash := sha256.Sum256([]byte(data))
 
 	return hex.EncodeToString(hash[:])
-
 }
 
 func GenSalt() string {
