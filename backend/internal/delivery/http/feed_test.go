@@ -1,29 +1,33 @@
-package http
+package http_test
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
 	"quickflow/config"
-	http2 "quickflow/test/http"
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
 )
 
 func TestFeedHandler_GetFeed(t *testing.T) {
-	mockPostUseCase := new(http2.MockPostUseCase)
-	mockAuthUseCase := new(http2.MockAuthUseCase)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	handler := NewFeedHandler(mockPostUseCase, mockAuthUseCase)
+	mockPostUseCase := mocks.NewMockPostUseCase(ctrl)
+	mockAuthUseCase := mocks.NewMockAuthUseCase(ctrl)
+
+	handler := http2.NewFeedHandler(mockPostUseCase, mockAuthUseCase)
 
 	user := models.User{Id: uuid.New()}
 
@@ -110,9 +114,12 @@ func TestFeedHandler_GetFeed(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 
-			mockPostUseCase.On("FetchFeed", mock.Anything, user, tt.inputFeedForm.Posts, mock.Anything).
-				Return(tt.mockPosts, tt.mockError).
-				Maybe()
+			if tt.passUser && tt.name != "Invalid JSON request" {
+				mockPostUseCase.EXPECT().
+					FetchFeed(gomock.Any(), user, tt.inputFeedForm.Posts, gomock.Any()).
+					Return(tt.mockPosts, tt.mockError).
+					AnyTimes()
+			}
 
 			handler.GetFeed(w, req)
 
@@ -124,8 +131,6 @@ func TestFeedHandler_GetFeed(t *testing.T) {
 				json.NewDecoder(resp.Body).Decode(&responsePosts)
 				assert.Len(t, responsePosts, tt.expectedLen)
 			}
-
-			mockPostUseCase.AssertExpectations(t)
 		})
 	}
 }

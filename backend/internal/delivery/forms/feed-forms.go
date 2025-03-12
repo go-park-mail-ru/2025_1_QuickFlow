@@ -1,8 +1,11 @@
 package forms
 
 import (
+	"errors"
+	"net/url"
 	"quickflow/config"
 	"quickflow/internal/models"
+	"strconv"
 )
 
 type PostForm struct {
@@ -13,6 +16,27 @@ type PostForm struct {
 type FeedForm struct {
 	Posts int    `json:"posts_count"`
 	Ts    string `json:"ts"`
+}
+
+// GetParams gets parameters from the map
+func (f *FeedForm) GetParams(values url.Values) error {
+	var (
+		err      error
+		numPosts int64
+	)
+
+	if !values.Has("posts_count") {
+		return errors.New("posts_count parameter missing")
+	}
+
+	numPosts, err = strconv.ParseInt(values.Get("posts_count"), 10, 64)
+	if err != nil {
+		return errors.New("failed to parse posts_count")
+	}
+
+	f.Posts = int(numPosts)
+	f.Ts = values.Get("ts")
+	return nil
 }
 
 type PostOut struct {
