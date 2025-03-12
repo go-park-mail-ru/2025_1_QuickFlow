@@ -1,0 +1,9 @@
+
+allowed_origins = ["https://www.quickflowapp.ru"]
+allowed_methos = ["GET", "POST"]
+allowed_headers = ["Cookie", "Content-Type"]
+exposed_headers = ["Content-Type"]
+allow_credentials = true
+options_passthrough = true
+debug = true
+

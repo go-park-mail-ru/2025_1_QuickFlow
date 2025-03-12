@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: quickflow_backend
+    volumes:
+      - ../deploy:/quickflow_app/deploy  # Монтируем всю папку deploy целиком
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/quickflow_db
+      REDIS_URL: redis:6379
+    restart: always
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: quickflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../deploy/sql:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
