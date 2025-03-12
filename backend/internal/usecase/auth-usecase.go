@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
@@ -104,13 +102,11 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 func (a *AuthService) LookupUserSession(ctx context.Context, session models.Session) (models.User, error) {
 	userID, err := a.sessionRepo.LookupUserSession(ctx, session)
 	if err != nil {
-		log.Println("ошибка тут")
 		return models.User{}, fmt.Errorf("p.repo.LookupUserSession: %w", err)
 	}
 
 	user, err := a.userRepo.GetUserByUId(ctx, userID)
 	if err != nil {
-		log.Println("ошибка тут не получили айди")
 		return models.User{}, fmt.Errorf("p.repo.GetUserByUId: %w", err)
 	}
 
