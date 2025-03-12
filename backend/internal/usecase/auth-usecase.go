@@ -69,7 +69,9 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UU
 		session = models.CreateSession()
 	}
 
-	a.sessionRepo.SaveSession(ctx, userId, session)
+	if err = a.sessionRepo.SaveSession(ctx, userId, session); err != nil {
+		return uuid.Nil, models.Session{}, err
+	}
 
 	return userId, session, nil
 }
@@ -91,7 +93,9 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 		session = models.CreateSession()
 	}
 
-	a.sessionRepo.SaveSession(ctx, user.Id, session)
+	if err = a.sessionRepo.SaveSession(ctx, user.Id, session); err != nil {
+		return models.Session{}, err
+	}
 
 	return session, nil
 }
