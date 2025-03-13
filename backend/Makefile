@@ -1,5 +1,5 @@
 coverage.out: $(GO_FILES)
-	go test -coverprofile=coverage.out ./config/... ./internal/... ./pkg/... ./utils/...
+	go test -coverprofile=coverage.out $(go test ./... | grep -v "/test/")
 
 .PHONY: summarize-coverage
 summarize-coverage: coverage.out
