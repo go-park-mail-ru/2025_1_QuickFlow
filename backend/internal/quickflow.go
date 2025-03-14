@@ -56,17 +56,7 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 	protected := apiRouter.PathPrefix("/").Subrouter()
 	protected.Use(middleware.SessionMiddleware(newAuthService))
 
-	staticHandler := http.StripPrefix("/photos/", http.FileServer(http.Dir("./static/photos")))
-
-	r.PathPrefix("/photos/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/photos/" { // Блокируем просмотр списка файлов
-			http.Error(w, "403 Forbidden", http.StatusForbidden)
-			return
-		}
-		staticHandler.ServeHTTP(w, r)
-	}))
-
-	protected.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodPost)
+	protected.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
 	protected.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 
 	server := http.Server{

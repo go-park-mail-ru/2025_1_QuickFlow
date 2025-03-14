@@ -6,21 +6,19 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 	"testing"
+	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
-	"quickflow/internal/models"
-	http2 "quickflow/test/http"
 )
 
 func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
-	mockPostUseCase := new(http2.MockPostUseCase)
-	mockAuthUseCase := new(http2.MockAuthUseCase)
-
-	handler := NewFeedHandler(mockPostUseCase, mockAuthUseCase)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	userID := uuid.New()
 	user := models.User{Id: userID}
@@ -31,6 +29,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 		contextUser    *models.User
 		mockError      error
 		expectedStatus int
+		expectedPost   models.Post
 	}{
 		{
 			name: "Successful post addition",
@@ -41,6 +40,12 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			contextUser:    &user,
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
+			expectedPost: models.Post{
+				CreatorId: userID,
+				Desc:      "Hello, world!",
+				Pics:      []string{"pic1.jpg", "pic2.jpg"},
+				CreatedAt: time.Now(),
+			},
 		},
 		{
 			name: "Failed to add post (internal error)",
@@ -51,6 +56,12 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			contextUser:    &user,
 			mockError:      errors.New("database error"),
 			expectedStatus: http.StatusInternalServerError,
+			expectedPost: models.Post{
+				CreatorId: userID,
+				Desc:      "This should fail",
+				Pics:      []string{"pic3.jpg"},
+				CreatedAt: time.Time{},
+			},
 		},
 		{
 			name:           "Invalid JSON request",
@@ -58,6 +69,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			contextUser:    &user,
 			mockError:      nil,
 			expectedStatus: http.StatusBadRequest,
+			expectedPost:   models.Post{},
 		},
 		{
 			name: "Missing user in context",
@@ -67,33 +79,33 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			contextUser:    nil,
 			mockError:      nil,
 			expectedStatus: http.StatusInternalServerError,
+			expectedPost:   models.Post{},
 		},
 	}
 
+	mockAuthUseCase := mocks.NewMockAuthUseCase(ctrl)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockPostUseCase.ExpectedCalls = nil
+
+			mockPostUseCase := mocks.NewMockPostUseCase(ctrl)
+			handler := NewFeedHandler(mockPostUseCase, mockAuthUseCase)
+
+			mockPostUseCase.EXPECT().AddPost(gomock.Any(), gomock.Any()).Return(tt.mockError).AnyTimes()
 
 			req := httptest.NewRequest(http.MethodPost, "/post", bytes.NewBufferString(tt.inputPostForm))
 
+			// Устанавливаем пользователя в контексте, если он есть
 			if tt.contextUser != nil {
 				req = req.WithContext(context.WithValue(req.Context(), "user", *tt.contextUser))
 			}
 
 			w := httptest.NewRecorder()
 
-			if tt.contextUser != nil {
-				mockPostUseCase.On("AddPost", mock.Anything, mock.Anything).
-					Return(tt.mockError).
-					Maybe()
-			}
-
 			handler.AddPost(w, req)
 
 			resp := w.Result()
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
-
-			mockPostUseCase.AssertExpectations(t)
 		})
 	}
 }

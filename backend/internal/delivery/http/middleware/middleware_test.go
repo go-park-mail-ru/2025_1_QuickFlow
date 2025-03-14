@@ -1,43 +1,19 @@
 package middleware
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
 	"quickflow/config"
+	"quickflow/internal/delivery/http/mocks"
 	"quickflow/internal/models"
 )
-
-type MockAuthService struct {
-	mock.Mock
-}
-
-func (m *MockAuthService) LookupUserSession(ctx context.Context, session models.Session) (models.User, error) {
-	args := m.Called(ctx, session)
-	return args.Get(0).(models.User), args.Error(1)
-}
-
-func (m *MockAuthService) CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAuthService) GetUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m *MockAuthService) DeleteUserSession(ctx context.Context, session string) error {
-	//TODO implement me
-	panic("implement me")
-}
 
 func TestContentTypeMiddleware(t *testing.T) {
 	allowedTypes := []string{"application/json"}
@@ -97,7 +73,10 @@ func TestCORSMiddleware(t *testing.T) {
 }
 
 func TestSessionMiddleware(t *testing.T) {
-	mockAuthService := new(MockAuthService)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAuthService := mocks.NewMockAuthUseCase(ctrl)
 	middlewareFunc := SessionMiddleware(mockAuthService)
 
 	handler := middlewareFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +88,8 @@ func TestSessionMiddleware(t *testing.T) {
 	t.Run("Valid Session", func(t *testing.T) {
 		sessionID := uuid.New()
 		user := models.User{Id: uuid.New()}
-		mockAuthService.On("LookupUserSession", mock.Anything, models.Session{SessionId: sessionID}).Return(user, nil).Once()
+
+		mockAuthService.EXPECT().LookupUserSession(gomock.Any(), models.Session{SessionId: sessionID}).Return(user, nil).Times(1)
 
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		r.AddCookie(&http.Cookie{Name: "session", Value: sessionID.String()})
@@ -117,7 +97,6 @@ func TestSessionMiddleware(t *testing.T) {
 
 		handler.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
-		mockAuthService.AssertExpectations(t)
 	})
 
 	t.Run("Missing Session Cookie", func(t *testing.T) {
@@ -139,7 +118,8 @@ func TestSessionMiddleware(t *testing.T) {
 
 	t.Run("Failed Authorization", func(t *testing.T) {
 		sessionID := uuid.New()
-		mockAuthService.On("LookupUserSession", mock.Anything, models.Session{SessionId: sessionID}).Return(models.User{}, errors.New("auth error")).Once()
+
+		mockAuthService.EXPECT().LookupUserSession(gomock.Any(), models.Session{SessionId: sessionID}).Return(models.User{}, errors.New("auth error")).Times(1)
 
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		r.AddCookie(&http.Cookie{Name: "session", Value: sessionID.String()})
@@ -147,6 +127,5 @@ func TestSessionMiddleware(t *testing.T) {
 
 		handler.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		mockAuthService.AssertExpectations(t)
 	})
 }
