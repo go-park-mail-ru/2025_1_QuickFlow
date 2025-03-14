@@ -3,13 +3,14 @@ package internal
 import (
 	"fmt"
 	"net/http"
+	"quickflow/internal/repository/redis"
 
 	"github.com/gorilla/mux"
 
 	"quickflow/config"
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/middleware"
-	"quickflow/internal/repository/postgres_redis"
+	"quickflow/internal/repository/postgres"
 	"quickflow/internal/usecase"
 )
 
@@ -19,9 +20,9 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 	}
 
 	//newRepo := repository.NewInMemory()
-	newUserRepo := postgres_redis.NewPostgresUserRepository()
-	newPostRepo := postgres_redis.NewPostgresPostRepository()
-	newSessionRepo := postgres_redis.NewRedisSessionRepository()
+	newUserRepo := postgres.NewPostgresUserRepository()
+	newPostRepo := postgres.NewPostgresPostRepository()
+	newSessionRepo := redis.NewRedisSessionRepository()
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
 	newPostService := usecase.NewPostService(newPostRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)

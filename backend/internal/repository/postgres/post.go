@@ -1,4 +1,4 @@
-package postgres_redis
+package postgres
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 	"quickflow/config"
 	"quickflow/internal/models"
-	pgmodels "quickflow/internal/repository/postgres_redis/postgres-models"
+	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 )
 
 const getPhotosQuery = `
