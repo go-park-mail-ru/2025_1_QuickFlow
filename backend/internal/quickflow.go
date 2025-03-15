@@ -1,76 +1,80 @@
 package internal
 
 import (
-	"fmt"
-	"net/http"
-	"quickflow/internal/repository/redis"
+    "fmt"
+    "net/http"
+    "quickflow/internal/repository/redis"
 
-	"github.com/gorilla/mux"
+    "github.com/gorilla/mux"
 
-	"quickflow/config"
-	qfhttp "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/middleware"
-	"quickflow/internal/repository/postgres"
-	"quickflow/internal/usecase"
+    "quickflow/config"
+    qfhttp "quickflow/internal/delivery/http"
+    "quickflow/internal/delivery/http/middleware"
+    "quickflow/internal/repository/postgres"
+    "quickflow/internal/usecase"
 )
 
 func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
-	if cfg == nil {
-		return fmt.Errorf("config is nil")
-	}
+    if cfg == nil {
+        return fmt.Errorf("config is nil")
+    }
 
-	//newRepo := repository.NewInMemory()
-	newUserRepo := postgres.NewPostgresUserRepository()
-	newPostRepo := postgres.NewPostgresPostRepository()
-	newSessionRepo := redis.NewRedisSessionRepository()
-	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
-	newPostService := usecase.NewPostService(newPostRepo)
-	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
-	newPostHandler := qfhttp.NewFeedHandler(newPostService, newAuthService)
+    //newRepo := repository.NewInMemory()
+    newUserRepo := postgres.NewPostgresUserRepository()
+    newPostRepo := postgres.NewPostgresPostRepository()
+    newSessionRepo := redis.NewRedisSessionRepository()
+    newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
+    newPostService := usecase.NewPostService(newPostRepo)
+    newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
+    newPostHandler := qfhttp.NewFeedHandler(newPostService, newAuthService)
 
-	// routing
-	r := mux.NewRouter()
-	r.Use(middleware.CORSMiddleware(*corsCfg))
-	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
+    // routing
+    r := mux.NewRouter()
+    r.Use(middleware.CORSMiddleware(*corsCfg))
+    r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+    })
 
-	r.PathPrefix("/api/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-	}).Methods(http.MethodOptions)
+    r.PathPrefix("/api/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusNoContent)
+            return
+        }
+    }).Methods(http.MethodOptions)
 
-	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
+    r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
 
-	apiRouter := r.PathPrefix("/").Subrouter()
-	// validating that the content type is application/json for every route but /hello
-	apiRouter.Use(middleware.ContentTypeMiddleware("application/json"))
+    apiPostRouter := r.PathPrefix("/").Subrouter()
+    apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json"))
 
-	apiRouter.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
+    apiGetRouter := r.PathPrefix("/").Subrouter()
+    // validating that the content type is application/json for every route but /hello
 
-	// Subrouter for protected routes
-	protected := apiRouter.PathPrefix("/").Subrouter()
-	protected.Use(middleware.SessionMiddleware(newAuthService))
+    apiPostRouter.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
+    apiPostRouter.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
+    apiPostRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
 
-	protected.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
-	protected.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
+    // Subrouter for protected routes
+    protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
+    protectedPost.Use(middleware.SessionMiddleware(newAuthService))
+    protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 
-	server := http.Server{
-		Addr:         cfg.Addr,
-		Handler:      r,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
-	}
+    protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
+    protectedGet.Use(middleware.SessionMiddleware(newAuthService))
+    protectedGet.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
 
-	fmt.Printf("starting server at %s\n", cfg.Addr)
-	err := server.ListenAndServe()
-	if err != nil {
-		return fmt.Errorf("internal.Run: %w", err)
-	}
+    server := http.Server{
+        Addr:         cfg.Addr,
+        Handler:      r,
+        ReadTimeout:  cfg.ReadTimeout,
+        WriteTimeout: cfg.WriteTimeout,
+    }
 
-	return nil
+    fmt.Printf("starting server at %s\n", cfg.Addr)
+    err := server.ListenAndServe()
+    if err != nil {
+        return fmt.Errorf("internal.Run: %w", err)
+    }
+
+    return nil
 }
