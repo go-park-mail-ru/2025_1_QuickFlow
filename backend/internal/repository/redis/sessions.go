@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	redis2 "quickflow/config/redis"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"quickflow/config"
 	"quickflow/internal/models"
 )
 
@@ -22,7 +22,7 @@ func NewRedisSessionRepository() *RedisSessionRepository {
 
 func (r *RedisSessionRepository) SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) error {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: config.NewRedisConfig().GetURL(),
+		Addr: redis2.NewRedisConfig().GetURL(),
 	})
 
 	defer rdb.Close()
@@ -36,7 +36,7 @@ func (r *RedisSessionRepository) SaveSession(ctx context.Context, userId uuid.UU
 
 func (r *RedisSessionRepository) LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: config.NewRedisConfig().GetURL(),
+		Addr: redis2.NewRedisConfig().GetURL(),
 	})
 
 	defer rdb.Close()
@@ -56,7 +56,7 @@ func (r *RedisSessionRepository) LookupUserSession(ctx context.Context, session 
 
 func (r *RedisSessionRepository) IsExists(ctx context.Context, session uuid.UUID) (bool, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: config.NewRedisConfig().GetURL(),
+		Addr: redis2.NewRedisConfig().GetURL(),
 	})
 
 	defer rdb.Close()
@@ -78,7 +78,7 @@ func (r *RedisSessionRepository) IsExists(ctx context.Context, session uuid.UUID
 
 func (r *RedisSessionRepository) DeleteSession(ctx context.Context, session string) error {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: config.NewRedisConfig().GetURL(),
+		Addr: redis2.NewRedisConfig().GetURL(),
 	})
 
 	defer rdb.Close()

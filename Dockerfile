@@ -19,12 +19,52 @@ RUN go build -o main main.go
 # 6. Создаём минимальный образ для продакшена
 FROM debian:bookworm-slim
 
-# 7. Устанавливаем рабочую директорию
+# 7. Устанавливаем необходимые пакеты, включая mc (MinIO Client)
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    && curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc \
+    && chmod +x /usr/local/bin/mc \
+    && apt-get clean
+
+# 8. Устанавливаем рабочую директорию
 WORKDIR /quickflow_app/backend
 
-# 8. Копируем бинарник и конфиги
+# 9. Копируем бинарник и конфиги
 COPY --from=builder /quickflow_app/backend/main .
 COPY --from=builder /quickflow_app/deploy /quickflow_app/deploy
 
-# 9. Указываем команду для запуска
-CMD ["./main", "-config", "/quickflow_app/deploy/config/feeder/config.toml"]
+# 10. Копируем скрипты
+COPY deploy/scripts/setup-minio-buckets.sh /usr/local/bin/setup-minio-buckets.sh
+COPY deploy/scripts/setup-scheme-endpoint.sh /usr/local/bin/setup-scheme-endpoint.sh
+
+# 11. Копируем .env файл
+COPY deploy/.env /etc/environment
+
+# 12. Делаем скрипты исполнимыми
+RUN chmod +x /usr/local/bin/setup-minio-buckets.sh \
+    /usr/local/bin/setup-scheme-endpoint.sh
+
+# Добавь перед CMD для вывода путей
+RUN ls -l /usr/local/bin/setup-minio-buckets.sh
+RUN ls -l /usr/local/bin/setup-scheme-endpoint.sh
+
+RUN echo "SCHEME=$SCHEME" && \
+    if [ "$SCHEME" == "https" ]; then \
+        printf "\nMINIO_SCHEME=https" >> /etc/environment && \
+        printf "\nMINIO_PUBLIC_ENDPOINT=$DOMAIN/minio" >> /etc/environment; \
+    else \
+        printf "\nMINIO_SCHEME=http" >> /etc/environment && \
+        printf "\nMINIO_PUBLIC_ENDPOINT=localhost:9000" >> /etc/environment; \
+    fi
+
+# Загружаем переменные в окружение контейнера
+ARG SCHEME
+ARG MINIO_PUBLIC_ENDPOINT
+
+ENV MINIO_SCHEME=${SCHEME}
+ENV MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
+
+
+# 13. Указываем команду для запуска
+CMD ["/bin/bash", "-c", "/usr/local/bin/setup-scheme-endpoint.sh && /usr/local/bin/setup-minio-buckets.sh && ./main -config /quickflow_app/deploy/config/feeder/config.toml"]
