@@ -7,7 +7,6 @@ import (
     "time"
 
     "github.com/google/uuid"
-    "github.com/jackc/pgx/v5"
     "github.com/jackc/pgx/v5/pgtype"
     "github.com/jackc/pgx/v5/pgxpool"
 
@@ -41,23 +40,27 @@ const insertPhotoQuery = `
 `
 
 type PostgresPostRepository struct {
+    connPool *pgxpool.Pool
 }
 
 func NewPostgresPostRepository() *PostgresPostRepository {
-    return &PostgresPostRepository{}
+    connPool, err := pgxpool.New(context.Background(), config.NewPostgresConfig().GetURL())
+    if err != nil {
+        log.Fatalf("Unable to create connection pool: %v", err)
+    }
+
+    return &PostgresPostRepository{connPool: connPool}
+}
+
+// Close закрывает пул соединений
+func (p *PostgresPostRepository) Close() {
+    p.connPool.Close()
 }
 
 // AddPost adds post to the repository.
 func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) error {
-    conn, err := pgx.Connect(ctx, config.NewPostgresConfig().GetURL())
-    if err != nil {
-        return fmt.Errorf("unable to connect to database: %w", err)
-    }
-    defer conn.Close(ctx)
-
     postPostgres := pgmodels.ConvertPostToPostgres(post)
-
-    _, err = conn.Exec(ctx, insertPostQuery,
+    _, err := p.connPool.Exec(ctx, insertPostQuery,
         postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
         postPostgres.CreatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
         postPostgres.CommentCount)
@@ -66,7 +69,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
     }
 
     for _, picture := range postPostgres.Pics {
-        _, err = conn.Exec(ctx, insertPhotoQuery,
+        _, err = p.connPool.Exec(ctx, insertPhotoQuery,
             postPostgres.Id, picture)
         if err != nil {
             return fmt.Errorf("unable to save user to database: %w", err)
@@ -78,13 +81,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 
 // DeletePost removes post from the repository.
 func (p *PostgresPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
-    conn, err := pgx.Connect(ctx, config.NewPostgresConfig().GetURL())
-    if err != nil {
-        return fmt.Errorf("unable to connect to database: %w", err)
-    }
-    defer conn.Close(ctx)
-
-    _, err = conn.Exec(ctx, "delete from posts where id = $1", pgtype.UUID{Bytes: postId, Valid: true})
+    _, err := p.connPool.Exec(ctx, "delete from posts where id = $1", pgtype.UUID{Bytes: postId, Valid: true})
     if err != nil {
         return fmt.Errorf("unable to delete post from database: %w", err)
     }
@@ -94,13 +91,7 @@ func (p *PostgresPostRepository) DeletePost(ctx context.Context, postId uuid.UUI
 
 // GetPostsForUId returns posts for user.
 func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-    dbPool, err := pgxpool.New(ctx, config.NewPostgresConfig().GetURL())
-    if err != nil {
-        log.Fatalf("Unable to create connection pool: %v", err)
-    }
-    defer dbPool.Close()
-
-    rows, err := dbPool.Query(ctx, getOlderPostsLimitQuery, timestamp, numPosts)
+    rows, err := p.connPool.Query(ctx, getOlderPostsLimitQuery, timestamp, numPosts)
     if err != nil {
         return nil, fmt.Errorf("unable to get posts from database: %w", err)
     }
@@ -117,7 +108,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
             return nil, fmt.Errorf("unable to get posts from database: %w", err)
         }
 
-        pics, err := dbPool.Query(ctx, getPhotosQuery, postPostgres.Id)
+        pics, err := p.connPool.Query(ctx, getPhotosQuery, postPostgres.Id)
         if err != nil {
             return nil, fmt.Errorf("unable to get posts from database: %w", err)
         }
