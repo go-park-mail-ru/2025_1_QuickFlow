@@ -33,6 +33,7 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 	// routing
 	r := mux.NewRouter()
 	r.Use(middleware.CORSMiddleware(*corsCfg))
+	r.Use(middleware.CSRFMiddleware)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
