@@ -1,11 +1,11 @@
 package postgres_models
 
 import (
-	"quickflow/config"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"quickflow/config"
 	"quickflow/internal/models"
 )
 

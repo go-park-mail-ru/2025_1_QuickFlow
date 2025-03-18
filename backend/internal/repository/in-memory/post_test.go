@@ -2,10 +2,12 @@ package in_memory
 
 import (
 	"context"
-	"github.com/google/uuid"
-	"quickflow/internal/models"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+
+	"quickflow/internal/models"
 )
 
 func TestInMemoryPostRepository_AddPost(t *testing.T) {

@@ -3,7 +3,6 @@ package internal
 import (
 	"fmt"
 	"net/http"
-	"quickflow/internal/repository/redis"
 
 	"github.com/gorilla/mux"
 
@@ -11,6 +10,7 @@ import (
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/middleware"
 	"quickflow/internal/repository/postgres"
+	"quickflow/internal/repository/redis"
 	"quickflow/internal/usecase"
 )
 

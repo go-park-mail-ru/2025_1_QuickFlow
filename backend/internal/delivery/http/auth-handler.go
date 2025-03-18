@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	http2 "quickflow/utils/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +11,7 @@ import (
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/utils"
+	http2 "quickflow/utils/http"
 )
 
 type AuthUseCase interface {

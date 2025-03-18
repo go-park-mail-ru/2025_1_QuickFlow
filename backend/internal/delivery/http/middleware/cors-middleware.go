@@ -2,8 +2,9 @@ package middleware
 
 import (
 	"net/http"
-	"quickflow/config"
 	"strings"
+
+	"quickflow/config"
 )
 
 // CORSMiddleware adds CORS headers to the response.

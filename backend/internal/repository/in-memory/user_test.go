@@ -2,10 +2,12 @@ package in_memory
 
 import (
 	"context"
+	"testing"
+
 	"github.com/google/uuid"
+
 	"quickflow/internal/models"
 	"quickflow/utils"
-	"testing"
 )
 
 func TestInMemoryUserRepository_SaveUser(t *testing.T) {
