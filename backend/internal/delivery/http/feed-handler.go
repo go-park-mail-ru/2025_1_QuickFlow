@@ -74,9 +74,9 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 
     // parsing JSON
     var feedForm forms.FeedForm
-    err := json.NewDecoder(r.Body).Decode(&feedForm)
+    err := feedForm.GetParams(r.URL.Query())
     if err != nil {
-        http2.WriteJSONError(w, "Failed to parse JSON", http.StatusBadRequest)
+        http2.WriteJSONError(w, "Failed to parse query params", http.StatusBadRequest)
         return
     }
 

@@ -1,100 +1,88 @@
 package usecase
 
 import (
-	"context"
-	"errors"
-	"testing"
-	"time"
+    "context"
+    "errors"
+    mock_usecase "quickflow/internal/usecase/mocks"
+    "testing"
+    "time"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
-	"quickflow/internal/models"
+    "github.com/golang/mock/gomock"
+    "github.com/google/uuid"
+    "github.com/stretchr/testify/assert"
+    "quickflow/internal/models"
 )
 
-// Mock для PostRepository
-type MockPostRepository struct {
-	mock.Mock
-}
-
-func (m *MockPostRepository) AddPost(ctx context.Context, post models.Post) error {
-	args := m.Called(ctx, post)
-	return args.Error(0)
-}
-
-func (m *MockPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
-	args := m.Called(ctx, postId)
-	return args.Error(0)
-}
-
-func (m *MockPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-	args := m.Called(ctx, uid, numPosts, timestamp)
-	return args.Get(0).([]models.Post), args.Error(1)
-}
-
 func TestAddPost(t *testing.T) {
-	mockRepo := new(MockPostRepository)
-	service := NewPostService(mockRepo)
-	ctx := context.Background()
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	post := models.Post{
-		CreatorId: uuid.New(),
-		Desc:      "Test post",
-		Pics:      []string{"pic1.jpg", "pic2.jpg"},
-		CreatedAt: time.Now(),
-	}
+    mockRepo := mock_usecase.NewMockPostRepository(ctrl)
+    service := NewPostService(mockRepo)
+    ctx := context.Background()
 
-	mockRepo.On("AddPost", ctx, mock.Anything).Return(nil).Once()
+    post := models.Post{
+        CreatorId: uuid.New(),
+        Desc:      "Test post",
+        Pics:      []string{"pic1.jpg", "pic2.jpg"},
+        CreatedAt: time.Now(),
+    }
 
-	err := service.AddPost(ctx, post)
-	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
+    mockRepo.EXPECT().AddPost(ctx, gomock.Any()).Return(nil).Times(1)
+
+    err := service.AddPost(ctx, post)
+    assert.NoError(t, err)
 }
 
 func TestDeletePost(t *testing.T) {
-	mockRepo := new(MockPostRepository)
-	service := NewPostService(mockRepo)
-	ctx := context.Background()
-	postID := uuid.New()
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	mockRepo.On("DeletePost", ctx, postID).Return(nil).Once()
+    mockRepo := mock_usecase.NewMockPostRepository(ctrl)
+    service := NewPostService(mockRepo)
+    ctx := context.Background()
+    postID := uuid.New()
 
-	err := service.DeletePost(ctx, postID)
-	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
+    mockRepo.EXPECT().DeletePost(ctx, postID).Return(nil).Times(1)
+
+    err := service.DeletePost(ctx, postID)
+    assert.NoError(t, err)
 }
 
 func TestFetchFeed(t *testing.T) {
-	mockRepo := new(MockPostRepository)
-	service := NewPostService(mockRepo)
-	ctx := context.Background()
-	user := models.User{Id: uuid.New()}
-	timestamp := time.Now()
-	expectedPosts := []models.Post{
-		{Id: uuid.New(), CreatorId: user.Id, Desc: "Post 1", CreatedAt: timestamp},
-		{Id: uuid.New(), CreatorId: user.Id, Desc: "Post 2", CreatedAt: timestamp},
-	}
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	mockRepo.On("GetPostsForUId", ctx, user.Id, 2, timestamp).Return(expectedPosts, nil).Once()
+    mockRepo := mock_usecase.NewMockPostRepository(ctrl)
+    service := NewPostService(mockRepo)
+    ctx := context.Background()
+    user := models.User{Id: uuid.New()}
+    timestamp := time.Now()
+    expectedPosts := []models.Post{
+        {Id: uuid.New(), CreatorId: user.Id, Desc: "Post 1", CreatedAt: timestamp},
+        {Id: uuid.New(), CreatorId: user.Id, Desc: "Post 2", CreatedAt: timestamp},
+    }
 
-	posts, err := service.FetchFeed(ctx, user, 2, timestamp)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedPosts, posts)
-	mockRepo.AssertExpectations(t)
+    mockRepo.EXPECT().GetPostsForUId(ctx, user.Id, 2, timestamp).Return(expectedPosts, nil).Times(1)
+
+    posts, err := service.FetchFeed(ctx, user, 2, timestamp)
+    assert.NoError(t, err)
+    assert.Equal(t, expectedPosts, posts)
 }
 
 func TestFetchFeed_Error(t *testing.T) {
-	mockRepo := new(MockPostRepository)
-	service := NewPostService(mockRepo)
-	ctx := context.Background()
-	user := models.User{Id: uuid.New()}
-	timestamp := time.Now()
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	mockRepo.On("GetPostsForUId", ctx, user.Id, 2, timestamp).Return([]models.Post{}, errors.New("db error")).Once()
+    mockRepo := mock_usecase.NewMockPostRepository(ctrl)
+    service := NewPostService(mockRepo)
+    ctx := context.Background()
+    user := models.User{Id: uuid.New()}
+    timestamp := time.Now()
 
-	posts, err := service.FetchFeed(ctx, user, 2, timestamp)
-	assert.Error(t, err)
-	assert.Empty(t, posts)
-	mockRepo.AssertExpectations(t)
+    mockRepo.EXPECT().GetPostsForUId(ctx, user.Id, 2, timestamp).Return([]models.Post{}, errors.New("db error")).Times(1)
+
+    posts, err := service.FetchFeed(ctx, user, 2, timestamp)
+    assert.Error(t, err)
+    assert.Empty(t, posts)
 }

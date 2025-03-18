@@ -1,161 +1,117 @@
 package usecase
 
 import (
-	"context"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"quickflow/internal/models"
-	"testing"
+    "context"
+    "testing"
+
+    "github.com/golang/mock/gomock"
+    "github.com/google/uuid"
+    "github.com/stretchr/testify/assert"
+
+    "quickflow/internal/models"
+    mock_usecase "quickflow/internal/usecase/mocks"
 )
 
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) SaveUser(ctx context.Context, user models.User) (uuid.UUID, error) {
-	args := m.Called(ctx, user)
-	return args.Get(0).(uuid.UUID), args.Error(1)
-}
-
-func (m *MockUserRepository) GetUser(ctx context.Context, authData models.LoginData) (models.User, error) {
-	args := m.Called(ctx, authData)
-	return args.Get(0).(models.User), args.Error(1)
-}
-
-func (m *MockUserRepository) GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error) {
-	args := m.Called(ctx, uid)
-	return args.Get(0).(models.User), args.Error(1)
-}
-
-func (m *MockUserRepository) IsExists(ctx context.Context, login string) (bool, error) {
-	args := m.Called(ctx, login)
-	return args.Bool(0), args.Error(1)
-}
-
-// MockSessionRepository для тестов
-type MockSessionRepository struct {
-	mock.Mock
-}
-
-func (m *MockSessionRepository) SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) error {
-	args := m.Called(ctx, userId, session)
-	return args.Error(0)
-}
-
-func (m *MockSessionRepository) LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error) {
-	args := m.Called(ctx, session)
-	return args.Get(0).(uuid.UUID), args.Error(1)
-}
-
-func (m *MockSessionRepository) IsExists(ctx context.Context, sessionId uuid.UUID) (bool, error) {
-	args := m.Called(ctx, sessionId)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *MockSessionRepository) DeleteSession(ctx context.Context, sessionId string) error {
-	args := m.Called(ctx, sessionId)
-	return args.Error(0)
-}
-
 func TestCreateUser(t *testing.T) {
-	mockUserRepo := new(MockUserRepository)
-	mockSessionRepo := new(MockSessionRepository)
-	authService := NewAuthService(mockUserRepo, mockSessionRepo)
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	ctx := context.Background()
-	user := models.User{Login: "testuser", Password: "securepassword"}
-	userID := uuid.New()
+    mockUserRepo := mock_usecase.NewMockUserRepository(ctrl)
+    mockSessionRepo := mock_usecase.NewMockSessionRepository(ctrl)
+    authService := NewAuthService(mockUserRepo, mockSessionRepo)
 
-	mockUserRepo.On("IsExists", ctx, user.Login).Return(false, nil)
-	mockUserRepo.On("SaveUser", ctx, mock.Anything).Return(userID, nil)
-	mockSessionRepo.On("IsExists", ctx, mock.Anything).Return(false, nil)
-	mockSessionRepo.On("SaveSession", ctx, userID, mock.Anything).Return(nil)
+    ctx := context.Background()
+    user := models.User{Login: "testuser", Password: "securepassword"}
+    userID := uuid.New()
 
-	createdUserID, createdSession, err := authService.CreateUser(ctx, user)
+    mockUserRepo.EXPECT().IsExists(ctx, user.Login).Return(false, nil).Times(1)
+    mockUserRepo.EXPECT().SaveUser(ctx, gomock.Any()).Return(userID, nil).Times(1)
+    mockSessionRepo.EXPECT().IsExists(ctx, gomock.Any()).Return(false, nil).Times(1)
+    mockSessionRepo.EXPECT().SaveSession(ctx, userID, gomock.Any()).Return(nil).Times(1)
 
-	assert.NoError(t, err)
-	assert.Equal(t, userID, createdUserID)
-	assert.NotEqual(t, uuid.Nil, createdSession.SessionId)
+    createdUserID, createdSession, err := authService.CreateUser(ctx, user)
 
-	mockUserRepo.AssertExpectations(t)
-	mockSessionRepo.AssertExpectations(t)
+    assert.NoError(t, err)
+    assert.Equal(t, userID, createdUserID)
+    assert.NotEqual(t, uuid.Nil, createdSession.SessionId)
 }
 
 func TestCreateUser_AlreadyExists(t *testing.T) {
-	mockUserRepo := new(MockUserRepository)
-	mockSessionRepo := new(MockSessionRepository)
-	authService := NewAuthService(mockUserRepo, mockSessionRepo)
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	ctx := context.Background()
-	user := models.User{Login: "existinguser", Password: "securepassword"}
+    mockUserRepo := mock_usecase.NewMockUserRepository(ctrl)
+    mockSessionRepo := mock_usecase.NewMockSessionRepository(ctrl)
+    authService := NewAuthService(mockUserRepo, mockSessionRepo)
 
-	mockUserRepo.On("IsExists", ctx, user.Login).Return(true, nil)
+    ctx := context.Background()
+    user := models.User{Login: "existinguser", Password: "securepassword"}
 
-	_, _, err := authService.CreateUser(ctx, user)
+    mockUserRepo.EXPECT().IsExists(ctx, user.Login).Return(true, nil).Times(1)
 
-	assert.Error(t, err)
-	assert.Equal(t, "user already exists", err.Error())
+    _, _, err := authService.CreateUser(ctx, user)
 
-	mockUserRepo.AssertExpectations(t)
-	mockSessionRepo.AssertExpectations(t)
+    assert.Error(t, err)
+    assert.Equal(t, "user already exists", err.Error())
 }
 
 func TestGetUser(t *testing.T) {
-	mockUserRepo := new(MockUserRepository)
-	mockSessionRepo := new(MockSessionRepository)
-	authService := NewAuthService(mockUserRepo, mockSessionRepo)
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	ctx := context.Background()
-	loginData := models.LoginData{Login: "testuser", Password: "securepassword"}
-	user := models.User{Id: uuid.New(), Login: loginData.Login, Password: loginData.Password}
+    mockUserRepo := mock_usecase.NewMockUserRepository(ctrl)
+    mockSessionRepo := mock_usecase.NewMockSessionRepository(ctrl)
+    authService := NewAuthService(mockUserRepo, mockSessionRepo)
 
-	mockUserRepo.On("GetUser", ctx, loginData).Return(user, nil)
-	mockSessionRepo.On("IsExists", ctx, mock.Anything).Return(false, nil)
-	mockSessionRepo.On("SaveSession", ctx, user.Id, mock.Anything).Return(nil)
+    ctx := context.Background()
+    loginData := models.LoginData{Login: "testuser", Password: "securepassword"}
+    user := models.User{Id: uuid.New(), Login: loginData.Login, Password: loginData.Password}
 
-	createdSession, err := authService.GetUser(ctx, loginData)
+    mockUserRepo.EXPECT().GetUser(ctx, loginData).Return(user, nil).Times(1)
+    mockSessionRepo.EXPECT().IsExists(ctx, gomock.Any()).Return(false, nil).Times(1)
+    mockSessionRepo.EXPECT().SaveSession(ctx, user.Id, gomock.Any()).Return(nil).Times(1)
 
-	assert.NoError(t, err)
-	assert.NotEqual(t, uuid.Nil, createdSession.SessionId)
+    createdSession, err := authService.GetUser(ctx, loginData)
 
-	mockUserRepo.AssertExpectations(t)
-	mockSessionRepo.AssertExpectations(t)
+    assert.NoError(t, err)
+    assert.NotEqual(t, uuid.Nil, createdSession.SessionId)
 }
 
 func TestLookupUserSession(t *testing.T) {
-	mockUserRepo := new(MockUserRepository)
-	mockSessionRepo := new(MockSessionRepository)
-	authService := NewAuthService(mockUserRepo, mockSessionRepo)
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	ctx := context.Background()
-	session := models.CreateSession()
-	userID := uuid.New()
-	user := models.User{Id: userID, Login: "testuser"}
+    mockUserRepo := mock_usecase.NewMockUserRepository(ctrl)
+    mockSessionRepo := mock_usecase.NewMockSessionRepository(ctrl)
+    authService := NewAuthService(mockUserRepo, mockSessionRepo)
 
-	mockSessionRepo.On("LookupUserSession", ctx, session).Return(userID, nil)
-	mockUserRepo.On("GetUserByUId", ctx, userID).Return(user, nil)
+    ctx := context.Background()
+    session := models.CreateSession()
+    userID := uuid.New()
+    user := models.User{Id: userID, Login: "testuser"}
 
-	foundUser, err := authService.LookupUserSession(ctx, session)
+    mockSessionRepo.EXPECT().LookupUserSession(ctx, session).Return(userID, nil).Times(1)
+    mockUserRepo.EXPECT().GetUserByUId(ctx, userID).Return(user, nil).Times(1)
 
-	assert.NoError(t, err)
-	assert.Equal(t, user, foundUser)
+    foundUser, err := authService.LookupUserSession(ctx, session)
 
-	mockUserRepo.AssertExpectations(t)
-	mockSessionRepo.AssertExpectations(t)
+    assert.NoError(t, err)
+    assert.Equal(t, user, foundUser)
 }
 
 func TestDeleteUserSession(t *testing.T) {
-	mockSessionRepo := new(MockSessionRepository)
-	authService := NewAuthService(nil, mockSessionRepo)
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
 
-	ctx := context.Background()
-	sessionID := uuid.New().String()
+    mockSessionRepo := mock_usecase.NewMockSessionRepository(ctrl)
+    authService := NewAuthService(nil, mockSessionRepo)
 
-	mockSessionRepo.On("DeleteSession", ctx, sessionID).Return(nil)
+    ctx := context.Background()
+    sessionID := uuid.New().String()
 
-	err := authService.DeleteUserSession(ctx, sessionID)
+    mockSessionRepo.EXPECT().DeleteSession(ctx, sessionID).Return(nil).Times(1)
 
-	assert.NoError(t, err)
-	mockSessionRepo.AssertExpectations(t)
+    err := authService.DeleteUserSession(ctx, sessionID)
+
+    assert.NoError(t, err)
 }
