@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-
 	"quickflow/config"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
@@ -32,20 +32,23 @@ const getUserByUIdQuery = `
 `
 
 type PostgresUserRepository struct {
+	connPool *pgxpool.Pool
+}
+
+func NewPostgresUserRepository() *PostgresUserRepository {
+	connPool, err := pgxpool.New(context.Background(), config.NewPostgresConfig().GetURL())
+	if err != nil {
+		log.Fatalf("Unable to create connection pool: %v", err)
+	}
+
+	return &PostgresUserRepository{connPool: connPool}
 }
 
 // IsExists checks if user with login exists.
 func (i *PostgresUserRepository) IsExists(ctx context.Context, login string) (bool, error) {
-	conn, err := pgx.Connect(ctx, config.NewPostgresConfig().GetURL())
-	if err != nil {
-		return false, fmt.Errorf("unable to connect to database: %w", err)
-
-	}
-	defer conn.Close(ctx)
-
 	var id int64
 
-	err = conn.QueryRow(ctx, "select id from users where login = $1", login).Scan(&id)
+	err := i.connPool.QueryRow(ctx, "select id from users where login = $1", login).Scan(&id)
 	if err != nil {
 		return false, nil
 	}
@@ -53,22 +56,11 @@ func (i *PostgresUserRepository) IsExists(ctx context.Context, login string) (bo
 	return true, nil
 }
 
-// NewPostgresUserRepository creates new storage instance.
-func NewPostgresUserRepository() *PostgresUserRepository {
-	return &PostgresUserRepository{}
-}
-
 // SaveUser saves user to the repository.
 func (i *PostgresUserRepository) SaveUser(ctx context.Context, user models.User) (uuid.UUID, error) {
-	conn, err := pgx.Connect(ctx, config.NewPostgresConfig().GetURL())
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("unable to connect to database: %w", err)
-	}
-	defer conn.Close(ctx)
-
 	userPostgres := pgmodels.ConvertUserToPostgres(user)
 
-	_, err = conn.Exec(ctx, insertUserQuery,
+	_, err := i.connPool.Exec(ctx, insertUserQuery,
 		userPostgres.Id, userPostgres.Login, userPostgres.Name,
 		userPostgres.Surname, userPostgres.Sex, userPostgres.DateOfBirth,
 		userPostgres.Password, userPostgres.Salt,
@@ -82,15 +74,9 @@ func (i *PostgresUserRepository) SaveUser(ctx context.Context, user models.User)
 
 // GetUser returns user by login and password.
 func (i *PostgresUserRepository) GetUser(ctx context.Context, loginData models.LoginData) (models.User, error) {
-	conn, err := pgx.Connect(ctx, config.NewPostgresConfig().GetURL())
-	if err != nil {
-		return models.User{}, fmt.Errorf("unable to connect to database: %w", err)
-	}
-	defer conn.Close(ctx)
-
 	var userPostgres pgmodels.UserPostgres
 
-	err = conn.QueryRow(ctx, getUserByLogin, loginData.Login).Scan(
+	err := i.connPool.QueryRow(ctx, getUserByLogin, loginData.Login).Scan(
 		&userPostgres.Id, &userPostgres.Name,
 		&userPostgres.Surname, &userPostgres.Sex,
 		&userPostgres.DateOfBirth, &userPostgres.Password, &userPostgres.Salt)
@@ -107,15 +93,9 @@ func (i *PostgresUserRepository) GetUser(ctx context.Context, loginData models.L
 
 // GetUserByUId returns user by id.
 func (i *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.UUID) (models.User, error) {
-	conn, err := pgx.Connect(ctx, config.NewPostgresConfig().GetURL())
-	if err != nil {
-		return models.User{}, fmt.Errorf("unable to connect to database: %w", err)
-	}
-	defer conn.Close(ctx)
-
 	var userPostgres pgmodels.UserPostgres
 
-	err = conn.QueryRow(ctx, getUserByUIdQuery,
+	err := i.connPool.QueryRow(ctx, getUserByUIdQuery,
 		userId).Scan(&userPostgres.Id, &userPostgres.Name,
 		&userPostgres.Surname, &userPostgres.Sex,
 		&userPostgres.DateOfBirth, &userPostgres.Password, &userPostgres.Salt)
@@ -124,4 +104,8 @@ func (i *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 	}
 
 	return userPostgres.ConvertToUser(), nil
+}
+
+func (i *PostgresUserRepository) Close() {
+	i.connPool.Close()
 }
