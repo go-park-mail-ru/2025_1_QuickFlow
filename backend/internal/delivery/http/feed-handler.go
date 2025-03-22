@@ -3,8 +3,11 @@ package http
 import (
     "context"
     "encoding/json"
+    "io"
     "log"
+    "mime/multipart"
     "net/http"
+    "path/filepath"
     "time"
 
     "quickflow/config"
@@ -40,20 +43,41 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // parsing JSON
-    var postForm forms.PostForm
-    err := json.NewDecoder(r.Body).Decode(&postForm)
+    err := r.ParseMultipartForm(10 << 20) // 10 MB
     if err != nil {
-        http2.WriteJSONError(w, "Failed to parse JSON", http.StatusBadRequest)
+        http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
         return
     }
 
-    post := models.Post{
-        CreatorId: user.Id,
-        Desc:      postForm.Desc,
-        Pics:      postForm.Pics,
-        CreatedAt: time.Now(),
+    // parsing JSON
+    var postForm forms.PostForm
+    postForm.Text = r.FormValue("text")
+
+    for _, fileHeaders := range r.MultipartForm.File["pics"] {
+        var mimeType string
+        if mimeType, err = detectMimeType(fileHeaders); err != nil {
+            http2.WriteJSONError(w, "Failed to detect MIME type", http.StatusBadRequest)
+            return
+        }
+
+        file, err := fileHeaders.Open()
+        if err != nil {
+            http2.WriteJSONError(w, "Failed to open file", http.StatusBadRequest)
+            return
+        }
+
+        postForm.Images = append(postForm.Images, models.File{
+            Reader:   file,
+            Name:     fileHeaders.Filename,
+            Size:     fileHeaders.Size,
+            Ext:      filepath.Ext(fileHeaders.Filename),
+            MimeType: mimeType,
+        })
+
+        file.Close()
     }
+
+    post := postForm.ToPostModel(user.Id)
 
     err = f.postUseCase.AddPost(r.Context(), post)
     if err != nil {
@@ -104,4 +128,29 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
         http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
         return
     }
+}
+
+// detectMimeType определяет MIME-тип файла, сначала проверяя заголовки, затем анализируя содержимое.
+func detectMimeType(fileHeader *multipart.FileHeader) (string, error) {
+    // Попробуем получить MIME-тип из заголовков
+    mimeType := fileHeader.Header.Get("Content-Type")
+    if mimeType != "" {
+        return mimeType, nil
+    }
+
+    // Если в заголовках нет, пробуем определить по содержимому
+    file, err := fileHeader.Open()
+    if err != nil {
+        return "", err
+    }
+    defer file.Close()
+
+    // Читаем первые 512 байтов (это стандартный размер для определения типа)
+    buf := make([]byte, 512)
+    n, err := file.Read(buf)
+    if err != nil && err != io.EOF {
+        return "", err
+    }
+
+    return http.DetectContentType(buf[:n]), nil
 }

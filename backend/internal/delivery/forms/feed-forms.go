@@ -2,15 +2,32 @@ package forms
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"net/url"
 	"quickflow/config"
 	"quickflow/internal/models"
 	"strconv"
+	"time"
 )
 
+type File struct {
+	Name string
+	Data []byte
+}
+
 type PostForm struct {
-	Desc string   `json:"text"`
-	Pics []string `json:"pics"`
+	Text   string        `json:"text"`
+	Images []models.File `json:"pics"`
+}
+
+func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
+	var postModel models.Post
+	postModel.Desc = p.Text
+	postModel.CreatorId = userId
+	postModel.CreatedAt = time.Now()
+	postModel.Images = p.Images
+
+	return postModel
 }
 
 type FeedForm struct {
@@ -51,10 +68,15 @@ type PostOut struct {
 }
 
 func (p *PostOut) FromPost(post models.Post) {
+	var urls []string
+	for _, url := range post.ImagesURL {
+		urls = append(urls, url)
+	}
+
 	p.Id = post.Id.String()
 	p.CreatorId = post.CreatorId.String()
 	p.Desc = post.Desc
-	p.Pics = post.Pics
+	p.Pics = urls
 	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount

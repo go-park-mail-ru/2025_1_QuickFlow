@@ -4,13 +4,13 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"quickflow/config/cors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/config"
 	"quickflow/internal/delivery/http/mocks"
 	"quickflow/internal/models"
 )
@@ -43,7 +43,7 @@ func TestContentTypeMiddleware(t *testing.T) {
 }
 
 func TestCORSMiddleware(t *testing.T) {
-	corsConfig := config.CORSConfig{
+	corsConfig := cors.CORSConfig{
 		AllowedMethods: []string{"GET", "POST"},
 		AllowedHeaders: []string{"Content-Type"},
 	}

@@ -59,10 +59,22 @@ func (m *ThreadSafeMap[K, V]) GetKeys() []K {
 // GetValues returns all values.
 func (m *ThreadSafeMap[K, V]) GetValues() []V {
 	m.mu.RLock()
+	defer m.mu.RUnlock()
 	values := make([]V, 0, len(m.m))
 	for _, v := range m.m {
 		values = append(values, v)
 	}
-	m.mu.RUnlock()
 	return values
+}
+
+// GetMapCopy returns a copy of the map.
+func (m *ThreadSafeMap[K, V]) GetMapCopy() map[K]V {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	copyMap := make(map[K]V, len(m.m))
+	for k, v := range m.m {
+		copyMap[k] = v
+	}
+	return copyMap
 }

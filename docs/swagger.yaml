@@ -100,19 +100,21 @@ info:
   version: "1.0"
 paths:
   /api/feed:
-    post:
-      consumes:
-      - application/json
+    get:
       description: "Returns a list of posts published before a specified time."
       parameters:
-      - description: "Feed parameters"
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/forms.FeedForm'
+        - description: "Number of posts to return"
+          in: query
+          name: posts_count
+          type: integer
+          required: true
+        - description: "Timestamp to return posts before"
+          in: query
+          name: ts
+          type: string
+          required: false
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: "Array of posts."
@@ -125,27 +127,27 @@ paths:
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "Invalid JSON format"}
+            application/json: { "error": "Invalid JSON format" }
         "401":
           description: "User is not authorized."
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "User is not authorized"}
+            application/json: { "error": "User is not authorized" }
         "500":
           description: "Error loading feed."
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "Error loading feed"}
+            application/json: { "error": "Error loading feed" }
       summary: "Get feed."
       tags:
-      - Feed
+        - Feed
   /api/hello:
     get:
       description: "Checks API availability. Always returns 'Hello, world!'."
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: "Successful response."
@@ -155,21 +157,21 @@ paths:
             application/json: "Hello, world!"
       summary: "Ping."
       tags:
-      - Misc
+        - Misc
   /api/login:
     post:
       consumes:
-      - application/json
+        - application/json
       description: "Authenticates the user and establishes a session."
       parameters:
-      - description: "Login credentials."
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/forms.AuthForm'
+        - description: "Login credentials."
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: '#/definitions/forms.AuthForm'
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: "Successful login."
@@ -182,52 +184,52 @@ paths:
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "Invalid request data"}
+            application/json: { "error": "Invalid request data" }
         "401":
           description: "Invalid username or password."
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "Invalid username or password"}
+            application/json: { "error": "Invalid username or password" }
       summary: "User login."
       tags:
-      - Auth
+        - Auth
   /api/signup:
     post:
       consumes:
-      - application/json
+        - application/json
       description: "Creates a new user account."
       parameters:
-      - description: "Registration data."
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/forms.SignUpForm'
+        - description: "Registration data."
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: '#/definitions/forms.SignUpForm'
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: "User ID of the newly created account."
           schema:
             type: object
           examples:
-            application/json: {"user_id": "a1b2c3d4-e5f6-7g8h-9i10-jk11lm12no13"}
+            application/json: { "user_id": "a1b2c3d4-e5f6-7g8h-9i10-jk11lm12no13" }
         "400":
           description: "Invalid request data."
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "Invalid request data"}
+            application/json: { "error": "Invalid request data" }
         "409":
           description: "Username already taken."
           schema:
             $ref: '#/definitions/forms.ErrorForm'
           examples:
-            application/json: {"error": "Username already taken"}
+            application/json: { "error": "Username already taken" }
       summary: "User registration."
       tags:
-      - Auth
+        - Auth
 schemes:
 - http
 - https

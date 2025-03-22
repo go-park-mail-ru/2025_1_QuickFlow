@@ -1,4 +1,4 @@
-package config
+package cors
 
 import (
 	"flag"

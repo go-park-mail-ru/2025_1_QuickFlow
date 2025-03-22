@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"net/http"
+	"quickflow/config/cors"
+	"quickflow/internal/repository/minio"
 	"quickflow/internal/repository/redis"
 
 	"github.com/gorilla/mux"
@@ -14,7 +16,7 @@ import (
 	"quickflow/internal/usecase"
 )
 
-func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
+func Run(cfg *config.Config, corsCfg *cors.CORSConfig) error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
@@ -23,10 +25,12 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 	newUserRepo := postgres.NewPostgresUserRepository()
 	newPostRepo := postgres.NewPostgresPostRepository()
 	newSessionRepo := redis.NewRedisSessionRepository()
+	newFileRepo := minio.NewMinioRepository()
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
-	newPostService := usecase.NewPostService(newPostRepo)
+	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
 	newPostHandler := qfhttp.NewFeedHandler(newPostService, newAuthService)
+	defer newUserRepo.Close()
 	defer newPostRepo.Close()
 	defer newSessionRepo.Close()
 
@@ -47,7 +51,7 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
-	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json"))
+	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
 
 	apiGetRouter := r.PathPrefix("/").Subrouter()
 	// validating that the content type is application/json for every route but /hello

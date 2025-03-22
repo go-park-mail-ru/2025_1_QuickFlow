@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	http2 "quickflow/utils/http"
+	"quickflow/utils/validation"
 	"time"
 
 	"github.com/google/uuid"
 
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
-	"quickflow/utils"
 )
 
 type AuthUseCase interface {
@@ -58,7 +58,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validation
-	if err := utils.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
+	if err := validation.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
 		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}

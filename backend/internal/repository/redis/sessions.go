@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	redis2 "quickflow/config/redis"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"quickflow/config"
 	"quickflow/internal/models"
 )
 
