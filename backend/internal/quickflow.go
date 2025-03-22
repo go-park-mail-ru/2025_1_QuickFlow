@@ -32,6 +32,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig) error {
 	newPostHandler := qfhttp.NewFeedHandler(newPostService, newAuthService)
 	defer newUserRepo.Close()
 	defer newPostRepo.Close()
+	defer newSessionRepo.Close()
 
 	// routing
 	r := mux.NewRouter()
