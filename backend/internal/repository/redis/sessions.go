@@ -20,7 +20,7 @@ type RedisSessionRepository struct {
 func NewRedisSessionRepository() *RedisSessionRepository {
 	return &RedisSessionRepository{
 		rdb: redis.NewClient(&redis.Options{
-			Addr: config.NewRedisConfig().GetURL(),
+			Addr: redis2.NewRedisConfig().GetURL(),
 		}),
 	}
 }
