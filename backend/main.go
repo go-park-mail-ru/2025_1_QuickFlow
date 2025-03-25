@@ -1,25 +1,36 @@
 package main
 
 import (
-    "log"
+	"flag"
+	"log"
+	minio_config "quickflow/config/minio"
 
-    "quickflow/config"
-    "quickflow/config/cors"
-    "quickflow/internal"
+	"quickflow/config"
+	"quickflow/config/cors"
+	"quickflow/internal"
 )
 
 func main() {
-    cfg, err := config.Parse()
-    if err != nil {
-        log.Fatalf("failed to load QuickFlow configuration: %v", err)
-    }
+	mainConfigPath := flag.String("config", "", "Path to config file")
+	corsConfigPath := flag.String("cors-config", "", "Path to CORS config file")
+	minioConfigPath := flag.String("minio-config", "", "Path to Minio config file")
+	flag.Parse()
+	cfg, err := config.Parse(*mainConfigPath)
+	if err != nil {
+		log.Fatalf("failed to load QuickFlow configuration: %v", err)
+	}
 
-    corsCfg, err := cors.ParseCORS()
-    if err != nil {
-        log.Fatalf("failed to load CORS configuration: %v", err)
-    }
+	corsCfg, err := cors.ParseCORS(*corsConfigPath)
+	if err != nil {
+		log.Fatalf("failed to load CORS configuration: %v", err)
+	}
 
-    if err = internal.Run(cfg, corsCfg); err != nil {
-        log.Fatalf("failed to start QuickFlow: %v", err)
-    }
+	minioCfg, err := minio_config.ParseMinio(*minioConfigPath)
+	if err != nil {
+		log.Fatalf("failed to load Minio configuration: %v", err)
+	}
+
+	if err = internal.Run(cfg, corsCfg, minioCfg); err != nil {
+		log.Fatalf("failed to start QuickFlow: %v", err)
+	}
 }

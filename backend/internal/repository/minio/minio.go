@@ -3,59 +3,65 @@ package minio
 import (
 	"context"
 	"fmt"
-	"log"
-	thread_safe_map "quickflow/pkg/thread-safe-map"
-	"sync"
-
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"golang.org/x/sync/errgroup"
 
 	minioconfig "quickflow/config/minio"
 	"quickflow/internal/models"
+	thread_safe_map "quickflow/pkg/thread-safe-map"
 )
 
 type MinioRepository struct {
-	client *minio.Client
-	cfg    *minioconfig.MinioConfig
+	client                *minio.Client
+	PostsBucketName       string
+	AttachmentsBucketName string
+	ProfileBucketName     string
+	PublicUrlRoot         string
 }
 
-func NewMinioRepository() *MinioRepository {
-	cfg := minioconfig.NewMinioConfig()
+func NewMinioRepository(cfg *minioconfig.MinioConfig) (*MinioRepository, error) {
 	client, err := minio.New(cfg.MinioInternalEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinioRootUser, cfg.MinioRootPassword, ""),
 		Secure: cfg.MinioUseSSL,
 	})
 
 	if err != nil {
-		log.Fatalf("could not create minio client: %v", err)
+		return nil, fmt.Errorf("could not create minio client: %v", err)
 	}
 
 	exists, err := client.BucketExists(context.Background(), cfg.PostsBucketName)
 	if err != nil {
-		log.Fatalf("could not check if bucket exists: %v", err)
+		return nil, fmt.Errorf("could not check if bucket exists: %v", err)
 	}
 
 	if !exists {
 		err = client.MakeBucket(context.Background(), cfg.PostsBucketName, minio.MakeBucketOptions{})
 		if err != nil {
-			log.Fatalf("could not create bucket: %v", err)
+			return nil, fmt.Errorf("could not create bucket: %v", err)
 		}
 	}
 
-	return &MinioRepository{client: client, cfg: cfg}
+	return &MinioRepository{
+		client:                client,
+		PostsBucketName:       cfg.PostsBucketName,
+		AttachmentsBucketName: cfg.AttachmentsBucketName,
+		ProfileBucketName:     cfg.ProfileBucketName,
+		PublicUrlRoot:         fmt.Sprintf("%s://%s", cfg.Scheme, cfg.MinioPublicEndpoint),
+	}, nil
 }
 
 // UploadFile uploads file to MinIO and returns a public URL.
 func (m *MinioRepository) UploadFile(ctx context.Context, file models.File) (string, error) {
-	_, err := m.client.PutObject(ctx, m.cfg.PostsBucketName, file.Name, file.Reader, file.Size, minio.PutObjectOptions{
+	_, err := m.client.PutObject(ctx, m.PostsBucketName, file.Name, file.Reader, file.Size, minio.PutObjectOptions{
 		ContentType: file.MimeType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("could not upload file: %v", err)
 	}
-    
-	publicURL := fmt.Sprintf("%s://%s/%s/%s", m.cfg.Scheme, m.cfg.MinioPublicEndpoint, m.cfg.PostsBucketName, file.Name)
+
+	publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, file.Name)
 	return publicURL, nil
 }
 
@@ -66,42 +72,41 @@ func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []models.Fi
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	var wg sync.WaitGroup
+	wg, ctx := errgroup.WithContext(ctx)
 
 	for _, file := range files {
+		file := file // https://golang.org/doc/faq#closures_and_goroutines
 		uuID := uuid.New()
 		fileName := uuID.String() + file.Ext
-		wg.Add(1)
 
-		go func(uuID uuid.UUID, filename string, file models.File) {
-			defer wg.Done()
-			log.Printf("Adding picture %v of size %d\n", fileName, file.Size)
-			_, err := m.client.PutObject(ctx, m.cfg.PostsBucketName, fileName, file.Reader, file.Size, minio.PutObjectOptions{
+		wg.Go(func() error {
+			_, err := m.client.PutObject(ctx, m.PostsBucketName, fileName, file.Reader, file.Size, minio.PutObjectOptions{
 				ContentType: file.MimeType,
 			})
 			if err != nil {
-				log.Printf("could not upload file: %v, err: %v", file.Name, err)
-				cancel()
-				return
+				return fmt.Errorf("could not upload file: %v, err: %v", file.Name, err)
 			}
 
-			publicURL := fmt.Sprintf("%s://%s/%s/%s", m.cfg.Scheme, m.cfg.MinioPublicEndpoint, m.cfg.PostsBucketName, fileName)
+			publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, fileName)
 			urls.Set(uuID, publicURL)
-		}(uuID, fileName, file)
+			return nil
+		})
 	}
 
-	wg.Wait()
+	if err := wg.Wait(); err != nil {
+		return nil, err
+	}
 	return urls.GetMapCopy(), nil
 }
 
 // GetFileURL returns a public URL for the file.
 func (m *MinioRepository) GetFileURL(_ context.Context, fileName string) (string, error) {
-	return fmt.Sprintf("%s://%s/%s/%s", m.cfg.Scheme, m.cfg.MinioPublicEndpoint, m.cfg.PostsBucketName, fileName), nil
+	return fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, fileName), nil
 }
 
 // DeleteFile deletes a file from MinIO.
 func (m *MinioRepository) DeleteFile(ctx context.Context, fileName string) error {
-	err := m.client.RemoveObject(ctx, m.cfg.PostsBucketName, fileName, minio.RemoveObjectOptions{})
+	err := m.client.RemoveObject(ctx, m.PostsBucketName, fileName, minio.RemoveObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("could not delete file: %v", err)
 	}

@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,8 +46,6 @@ func (p *PostService) AddPost(ctx context.Context, post models.Post) error {
 	if err != nil {
 		return fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
 	}
-
-	log.Printf("Got urls: %v", post.ImagesURL)
 
 	// Update post images with urls
 	err = p.postRepo.AddPost(ctx, post)

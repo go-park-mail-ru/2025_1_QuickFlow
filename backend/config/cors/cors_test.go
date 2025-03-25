@@ -44,7 +44,6 @@ func TestLoadCORSConfig_Success(t *testing.T) {
 	if len(loadedCfg.AllowedMethods) != len(cfg.AllowedMethods) {
 		t.Errorf("expected AllowedMethods %v, got %v", cfg.AllowedMethods, loadedCfg.AllowedMethods)
 	}
-	// Проверки для других полей тоже можно добавить
 }
 
 func TestLoadCORSConfig_FileNotFound(t *testing.T) {

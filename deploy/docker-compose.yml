@@ -32,8 +32,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../deploy/sql:/docker-entrypoint-initdb.d
-    env_file:
-      - .env
 
   redis:
     image: redis:latest
@@ -43,8 +41,6 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    env_file:
-      - .env
 
   # s3 хранилище minio
   minio:

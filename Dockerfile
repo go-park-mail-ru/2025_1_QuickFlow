@@ -36,18 +36,15 @@ COPY --from=builder /quickflow_app/deploy /quickflow_app/deploy
 
 # 10. Копируем скрипты
 COPY deploy/scripts/setup-minio-buckets.sh /usr/local/bin/setup-minio-buckets.sh
-COPY deploy/scripts/setup-scheme-endpoint.sh /usr/local/bin/setup-scheme-endpoint.sh
 
 # 11. Копируем .env файл
 COPY deploy/.env /etc/environment
 
 # 12. Делаем скрипты исполнимыми
-RUN chmod +x /usr/local/bin/setup-minio-buckets.sh \
-    /usr/local/bin/setup-scheme-endpoint.sh
+RUN chmod +x /usr/local/bin/setup-minio-buckets.sh
 
 # Добавь перед CMD для вывода путей
 RUN ls -l /usr/local/bin/setup-minio-buckets.sh
-RUN ls -l /usr/local/bin/setup-scheme-endpoint.sh
 
 RUN echo "SCHEME=$SCHEME" && \
     if [ "$SCHEME" == "https" ]; then \
@@ -67,4 +64,4 @@ ENV MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
 
 
 # 13. Указываем команду для запуска
-CMD ["/bin/bash", "-c", "/usr/local/bin/setup-scheme-endpoint.sh && /usr/local/bin/setup-minio-buckets.sh && ./main -config /quickflow_app/deploy/config/feeder/config.toml"]
+CMD ["/bin/bash", "-c", "/usr/local/bin/setup-minio-buckets.sh && ./main -config /quickflow_app/deploy/config/feeder/config.toml"]
