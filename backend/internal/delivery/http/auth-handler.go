@@ -31,14 +31,30 @@ func NewAuthHandler(authUseCase AuthUseCase) *AuthHandler {
     }
 }
 
-// Greet greets the user
+// Greet проверяет доступность API
+// @Summary Ping
+// @Description Проверяет доступность API, всегда возвращает "Hello, world!"
+// @Tags Misc
+// @Produce json
+// @Success 200 {string} string "Hello, world!"
+// @Router /api/hello [get]
 func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode("Hello World")
 }
 
-// SignUp creates new user.
+// SignUp создает нового пользователя
+// @Summary Регистрация пользователя
+// @Description Создает новую учетную запись пользователя
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body forms.SignUpForm true "Данные для регистрации"
+// @Success 200 {object} map[string]interface{} "user_id нового пользователя"
+// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
+// @Failure 409 {object} forms.ErrorForm "Логин уже занят"
+// @Router /api/signup [post]
 func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
     var form forms.SignUpForm
 
@@ -86,7 +102,17 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(&body)
 }
 
-// Login logs in user.
+// Login аутентифицирует пользователя
+// @Summary Авторизация
+// @Description Аутентифицирует пользователя и устанавливает сессию
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body forms.AuthForm true "Данные для входа"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
+// @Failure 401 {object} forms.ErrorForm "Неверный логин или пароль"
+// @Router /api/login [post]
 func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
     var form forms.AuthForm
 
@@ -117,6 +143,13 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
     })
 }
 
+// Logout завершает сессию пользователя
+// @Summary Выход из системы
+// @Description Удаляет сессию пользователя
+// @Tags Auth
+// @Success 200 {string} string "OK"
+// @Failure 401 {object} forms.ErrorForm "Пользователь не авторизован"
+// @Router /api/logout [post]
 func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
     cookie, err := r.Cookie("session")
     if err != nil {

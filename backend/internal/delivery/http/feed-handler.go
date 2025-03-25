@@ -33,7 +33,18 @@ func NewFeedHandler(postUseCase PostUseCase, authUseCase AuthUseCase) *FeedHandl
 	}
 }
 
-// AddPost adds post to the feed.
+// AddPost добавляет новый пост
+// @Summary Добавить пост
+// @Description Добавляет новый пост в ленту
+// @Tags Feed
+// @Accept multipart/form-data
+// @Produce json
+// @Param text formData string true "Текст поста"
+// @Param pics formData file false "Изображения"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
+// @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
+// @Router /api/post [post]
 func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
 	user, ok := r.Context().Value("user").(models.User)
@@ -85,7 +96,17 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetFeed returns feed for user using JSON format
+// GetFeed возвращает ленту постов
+// @Summary Получить ленту
+// @Description Возвращает список постов, опубликованных до указанного времени
+// @Tags Feed
+// @Produce json
+// @Param posts_count query int true "Количество постов"
+// @Param ts query string false "Временная метка"
+// @Success 200 {array} forms.PostOut "Список постов"
+// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
+// @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
+// @Router /api/feed [get]
 func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
 	user, ok := r.Context().Value("user").(models.User)
