@@ -26,7 +26,7 @@ const getOlderPostsLimitQuery = `
 	select * 
 	from posts 
 	where created_at < $1 
-	order by created_at 
+	order by created_at desc
 	limit $2
 `
 

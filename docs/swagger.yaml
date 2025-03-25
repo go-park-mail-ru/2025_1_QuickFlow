@@ -151,7 +151,6 @@ paths:
       - description: Текст поста
         in: formData
         name: text
-        required: true
         type: string
       - description: Изображения
         in: formData
