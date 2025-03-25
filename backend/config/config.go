@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"time"
 
@@ -28,13 +27,9 @@ func loadConfig(configPath string) (*Config, error) {
 	return &cfg, nil
 }
 
-func Parse() (*Config, error) {
-	// Supporting config path via flags
-	configPath := flag.String("config", "", "Path to config file")
-	flag.Parse()
-
+func Parse(configPath string) (*Config, error) {
 	// Loading config
-	cfg, err := loadConfig(*configPath)
+	cfg, err := loadConfig(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("internal.Run: %w", err)
 	}

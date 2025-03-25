@@ -43,7 +43,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			expectedPost: models.Post{
 				CreatorId: userID,
 				Desc:      "Hello, world!",
-				Pics:      []string{"pic1.jpg", "pic2.jpg"},
+				Images:    []string{"pic1.jpg", "pic2.jpg"},
 				CreatedAt: time.Now(),
 			},
 		},
@@ -59,7 +59,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			expectedPost: models.Post{
 				CreatorId: userID,
 				Desc:      "This should fail",
-				Pics:      []string{"pic3.jpg"},
+				Images:    []string{"pic3.jpg"},
 				CreatedAt: time.Time{},
 			},
 		},
