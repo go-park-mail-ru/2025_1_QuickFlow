@@ -1,135 +1,120 @@
-CREATE TABLE "user" (
-                        id UUID PRIMARY KEY,
-                        username TEXT NOT NULL UNIQUE,
-                        psw_hash TEXT NOT NULL,
-                        salt TEXT NOT NULL
+create table if not exists "user" (
+                                      id uuid primary key,
+                                      username text not null unique,
+                                      psw_hash text not null,
+                                      salt text not null
 );
 
-CREATE TABLE profile (
-                         id UUID PRIMARY KEY,
-                         bio TEXT,
-                         profile_avatar TEXT,
-                         firstname TEXT NOT NULL,
-                         lastname TEXT NOT NULL,
-                         sex INT DEFAULT 0,
-                         birth_date DATE,
-                         FOREIGN KEY (id) REFERENCES "user"(id) ON DELETE CASCADE
+create table if not exists profile(
+                                      id uuid primary key,
+                                      bio text,
+                                      profile_avatar text,
+                                      firstname text not null,
+                                      lastname text not null,
+                                      sex int default 0 check (sex >= 0),
+                                      birth_date date,
+                                      foreign key (id) references "user"(id) on delete cascade
 );
 
-CREATE TABLE post (
-                      id UUID PRIMARY KEY,
-                      creator_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                      text TEXT,
-                      created_at timestamp NOT NULL DEFAULT now(),
-                      like_count INT DEFAULT 0,
-                      repost_count INT DEFAULT 0,
-                      comment_count INT DEFAULT 0,
-                      is_repost BOOL DEFAULT FALSE
+create table if not exists post(
+                                   id uuid primary key,
+                                   creator_id uuid references "user"(id) on delete cascade,
+                                   text text,
+                                   created_at timestamp not null default now(),
+                                   like_count int default 0 check (like_count >= 0),
+                                   repost_count int default 0 check(repost_count >= 0),
+                                   comment_count int default 0 check(comment_count >= 0),
+                                   is_repost bool default false
 );
 
-CREATE TABLE comment (
-                         id UUID PRIMARY KEY,
-                         post_id UUID REFERENCES post(id) ON DELETE CASCADE,
-                         user_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                         created_at TIMESTAMP NOT NULL DEFAULT now(),
-                         like_count INT DEFAULT 0,
-                         text TEXT NOT NULL
+create table if not exists comment(
+                                      id uuid primary key,
+                                      post_id uuid references post(id) on delete cascade,
+                                      user_id uuid  references "user"(id) on delete cascade,
+                                      created_at timestamp not null default now(),
+                                      like_count int default 0 check (like_count >= 0),
+                                      text text not null
 );
 
-CREATE TABLE post_file (
-                           id SERIAL PRIMARY KEY,
-                           post_id UUID REFERENCES post(id) ON DELETE CASCADE,
-                           file_url TEXT NOT NULL
+create table if not exists post_file(
+                                        id int generated always as identity primary key,
+                                        post_id uuid references post(id) on delete cascade,
+                                        file_url text not null
 );
 
-CREATE TABLE repost (
-                        repost_id UUID PRIMARY KEY,
-                        original_id UUID REFERENCES post(id) ON DELETE CASCADE,
-                        FOREIGN KEY (repost_id) REFERENCES post(id) ON DELETE CASCADE
+create table if not exists repost(
+                                     repost_id uuid primary key,
+                                     original_id uuid references post(id) on delete cascade,
+
+                                     foreign key (repost_id) references post(id) on delete cascade
 );
 
-CREATE TABLE like_post (
-                           id SERIAL PRIMARY KEY,
-                           user_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                           post_id UUID REFERENCES post(id) ON DELETE CASCADE,
-                           UNIQUE (user_id, post_id)
+create table if not exists like_post(
+                                        id int generated always as identity primary key,
+                                        user_id uuid references "user"(id) on delete cascade,
+                                        post_id uuid references post(id) on delete cascade,
+                                        unique (user_id, post_id)
 );
 
-CREATE TABLE like_comment (
-                              id SERIAL PRIMARY KEY,
-                              user_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                              comment_id UUID REFERENCES comment(id) ON DELETE CASCADE,
-                              UNIQUE (user_id, comment_id)
+create table if not exists like_comment(
+                                           id int generated always as identity primary key,
+                                           user_id uuid references "user"(id) on delete cascade,
+                                           comment_id uuid references comment(id) on delete cascade,
+                                           unique (user_id, comment_id)
 );
 
-CREATE TABLE friendship (
-                            id SERIAL PRIMARY KEY,
-                            user1_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                            user2_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                            status INT NOT NULL DEFAULT 0,
-                            UNIQUE (user1_id, user2_id)
+create table if not exists friendship(
+                                         id int generated always as identity primary key,
+                                         user1_id uuid references "user"(id) on delete cascade,
+                                         user2_id uuid references "user"(id) on delete cascade,
+                                         status int not null default 0,
+                                         unique (user1_id, user2_id),
+                                         check (user1_id < user2_id)
 );
 
-CREATE TABLE chat (
-                      id UUID PRIMARY KEY,
-                      type INT DEFAULT 0,
-                      created_at TIMESTAMP NOT NULL DEFAULT now()
+create table if not exists chat(
+                                   id uuid primary key,
+                                   type int default 0,
+                                   created_at timestamp not null default now()
 );
 
-CREATE TABLE chat_user (
-                           id SERIAL PRIMARY KEY,
-                           chat_id UUID REFERENCES chat(id) ON DELETE CASCADE,
-                           user_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                           UNIQUE (chat_id, user_id)
+create table if not exists chat_user(
+                                        id int generated always as identity primary key,
+                                        chat_id uuid references chat(id) on delete cascade,
+                                        user_id uuid references "user"(id) on delete cascade,
+                                        unique(chat_id, user_id)
 );
 
-CREATE TABLE message (
-                         id UUID PRIMARY KEY,
-                         text TEXT CHECK (LENGTH(text) > 0),
-                         sender_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                         chat_id UUID REFERENCES chat(id) ON DELETE CASCADE,
-                         created_at TIMESTAMP NOT NULL DEFAULT now(),
-                         is_read BOOL NOT NULL DEFAULT FALSE
+create table if not exists message(
+                                      id uuid primary key,
+                                      text text check (length(text) > 0),
+                                      sender_id uuid references "user"(id) on delete cascade,
+                                      chat_id uuid references chat(id) on delete cascade,
+                                      created_at timestamp not null default now(),
+                                      is_read bool not null default false
 );
 
-CREATE TABLE community (
-                           id UUID PRIMARY KEY,
-                           owner_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                           name TEXT NOT NULL UNIQUE,
-                           description TEXT,
-                           created_at TIMESTAMP NOT NULL DEFAULT now()
+create table if not exists community(
+                                        id uuid primary key,
+                                        owner_id uuid references "user"(id) on delete cascade,
+                                        name text not null unique,
+                                        description text,
+                                        created_at timestamp not null default now()
 );
 
-CREATE TABLE community_user (
-                                id SERIAL PRIMARY KEY,
-                                community_id UUID REFERENCES community(id) ON DELETE CASCADE,
-                                user_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                                role INT NOT NULL DEFAULT 0,
-                                joined_at TIMESTAMP NOT NULL DEFAULT now(),
-                                UNIQUE (community_id, user_id)
+create table if not exists community_user(
+                                             id int generated always as identity primary key,
+                                             community_id uuid references community(id) on delete cascade,
+                                             user_id uuid references "user"(id) on delete cascade,
+                                             role int not null default 0,
+                                             joined_at timestamp not null default now(),
+                                             unique (community_id, user_id)
 );
 
-CREATE TABLE user_follow (
-                             id SERIAL PRIMARY KEY,
-                             following_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                             followed_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
-                             UNIQUE (following_id, followed_id)
+create table if not exists user_follow(
+                                          id int generated always as identity primary key,
+                                          following_id uuid references "user"(id) on delete cascade,
+                                          followed_id uuid references "user"(id) on delete cascade,
+                                          unique (following_id, followed_id),
+                                          check (following_id != followed_id)
 );
-
----- create above / drop below ----
-
-DROP TABLE IF EXISTS user_follow;
-DROP TABLE IF EXISTS community_user;
-DROP TABLE IF EXISTS community;
-DROP TABLE IF EXISTS message;
-DROP TABLE IF EXISTS chat_user;
-DROP TABLE IF EXISTS chat;
-DROP TABLE IF EXISTS friendship;
-DROP TABLE IF EXISTS like_comment;
-DROP TABLE IF EXISTS like_post;
-DROP TABLE IF EXISTS repost;
-DROP TABLE IF EXISTS post_file;
-DROP TABLE IF EXISTS comment;
-DROP TABLE IF EXISTS post;
-DROP TABLE IF EXISTS profile;
-DROP TABLE IF EXISTS "user";
