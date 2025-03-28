@@ -22,7 +22,7 @@ const getPhotosQuery = `
 `
 
 const getOlderPostsLimitQuery = `
-	select * 
+	select id, creator_id, text, created_at, like_count, repost_count, comment_count, is_repost
 	from post 
 	where created_at < $1 
 	order by created_at 
@@ -30,8 +30,8 @@ const getOlderPostsLimitQuery = `
 `
 
 const insertPostQuery = `
-	insert into post (id, creator_id, text, created_at, like_count, repost_count, comment_count)
-	values ($1, $2, $3, $4, $5, $6, $7)
+	insert into post (id, creator_id, text, created_at, like_count, repost_count, comment_count, is_repost)
+	values ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 const insertPhotoQuery = `
@@ -63,7 +63,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
     _, err := p.connPool.Exec(ctx, insertPostQuery,
         postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
         postPostgres.CreatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
-        postPostgres.CommentCount)
+        postPostgres.CommentCount, postPostgres.IsRepost)
     if err != nil {
         return fmt.Errorf("unable to save user to database: %w", err)
     }
@@ -103,7 +103,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
         err = rows.Scan(
             &postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
             &postPostgres.CreatedAt, &postPostgres.LikeCount,
-            &postPostgres.RepostCount, &postPostgres.CommentCount)
+            &postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
         if err != nil {
             return nil, fmt.Errorf("unable to get posts from database: %w", err)
         }

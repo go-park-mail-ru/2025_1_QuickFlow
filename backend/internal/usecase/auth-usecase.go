@@ -59,6 +59,7 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile 
     if err != nil {
         return uuid.Nil, models.Session{}, err
     }
+    profile.UserId = userId
 
     if err = a.profileRepo.SaveProfile(ctx, profile); err != nil {
         return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.SaveProfile: %w", err)

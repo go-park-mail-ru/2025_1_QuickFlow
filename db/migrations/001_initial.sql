@@ -20,7 +20,7 @@ CREATE TABLE post (
                       id UUID PRIMARY KEY,
                       creator_id UUID REFERENCES "user"(id) ON DELETE CASCADE,
                       text TEXT,
-                      created_at DATE NOT NULL DEFAULT now(),
+                      created_at timestamp NOT NULL DEFAULT now(),
                       like_count INT DEFAULT 0,
                       repost_count INT DEFAULT 0,
                       comment_count INT DEFAULT 0,

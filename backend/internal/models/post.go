@@ -17,6 +17,7 @@ type Post struct {
     LikeCount    int
     RepostCount  int
     CommentCount int
+    IsRepost     bool
 }
 
 type File struct {

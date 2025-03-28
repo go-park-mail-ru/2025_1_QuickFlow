@@ -20,7 +20,7 @@ create table if not exists post(
                                    id uuid primary key,
                                    creator_id uuid references "user"(id) on delete cascade,
                                    text text,
-                                   created_at date not null default now(),
+                                   created_at timestamp not null default now(),
                                    like_count int default 0 check (like_count >= 0),
                                    repost_count int default 0 check(repost_count >= 0),
                                    comment_count int default 0 check(comment_count >= 0),

@@ -53,9 +53,9 @@ func (u *PostgresUserRepository) Close() {
 
 // IsExists checks if user with login exists.
 func (u *PostgresUserRepository) IsExists(ctx context.Context, login string) (bool, error) {
-    var id int64
+    var id uuid.UUID
 
-    err := u.connPool.QueryRow(ctx, "select id from \"user\" where login = $1", login).Scan(&id)
+    err := u.connPool.QueryRow(ctx, "select id from \"user\" where username = $1", login).Scan(&id)
     if err != nil {
         return false, nil
     }
