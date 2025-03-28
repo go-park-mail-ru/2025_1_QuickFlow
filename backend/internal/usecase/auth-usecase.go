@@ -26,19 +26,21 @@ type SessionRepository interface {
 
 type AuthService struct {
     userRepo    UserRepository
+    profileRepo ProfileRepository
     sessionRepo SessionRepository
 }
 
 // NewAuthService creates new auth service.
-func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository) *AuthService {
+func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, profileRepo ProfileRepository) *AuthService {
     return &AuthService{
         userRepo:    userRepo,
         sessionRepo: sessionRepo,
+        profileRepo: profileRepo,
     }
 }
 
 // CreateUser creates new user.
-func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error) {
+func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error) {
     var err error
     if user, err = models.CreateUser(user); err != nil {
         return uuid.Nil, models.Session{}, err
@@ -56,6 +58,10 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User) (uuid.UU
     userId, err := a.userRepo.SaveUser(ctx, user)
     if err != nil {
         return uuid.Nil, models.Session{}, err
+    }
+
+    if err = a.profileRepo.SaveProfile(ctx, profile); err != nil {
+        return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.SaveProfile: %w", err)
     }
 
     session := models.CreateSession()

@@ -4,6 +4,7 @@ import (
     "context"
     "encoding/json"
     "net/http"
+    "quickflow/config"
     http2 "quickflow/utils/http"
     "quickflow/utils/validation"
     "time"
@@ -15,7 +16,7 @@ import (
 )
 
 type AuthUseCase interface {
-    CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error)
+    CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error)
     GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
     LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
     DeleteUserSession(ctx context.Context, session string) error
@@ -65,22 +66,32 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
     // converting transport form to domain model
     user := models.User{
-        Login:       form.Login,
+        Login:    form.Login,
+        Password: form.Password,
+    }
+
+    date, err := time.Parse(config.DateLayout, form.DateOfBirth)
+    if err != nil {
+        http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
+        return
+    }
+
+    profile := models.Profile{
+        AvatarUrl:   "",
         Name:        form.Name,
         Surname:     form.Surname,
         Sex:         form.Sex,
-        DateOfBirth: form.DateOfBirth,
-        Password:    form.Password,
+        DateOfBirth: date,
     }
 
     // validation
-    if err := validation.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
+    if err := validation.Validate(user.Login, user.Password, profile.Name, profile.Surname); err != nil {
         http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
         return
     }
 
     // process data
-    id, session, err := a.authUseCase.CreateUser(r.Context(), user)
+    id, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
     if err != nil {
         http2.WriteJSONError(w, err.Error(), http.StatusConflict)
         return

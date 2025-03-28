@@ -4,7 +4,6 @@ import (
     "context"
     "fmt"
     "log"
-
     "time"
 
     "github.com/google/uuid"
@@ -17,27 +16,27 @@ import (
 )
 
 const getPhotosQuery = `
-	select id, photo_path
-	from post_photos
+	select file_url
+	from post_file
 	where post_id = $1
 `
 
 const getOlderPostsLimitQuery = `
 	select * 
-	from posts 
+	from post 
 	where created_at < $1 
-	order by created_at desc
+	order by created_at 
 	limit $2
 `
 
 const insertPostQuery = `
-	insert into posts (id, creator_id, description, created_at, like_count, repost_count, comment_count)
+	insert into post (id, creator_id, text, created_at, like_count, repost_count, comment_count)
 	values ($1, $2, $3, $4, $5, $6, $7)
 `
 
 const insertPhotoQuery = `
-	insert into post_photos (post_id, id, photo_path)
-	values ($1, $2, $3)
+	insert into post_file (post_id, file_url)
+	values ($1, $2)
 `
 
 type PostgresPostRepository struct {
@@ -71,7 +70,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 
     for _, picture := range postPostgres.ImagesURLs {
         _, err = p.connPool.Exec(ctx, insertPhotoQuery,
-            postPostgres.Id, picture.Id, picture.URL)
+            postPostgres.Id, picture)
         if err != nil {
             return fmt.Errorf("unable to save user to database: %w", err)
         }
@@ -82,7 +81,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 
 // DeletePost removes post from the repository.
 func (p *PostgresPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
-    _, err := p.connPool.Exec(ctx, "delete from posts where id = $1", pgtype.UUID{Bytes: postId, Valid: true})
+    _, err := p.connPool.Exec(ctx, "delete from post cascade where id = $1", pgtype.UUID{Bytes: postId, Valid: true})
     if err != nil {
         return fmt.Errorf("unable to delete post from database: %w", err)
     }
@@ -116,13 +115,12 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 
         for pics.Next() {
             var pic pgtype.Text
-            var id pgtype.UUID
-            err = pics.Scan(&id, &pic)
+            err = pics.Scan(&pic)
             if err != nil {
                 return nil, fmt.Errorf("unable to get posts from database: %w", err)
             }
 
-            postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pgmodels.PGFileURL{Id: id, URL: pic})
+            postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pic)
         }
         pics.Close()
         result = append(result, postPostgres.ToPost())
