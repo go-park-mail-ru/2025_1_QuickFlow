@@ -46,10 +46,11 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 		}
 	}).Methods(http.MethodOptions)
 
+	r.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
 	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
-	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json"))
+	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
 
 	apiGetRouter := r.PathPrefix("/").Subrouter()
 	// validating that the content type is application/json for every route but /hello
