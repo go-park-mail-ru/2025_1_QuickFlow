@@ -1,29 +1,29 @@
 package models
 
 import (
-    "io"
-    "time"
+	"io"
+	"time"
 
-    "github.com/google/uuid"
+	"github.com/google/uuid"
 )
 
 type Post struct {
-    Id           uuid.UUID
-    CreatorId    uuid.UUID
-    Desc         string
-    Images       []File
-    ImagesURL    []string
-    CreatedAt    time.Time
-    LikeCount    int
-    RepostCount  int
-    CommentCount int
-    IsRepost     bool
+	Id           uuid.UUID
+	CreatorId    uuid.UUID
+	Desc         string
+	Images       []*File
+	ImagesURL    []string
+	CreatedAt    time.Time
+	LikeCount    int
+	RepostCount  int
+	CommentCount int
+	IsRepost     bool
 }
 
 type File struct {
-    Reader   io.Reader
-    Name     string
-    Size     int64
-    Ext      string
-    MimeType string
+	Reader   io.Reader
+	Name     string
+	Size     int64
+	Ext      string
+	MimeType string
 }

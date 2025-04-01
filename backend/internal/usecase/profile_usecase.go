@@ -1,45 +1,71 @@
 package usecase
 
 import (
-    "context"
-    "github.com/google/uuid"
-    "quickflow/internal/models"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+	"quickflow/internal/models"
+	"quickflow/utils/validation"
 )
 
 type ProfileRepository interface {
-    SaveProfile(ctx context.Context, profile models.Profile) error
-    GetProfile(ctx context.Context, userId uuid.UUID) (models.Profile, error)
-    UpdateProfile(ctx context.Context, newProfile models.Profile) error
+	SaveProfile(ctx context.Context, profile models.Profile) error
+	GetProfile(ctx context.Context, userId uuid.UUID) (models.Profile, error)
+	UpdateProfile(ctx context.Context, newProfile models.Profile) error
 }
 
 type ProfileService struct {
-    profileRepo ProfileRepository
+	profileRepo ProfileRepository
+	fileRepo    FileRepository
 }
 
 // NewProfileService creates new profile service.
-func NewProfileService(profileRepo ProfileRepository) *AuthService {
-    return &AuthService{
-        profileRepo: profileRepo,
-    }
+func NewProfileService(profileRepo ProfileRepository, fileRepo FileRepository) *ProfileService {
+	return &ProfileService{
+		profileRepo: profileRepo,
+		fileRepo:    fileRepo,
+	}
 }
 
-// GetUserInfo returns user profile info.
+// GetUserInfo gets user profile information.
 func (p *ProfileService) GetUserInfo(ctx context.Context, userId uuid.UUID) (models.Profile, error) {
-    profile, err := p.profileRepo.GetProfile(ctx, userId)
-    if err != nil {
-        return models.Profile{}, err
-    }
+	profile, err := p.profileRepo.GetProfile(ctx, userId)
+	if err != nil {
+		return models.Profile{}, fmt.Errorf("p.repo.GetProfile: %w", err)
+	}
 
-    return profile, nil
+	return profile, nil
 }
 
+// UpdateProfile updates profile in the repository.
 func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Profile) error {
-    // TODO validation
+	if validation.ValidateProfile(newProfile.Name, newProfile.Surname) != nil {
+		return errors.New("invalid profile info")
+	}
 
-    err := p.profileRepo.UpdateProfile(ctx, newProfile)
-    if err != nil {
-        return err
-    }
+	if newProfile.Avatar != nil {
+		avatarUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Avatar)
+		if err != nil {
+			return fmt.Errorf("p.fileRepo.UploadFile: %w", err)
+		}
 
-    return nil
+		newProfile.AvatarUrl = avatarUrl
+	}
+
+	if newProfile.Background != nil {
+		backgroundUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Background)
+		if err != nil {
+			return fmt.Errorf("p.fileRepo.UploadFile: %w", err)
+		}
+
+		newProfile.BackgroundUrl = backgroundUrl
+	}
+
+	err := p.profileRepo.UpdateProfile(ctx, newProfile)
+	if err != nil {
+		return fmt.Errorf("p.repo.UpdateProfile: %w", err)
+	}
+
+	return nil
 }

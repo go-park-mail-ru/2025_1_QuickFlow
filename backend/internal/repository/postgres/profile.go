@@ -12,21 +12,26 @@ import (
     pgmodels "quickflow/internal/repository/postgres/postgres-models"
 )
 
+var (
+    ErrNotFound   = errors.New("not found")
+    DataBaseError = errors.New("database error")
+)
+
 const InsertProfileQuery = `
-    insert into profile (id, bio, profile_avatar, firstname, lastname, sex, birth_date) 
-        values ($1, $2, $3, $4, $5, $6, $7);
+    insert into profile (id, bio, profile_avatar, profile_background, firstname, lastname, sex, birth_date) 
+        values ($1, $2, $3, $4, $5, $6, $7, $8);
 `
 
 const GetProfileQuery = `
-    select id, bio, profile_avatar, firstname, lastname, sex, birth_date
+    select id, bio, profile_avatar, profile_background, firstname, lastname, sex, birth_date
     from profile
     where id = $1;
 `
 
 const UpdateProfileQuery = `
     update profile 
-    set bio = $2, profile_avatar = $3, firstname = $4, lastname = $5, 
-        sex = $6, birth_date = $7
+    set bio = $2, profile_avatar = $3, profile_background = $4, firstname = $5, lastname = $6, 
+        sex = $7, birth_date = $8
     where id = $1;
 `
 
@@ -49,7 +54,7 @@ func (p *PostgresProfileRepository) Close() {
 }
 
 func (p *PostgresProfileRepository) SaveProfile(ctx context.Context, profile models.Profile) error {
-    _, err := p.connPool.Exec(ctx, InsertProfileQuery, profile.UserId, profile.Bio, profile.AvatarUrl,
+    _, err := p.connPool.Exec(ctx, InsertProfileQuery, profile.UserId, profile.Bio, profile.AvatarUrl, profile.BackgroundUrl,
         profile.Name, profile.Surname, profile.Sex, profile.DateOfBirth)
     if err != nil {
         return fmt.Errorf("unable to save profile: %w", err)
@@ -61,7 +66,7 @@ func (p *PostgresProfileRepository) SaveProfile(ctx context.Context, profile mod
 func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.UUID) (models.Profile, error) {
     var profile pgmodels.ProfilePostgres
     err := p.connPool.QueryRow(ctx, GetProfileQuery, userId).Scan(&profile.Id, &profile.Bio, &profile.AvatarUrl,
-        &profile.Name, &profile.Surname, &profile.Sex, &profile.DateOfBirth)
+        &profile.BackgroundUrl, &profile.Name, &profile.Surname, &profile.Sex, &profile.DateOfBirth)
     if err != nil {
         return models.Profile{}, fmt.Errorf("unable to get profile: %w", err)
     }
@@ -71,7 +76,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 
 func (p *PostgresProfileRepository) UpdateProfile(ctx context.Context, newProfile models.Profile) error {
     commandTag, err := p.connPool.Exec(ctx, UpdateProfileQuery, newProfile.UserId, newProfile.Bio, newProfile.AvatarUrl,
-        newProfile.Name, newProfile.Surname, newProfile.Sex, newProfile.DateOfBirth)
+        newProfile.BackgroundUrl, newProfile.Name, newProfile.Surname, newProfile.Sex, newProfile.DateOfBirth)
     if err != nil {
         return fmt.Errorf("unable to update profile: %w", err)
     }

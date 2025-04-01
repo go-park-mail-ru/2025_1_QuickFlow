@@ -9,6 +9,7 @@ create table if not exists profile(
                                       id uuid primary key,
                                       bio text,
                                       profile_avatar text,
+                                      profile_background text,
                                       firstname text not null,
                                       lastname text not null,
                                       sex int default 0 check (sex >= 0),
@@ -20,7 +21,7 @@ create table if not exists post(
                                    id uuid primary key,
                                    creator_id uuid references "user"(id) on delete cascade,
                                    text text,
-                                   created_at timestamp not null default now(),
+                                   created_at timestamptz not null default now(),
                                    like_count int default 0 check (like_count >= 0),
                                    repost_count int default 0 check(repost_count >= 0),
                                    comment_count int default 0 check(comment_count >= 0),
@@ -31,7 +32,7 @@ create table if not exists comment(
                                       id uuid primary key,
                                       post_id uuid references post(id) on delete cascade,
                                       user_id uuid  references "user"(id) on delete cascade,
-                                      created_at timestamp not null default now(),
+                                      created_at timestamptz not null default now(),
                                       like_count int default 0 check (like_count >= 0),
                                       text text not null
 );
@@ -75,7 +76,7 @@ create table if not exists friendship(
 create table if not exists chat(
                                    id uuid primary key,
                                    type int default 0,
-                                   created_at timestamp not null default now()
+                                   created_at timestamptz not null default now()
 );
 
 create table if not exists chat_user(
@@ -90,7 +91,7 @@ create table if not exists message(
                                       text text check (length(text) > 0),
                                       sender_id uuid references "user"(id) on delete cascade,
                                       chat_id uuid references chat(id) on delete cascade,
-                                      created_at timestamp not null default now(),
+                                      created_at timestamptz not null default now(),
                                       is_read bool not null default false
 );
 
@@ -99,7 +100,7 @@ create table if not exists community(
                                         owner_id uuid references "user"(id) on delete cascade,
                                         name text not null unique,
                                         description text,
-                                        created_at timestamp not null default now()
+                                        created_at timestamptz not null default now()
 );
 
 create table if not exists community_user(
@@ -107,7 +108,7 @@ create table if not exists community_user(
                                              community_id uuid references community(id) on delete cascade,
                                              user_id uuid references "user"(id) on delete cascade,
                                              role int not null default 0,
-                                             joined_at timestamp not null default now(),
+                                             joined_at timestamptz not null default now(),
                                              unique (community_id, user_id)
 );
 

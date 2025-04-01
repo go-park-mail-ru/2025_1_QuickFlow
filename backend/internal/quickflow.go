@@ -33,8 +33,10 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     newProfileRepo := postgres.NewPostgresProfileRepository()
     newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo, newProfileRepo)
     newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
+    newProfileService := usecase.NewProfileService(newProfileRepo, newFileRepo)
     newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
     newPostHandler := qfhttp.NewFeedHandler(newPostService, newAuthService)
+    newProfileHandler := qfhttp.NewProfileHandler(newProfileService)
     defer newUserRepo.Close()
     defer newPostRepo.Close()
     defer newSessionRepo.Close()
@@ -55,6 +57,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     }).Methods(http.MethodOptions)
 
     r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
+    r.HandleFunc("/profile/{id:[0-9a-fA-F-]{36}}", newProfileHandler.GetProfile).Methods(http.MethodGet)
 
     apiPostRouter := r.PathPrefix("/").Subrouter()
     apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
@@ -70,10 +73,10 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
     protectedPost.Use(middleware.SessionMiddleware(newAuthService))
     protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
-
     protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
     protectedGet.Use(middleware.SessionMiddleware(newAuthService))
     protectedGet.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
+    protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 
     server := http.Server{
         Addr:         cfg.Addr,
