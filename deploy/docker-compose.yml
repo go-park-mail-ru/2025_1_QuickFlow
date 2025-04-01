@@ -41,6 +41,8 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./config/redis/redis.conf:/etc/redis/redis.conf
+    command: ["redis-server", "/etc/redis/redis.conf"]
 
   # s3 хранилище minio
   minio:

@@ -18,9 +18,12 @@ type RedisSessionRepository struct {
 }
 
 func NewRedisSessionRepository() *RedisSessionRepository {
+	redisCfg := redis2.NewRedisConfig()
+
 	return &RedisSessionRepository{
 		rdb: redis.NewClient(&redis.Options{
-			Addr: redis2.NewRedisConfig().GetURL(),
+			Addr:     redisCfg.GetURL(),
+			Password: redisCfg.GetPass(),
 		}),
 	}
 }
