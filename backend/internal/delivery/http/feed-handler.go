@@ -1,88 +1,33 @@
 package http
 
 import (
-    "context"
-    "encoding/json"
-    "net/http"
-    "strconv"
-    "time"
+	"context"
+	"encoding/json"
+	"github.com/google/uuid"
+	"net/http"
+	"time"
 
-    "quickflow/config"
-    "quickflow/internal/delivery/forms"
-    "quickflow/internal/models"
-    http2 "quickflow/utils/http"
+	"quickflow/config"
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
+	http2 "quickflow/utils/http"
 )
 
 type PostUseCase interface {
-    FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
-    AddPost(ctx context.Context, post models.Post) error
+	FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
+	AddPost(ctx context.Context, post models.Post) error
+	DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error
 }
 
 type FeedHandler struct {
-    postUseCase PostUseCase
-    authUseCase AuthUseCase
+	postUseCase PostUseCase
 }
 
 // NewFeedHandler creates new feed handler.
-func NewFeedHandler(postUseCase PostUseCase, authUseCase AuthUseCase) *FeedHandler {
-    return &FeedHandler{
-        postUseCase: postUseCase,
-        authUseCase: authUseCase,
-    }
-}
-
-// AddPost добавляет новый пост
-// @Summary Добавить пост
-// @Description Добавляет новый пост в ленту
-// @Tags Feed
-// @Accept multipart/form-data
-// @Produce json
-// @Param text formData string true "Текст поста"
-// @Param pics formData file false "Изображения"
-// @Success 200 {string} string "OK"
-// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
-// @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
-// @Router /api/post [post]
-func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
-    // extracting user from context
-    user, ok := r.Context().Value("user").(models.User)
-    if !ok {
-        http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
-        return
-    }
-
-    err := r.ParseMultipartForm(10 << 20) // 10 MB
-    if err != nil {
-        http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
-        return
-    }
-
-    // parsing JSON
-    var postForm forms.PostForm
-    postForm.Text = r.FormValue("text")
-    isRepostString := r.FormValue("is_repost")
-
-    if len(isRepostString) != 0 {
-        postForm.IsRepost, err = strconv.ParseBool(r.FormValue("is_repost"))
-        if err != nil {
-            http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
-            return
-        }
-    }
-
-    postForm.Images, err = http2.GetFiles(r, "pics")
-    if err != nil {
-        http2.WriteJSONError(w, "Failed to get files", http.StatusBadRequest)
-        return
-    }
-
-    post := postForm.ToPostModel(user.Id)
-
-    err = f.postUseCase.AddPost(r.Context(), post)
-    if err != nil {
-        http2.WriteJSONError(w, "Failed to add post", http.StatusInternalServerError)
-        return
-    }
+func NewFeedHandler(postUseCase PostUseCase) *FeedHandler {
+	return &FeedHandler{
+		postUseCase: postUseCase,
+	}
 }
 
 // GetFeed возвращает ленту постов
@@ -97,43 +42,43 @@ func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
 // @Router /api/feed [get]
 func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
-    // extracting user from context
-    user, ok := r.Context().Value("user").(models.User)
-    if !ok {
-        http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
-        return
-    }
+	// extracting user from context
+	user, ok := r.Context().Value("user").(models.User)
+	if !ok {
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
 
-    // parsing JSON
-    var feedForm forms.FeedForm
-    err := feedForm.GetParams(r.URL.Query())
-    if err != nil {
-        http2.WriteJSONError(w, "Failed to parse query params", http.StatusBadRequest)
-        return
-    }
+	// parsing JSON
+	var feedForm forms.FeedForm
+	err := feedForm.GetParams(r.URL.Query())
+	if err != nil {
+		http2.WriteJSONError(w, "Failed to parse query params", http.StatusBadRequest)
+		return
+	}
 
-    ts, err := time.Parse(config.TimeStampLayout, feedForm.Ts)
-    if err != nil {
-        ts = time.Now()
-    }
+	ts, err := time.Parse(config.TimeStampLayout, feedForm.Ts)
+	if err != nil {
+		ts = time.Now()
+	}
 
-    posts, err := f.postUseCase.FetchFeed(r.Context(), user, feedForm.Posts, ts)
-    if err != nil {
-        http2.WriteJSONError(w, "Failed to load feed", http.StatusInternalServerError)
-        return
-    }
+	posts, err := f.postUseCase.FetchFeed(r.Context(), user, feedForm.Posts, ts)
+	if err != nil {
+		http2.WriteJSONError(w, "Failed to load feed", http.StatusInternalServerError)
+		return
+	}
 
-    var postsOut []forms.PostOut
-    for _, post := range posts {
-        var postOut forms.PostOut
-        postOut.FromPost(post)
-        postsOut = append(postsOut, postOut)
-    }
+	var postsOut []forms.PostOut
+	for _, post := range posts {
+		var postOut forms.PostOut
+		postOut.FromPost(post)
+		postsOut = append(postsOut, postOut)
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    err = json.NewEncoder(w).Encode(postsOut)
-    if err != nil {
-        http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
-        return
-    }
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(postsOut)
+	if err != nil {
+		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
+		return
+	}
 }

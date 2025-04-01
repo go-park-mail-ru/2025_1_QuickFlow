@@ -10,9 +10,15 @@ import (
 	"quickflow/internal/models"
 )
 
+var (
+	ErrNotFound   = errors.New("not found")
+	DataBaseError = errors.New("database error")
+)
+
 type UserRepository interface {
 	SaveUser(ctx context.Context, user models.User) (uuid.UUID, error)
 	GetUser(ctx context.Context, authData models.LoginData) (models.User, error)
+	GetUserByUsername(ctx context.Context, username string) (models.User, error)
 	GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error)
 	IsExists(ctx context.Context, login string) (bool, error)
 }

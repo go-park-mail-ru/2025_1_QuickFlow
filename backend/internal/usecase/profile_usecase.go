@@ -16,15 +16,17 @@ type ProfileRepository interface {
 }
 
 type ProfileService struct {
+	userRepo    UserRepository
 	profileRepo ProfileRepository
 	fileRepo    FileRepository
 }
 
 // NewProfileService creates new profile service.
-func NewProfileService(profileRepo ProfileRepository, fileRepo FileRepository) *ProfileService {
+func NewProfileService(profileRepo ProfileRepository, userRepo UserRepository, fileRepo FileRepository) *ProfileService {
 	return &ProfileService{
 		profileRepo: profileRepo,
 		fileRepo:    fileRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -33,6 +35,20 @@ func (p *ProfileService) GetUserInfo(ctx context.Context, userId uuid.UUID) (mod
 	profile, err := p.profileRepo.GetProfile(ctx, userId)
 	if err != nil {
 		return models.Profile{}, fmt.Errorf("p.repo.GetProfile: %w", err)
+	}
+
+	return profile, nil
+}
+
+func (p *ProfileService) GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error) {
+	user, err := p.userRepo.GetUserByUsername(ctx, username)
+	if err != nil {
+		return models.Profile{}, err
+	}
+
+	profile, err := p.profileRepo.GetProfile(ctx, user.Id)
+	if err != nil {
+		return models.Profile{}, err
 	}
 
 	return profile, nil

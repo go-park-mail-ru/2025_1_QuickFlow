@@ -5,6 +5,12 @@ create table if not exists "user" (
                                       salt text not null
 );
 
+create table if not exists university(
+                                         id int generated always as identity primary key,
+                                         name text not null unique,
+                                         city text not null
+);
+
 create table if not exists profile(
                                       id uuid primary key,
                                       bio text,
@@ -14,6 +20,14 @@ create table if not exists profile(
                                       lastname text not null,
                                       sex int default 0 check (sex >= 0),
                                       birth_date date,
+                                      city text,
+                                      phone_number text unique check (length(phone_number) = 11),
+                                      email text unique,
+                                      school_city text,
+                                      school_name text,
+                                      university int references university(id) on delete set null,
+                                      faculty text,
+                                      graduation_year int check (graduation_year >= 0),
                                       foreign key (id) references "user"(id) on delete cascade
 );
 

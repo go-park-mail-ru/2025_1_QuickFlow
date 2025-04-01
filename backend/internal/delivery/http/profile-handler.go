@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
 	"quickflow/internal/delivery/forms"
@@ -16,7 +16,7 @@ import (
 )
 
 type ProfileUseCase interface {
-	GetUserInfo(ctx context.Context, userId uuid.UUID) (models.Profile, error)
+	GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error)
 	UpdateProfile(ctx context.Context, newProfile models.Profile) error
 }
 
@@ -43,21 +43,22 @@ func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
 // @Router /api/profile/{id} [get]
 func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	// user whose profile is requested
-	userRequested := mux.Vars(r)["id"]
+	userRequested := mux.Vars(r)["username"]
 
-	id, err := uuid.Parse(userRequested)
+	//id, err := uuid.Parse(userRequested)
+	//if err != nil {
+	//	http2.WriteJSONError(w, "Failed to parse user id", http.StatusBadRequest)
+	//	return
+	//}
+
+	profileInfo, err := p.profileUC.GetUserInfoByUserName(r.Context(), userRequested)
 	if err != nil {
-		http2.WriteJSONError(w, "Failed to parse user id", http.StatusBadRequest)
+		http2.WriteJSONError(w, "error while getting profile", http.StatusNotFound)
 		return
 	}
 
-	profileInfo, err := p.profileUC.GetUserInfo(r.Context(), id)
-	if err != nil {
-		http2.WriteJSONError(w, "error while getting profile", http.StatusNotFound)
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo))
+	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested))
 	if err != nil {
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
 		return
@@ -112,10 +113,28 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest)
 		return
 	}
-	profileForm.Background, err = http2.GetFile(r, "background")
+	profileForm.Background, err = http2.GetFile(r, "cover")
 	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to get background: %v", err), http.StatusBadRequest)
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest)
 		return
+	}
+	// getting additional info
+	var contactInfo forms.ContactInfo
+	err = json.NewDecoder(strings.NewReader(r.FormValue("contact_info"))).Decode(&contactInfo)
+	if err == nil {
+		profileForm.ContactInfo = &contactInfo
+	}
+
+	var schoolEducation forms.SchoolEducationForm
+	err = json.NewDecoder(strings.NewReader(r.FormValue("school_education"))).Decode(&schoolEducation)
+	if err == nil {
+		profileForm.SchoolEducation = &schoolEducation
+	}
+
+	var universityEducation forms.UniversityEducationForm
+	err = json.NewDecoder(strings.NewReader(r.FormValue("university_education"))).Decode(&universityEducation)
+	if err == nil {
+		profileForm.UniversityEducation = &universityEducation
 	}
 
 	// converting form to model

@@ -54,14 +54,17 @@ func NewMinioRepository(cfg *minioconfig.MinioConfig) (*MinioRepository, error) 
 
 // UploadFile uploads file to MinIO and returns a public URL.
 func (m *MinioRepository) UploadFile(ctx context.Context, file *models.File) (string, error) {
-	_, err := m.client.PutObject(ctx, m.PostsBucketName, file.Name, file.Reader, file.Size, minio.PutObjectOptions{
+	uuID := uuid.New()
+	fileName := uuID.String() + file.Ext
+
+	_, err := m.client.PutObject(ctx, m.PostsBucketName, fileName, file.Reader, file.Size, minio.PutObjectOptions{
 		ContentType: file.MimeType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("could not upload file: %v", err)
 	}
 
-	publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, file.Name)
+	publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, fileName)
 	return publicURL, nil
 }
 

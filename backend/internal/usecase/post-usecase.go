@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,9 +11,15 @@ import (
 	"quickflow/internal/models"
 )
 
+var (
+	ErrPostDoesNotBelongToUser = errors.New("post does not belong to user")
+	ErrPostNotFound            = errors.New("post not found")
+)
+
 type PostRepository interface {
 	AddPost(ctx context.Context, post models.Post) error
 	DeletePost(ctx context.Context, postId uuid.UUID) error
+	BelongsTo(ctx context.Context, userId uuid.UUID, postId uuid.UUID) (bool, error)
 	GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 }
 
@@ -57,11 +64,44 @@ func (p *PostService) AddPost(ctx context.Context, post models.Post) error {
 }
 
 // DeletePost removes post from the repository.
-func (p *PostService) DeletePost(ctx context.Context, postId uuid.UUID) error {
-	err := p.postRepo.DeletePost(ctx, postId)
+func (p *PostService) DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error {
+	belongsTo, err := p.postRepo.BelongsTo(ctx, user.Id, postId)
+	if err != nil {
+		return ErrPostNotFound
+	}
+	if !belongsTo {
+		return ErrPostDoesNotBelongToUser
+	}
+
+	err = p.postRepo.DeletePost(ctx, postId)
 	if err != nil {
 		return fmt.Errorf("p.repo.DeletePost: %w", err)
 	}
+
+	return nil
+}
+
+func (p *PostService) ModifyPost(ctx context.Context, user models.User, post models.Post) error {
+	belongsTo, err := p.postRepo.BelongsTo(ctx, user.Id, post.Id)
+	if err != nil {
+		return ErrPostNotFound
+	}
+	if !belongsTo {
+		return ErrPostDoesNotBelongToUser
+	}
+
+	// Getting old post
+	//oldPost, err := p.postRepo.GetPost(ctx, post.Id)
+
+	// Upload new images
+	if len(post.Images) > 0 {
+		post.ImagesURL, err = p.fileRepo.UploadManyFiles(ctx, post.Images)
+		if err != nil {
+			return fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
+		}
+	}
+
+	//
 
 	return nil
 }
