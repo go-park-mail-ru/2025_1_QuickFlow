@@ -1,7 +1,7 @@
-package config
+package postgres
 
 import (
-	"os"
+	getenv "quickflow/utils/get-env"
 )
 
 const (
@@ -14,18 +14,10 @@ type PostgresConfig struct {
 
 func NewPostgresConfig() *PostgresConfig {
 	return &PostgresConfig{
-		dataBaseURL: getEnvWithDefault("DATABASE_URL", defaultDataBaseURL),
+		dataBaseURL: getenv.GetEnv("DATABASE_URL", defaultDataBaseURL),
 	}
 }
 
 func (p *PostgresConfig) GetURL() string {
 	return p.dataBaseURL
-}
-
-func getEnvWithDefault(name string, defaultVal string) string {
-	if value, exists := os.LookupEnv(name); exists {
-		return value
-	}
-
-	return defaultVal
 }

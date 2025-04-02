@@ -3,15 +3,14 @@ package usecase
 import (
 	"context"
 	"errors"
+	mock_usecase "quickflow/internal/usecase/mocks"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
 	"quickflow/internal/models"
-	mock_usecase "quickflow/internal/usecase/mocks"
 )
 
 func TestAddPost(t *testing.T) {
@@ -25,7 +24,7 @@ func TestAddPost(t *testing.T) {
 	post := models.Post{
 		CreatorId: uuid.New(),
 		Desc:      "Test post",
-		Pics:      []string{"pic1.jpg", "pic2.jpg"},
+		Images:    []string{"pic1.jpg", "pic2.jpg"},
 		CreatedAt: time.Now(),
 	}
 

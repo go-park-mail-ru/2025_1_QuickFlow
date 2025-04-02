@@ -4,19 +4,20 @@ import (
     "context"
     "fmt"
     "log"
+
     "time"
 
     "github.com/google/uuid"
     "github.com/jackc/pgx/v5/pgtype"
     "github.com/jackc/pgx/v5/pgxpool"
 
-    "quickflow/config"
+    "quickflow/config/postgres"
     "quickflow/internal/models"
     pgmodels "quickflow/internal/repository/postgres/postgres-models"
 )
 
 const getPhotosQuery = `
-	select photo_path
+	select id, photo_path
 	from post_photos
 	where post_id = $1
 `
@@ -25,7 +26,7 @@ const getOlderPostsLimitQuery = `
 	select * 
 	from posts 
 	where created_at < $1 
-	order by created_at 
+	order by created_at desc
 	limit $2
 `
 
@@ -35,8 +36,8 @@ const insertPostQuery = `
 `
 
 const insertPhotoQuery = `
-	insert into post_photos (post_id, photo_path)
-	values ($1, $2)
+	insert into post_photos (post_id, id, photo_path)
+	values ($1, $2, $3)
 `
 
 type PostgresPostRepository struct {
@@ -44,7 +45,7 @@ type PostgresPostRepository struct {
 }
 
 func NewPostgresPostRepository() *PostgresPostRepository {
-    connPool, err := pgxpool.New(context.Background(), config.NewPostgresConfig().GetURL())
+    connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
     if err != nil {
         log.Fatalf("Unable to create connection pool: %v", err)
     }
@@ -68,9 +69,9 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
         return fmt.Errorf("unable to save user to database: %w", err)
     }
 
-    for _, picture := range postPostgres.Pics {
+    for _, picture := range postPostgres.ImagesURLs {
         _, err = p.connPool.Exec(ctx, insertPhotoQuery,
-            postPostgres.Id, picture)
+            postPostgres.Id, picture.Id, picture.URL)
         if err != nil {
             return fmt.Errorf("unable to save user to database: %w", err)
         }
@@ -115,12 +116,13 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 
         for pics.Next() {
             var pic pgtype.Text
-            err = pics.Scan(&pic)
+            var id pgtype.UUID
+            err = pics.Scan(&id, &pic)
             if err != nil {
                 return nil, fmt.Errorf("unable to get posts from database: %w", err)
             }
 
-            postPostgres.Pics = append(postPostgres.Pics, pic)
+            postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pgmodels.PGFileURL{Id: id, URL: pic})
         }
         pics.Close()
         result = append(result, postPostgres.ToPost())

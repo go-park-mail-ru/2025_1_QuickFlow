@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	redis2 "quickflow/config/redis"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"quickflow/config"
 	"quickflow/internal/models"
 )
 
@@ -18,9 +18,12 @@ type RedisSessionRepository struct {
 }
 
 func NewRedisSessionRepository() *RedisSessionRepository {
+	redisCfg := redis2.NewRedisConfig()
+
 	return &RedisSessionRepository{
 		rdb: redis.NewClient(&redis.Options{
-			Addr: config.NewRedisConfig().GetURL(),
+			Addr:     redisCfg.GetURL(),
+			Password: redisCfg.GetPass(),
 		}),
 	}
 }

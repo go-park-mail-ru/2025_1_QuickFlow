@@ -3,6 +3,10 @@ package internal
 import (
 	"fmt"
 	"net/http"
+	"quickflow/config/cors"
+	minio_config "quickflow/config/minio"
+	"quickflow/internal/repository/minio"
+	"quickflow/internal/repository/redis"
 
 	"github.com/gorilla/mux"
 
@@ -10,25 +14,28 @@ import (
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/middleware"
 	"quickflow/internal/repository/postgres"
-	"quickflow/internal/repository/redis"
 	"quickflow/internal/usecase"
 )
 
-func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
+func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.MinioConfig) error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
 
 	//newRepo := repository.NewInMemory()
+	newFileRepo, err := minio.NewMinioRepository(minioCfg)
+	if err != nil {
+		return fmt.Errorf("could not create minio repository: %v", err)
+	}
 	newUserRepo := postgres.NewPostgresUserRepository()
 	newPostRepo := postgres.NewPostgresPostRepository()
 	newSessionRepo := redis.NewRedisSessionRepository()
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo)
-	newPostService := usecase.NewPostService(newPostRepo)
+	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
 	newPostHandler := qfhttp.NewFeedHandler(newPostService, newAuthService)
-	defer newPostRepo.Close()
 	defer newUserRepo.Close()
+	defer newPostRepo.Close()
 	defer newSessionRepo.Close()
 
 	// routing
@@ -76,7 +83,7 @@ func Run(cfg *config.Config, corsCfg *config.CORSConfig) error {
 	}
 
 	fmt.Printf("starting server at %s\n", cfg.Addr)
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("internal.Run: %w", err)
 	}

@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"quickflow/utils/validation"
 
 	"quickflow/internal/models"
 	tsmap "quickflow/pkg/thread-safe-map"
-	"quickflow/utils"
 )
 
 type InMemoryUserRepository struct {
@@ -38,7 +38,7 @@ func (i *InMemoryUserRepository) GetUser(_ context.Context, loginData models.Log
 	case !exists:
 		return models.User{}, errors.New("user not found")
 
-	case !utils.CheckPassword(loginData.Password, user.Password, user.Salt):
+	case !validation.CheckPassword(loginData.Password, user.Password, user.Salt):
 		return models.User{}, errors.New("incorrect login or password")
 	}
 

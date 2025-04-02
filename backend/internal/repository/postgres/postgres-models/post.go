@@ -1,16 +1,21 @@
 package postgres_models
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-
 	"quickflow/internal/models"
 )
+
+type PGFileURL struct {
+	Id  pgtype.UUID
+	URL pgtype.Text
+}
 
 type PostPostgres struct {
 	Id           pgtype.UUID
 	CreatorId    pgtype.UUID
 	Desc         pgtype.Text
-	Pics         []pgtype.Text
+	ImagesURLs   []PGFileURL
 	CreatedAt    pgtype.Timestamp
 	LikeCount    pgtype.Int8
 	RepostCount  pgtype.Int8
@@ -19,10 +24,13 @@ type PostPostgres struct {
 
 // ConvertPostToPostgres converts models.Post to PostPostgres.
 func ConvertPostToPostgres(post models.Post) PostPostgres {
-	var pics []pgtype.Text
-	for _, pic := range post.Pics {
-		if pic != "" {
-			pics = append(pics, pgtype.Text{String: pic, Valid: true})
+	var pics []PGFileURL
+	for id, imageURL := range post.ImagesURL {
+		if len(imageURL) != 0 {
+			pics = append(pics, PGFileURL{
+				Id:  pgtype.UUID{Bytes: id, Valid: true},
+				URL: convertStringToPostgresText(imageURL),
+			})
 		}
 	}
 
@@ -30,7 +38,7 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 		Id:           pgtype.UUID{Bytes: post.Id, Valid: true},
 		CreatorId:    pgtype.UUID{Bytes: post.CreatorId, Valid: true},
 		Desc:         convertStringToPostgresText(post.Desc),
-		Pics:         pics,
+		ImagesURLs:   pics,
 		CreatedAt:    pgtype.Timestamp{Time: post.CreatedAt, Valid: true},
 		LikeCount:    pgtype.Int8{Int64: int64(post.LikeCount), Valid: true},
 		RepostCount:  pgtype.Int8{Int64: int64(post.RepostCount), Valid: true},
@@ -40,17 +48,17 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 
 // ToPost converts PostPostgres to models.Post.
 func (p *PostPostgres) ToPost() models.Post {
-	var picsSlice []string
+	var imagesMap = make(map[uuid.UUID]string)
 
-	for _, pics := range p.Pics {
-		picsSlice = append(picsSlice, pics.String)
+	for _, pgURL := range p.ImagesURLs {
+		imagesMap[pgURL.Id.Bytes] = pgURL.URL.String
 	}
 
 	return models.Post{
 		Id:           p.Id.Bytes,
 		CreatorId:    p.CreatorId.Bytes,
 		Desc:         p.Desc.String,
-		Pics:         picsSlice,
+		ImagesURL:    imagesMap,
 		CreatedAt:    p.CreatedAt.Time,
 		LikeCount:    int(p.LikeCount.Int64),
 		RepostCount:  int(p.RepostCount.Int64),

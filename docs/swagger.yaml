@@ -1,168 +1,109 @@
-basePath: /api
 definitions:
   forms.AuthForm:
     properties:
       password:
-        example: SuperSecurePassword123!
         type: string
       username:
-        example: Nok1onNok1on
         type: string
     type: object
   forms.ErrorForm:
     properties:
       error:
-        type: string
-    type: object
-  forms.FeedForm:
-    properties:
-      posts_count:
-        example: 10
-        type: integer
-      ts:
-        example: "2025-03-09 15:04:05"
-        type: string
-    type: object
-  forms.PostForm:
-    properties:
-      pics:
-        example:
-        - https://example.com/image1.jpg
-        - https://example.com/image2.jpg
-        items:
-          type: string
-        type: array
-      text:
-        example: "Hello, this is my first post!"
+        example: error message
         type: string
     type: object
   forms.PostOut:
     properties:
       comment_count:
-        example: 7
         type: integer
       created_at:
-        example: "2025-03-09 15:04:05"
         type: string
       creator_id:
-        example: a1b2c3d4-e5f6-7g8h-9i10-jk11lm12no13
         type: string
       id:
-        example: cf420298-775f-4ec1-8890-254d7f2dabbc
         type: string
       like_count:
-        example: 42
         type: integer
       pics:
-        example:
-        - https://example.com/image1.jpg
-        - https://example.com/image2.jpg
         items:
           type: string
         type: array
       repost_count:
-        example: 3
         type: integer
       text:
-        example: "This is an example post!"
         type: string
     type: object
   forms.SignUpForm:
     properties:
       birth_date:
-        example: "2004-04-03"
         type: string
       firstname:
-        example: Nikita
         type: string
       lastname:
-        example: Mogilin
         type: string
       password:
-        example: SuperSecurePassword123!
         type: string
       sex:
-        example: 1
         type: integer
       username:
-        example: Nok1onNok1on
         type: string
     type: object
-host: quickflowapp.ru
 info:
-  contact:
-    email: support@quickflow.com
-    name: API Support
-  description: "This is the API for QuickFlow, a social network backend."
-  license:
-    name: MIT
-  title: QuickFlow API
-  version: "1.0"
+  contact: {}
 paths:
   /api/feed:
-    post:
-      consumes:
-      - application/json
-      description: "Returns a list of posts published before a specified time."
+    get:
+      description: Возвращает список постов, опубликованных до указанного времени
       parameters:
-      - description: "Feed parameters"
-        in: body
-        name: request
+      - description: Количество постов
+        in: query
+        name: posts_count
         required: true
-        schema:
-          $ref: '#/definitions/forms.FeedForm'
+        type: integer
+      - description: Временная метка
+        in: query
+        name: ts
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: "Array of posts."
+          description: Список постов
           schema:
             items:
               $ref: '#/definitions/forms.PostOut'
             type: array
         "400":
-          description: "Invalid JSON format."
+          description: Некорректные данные
           schema:
             $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "Invalid JSON format"}
-        "401":
-          description: "User is not authorized."
-          schema:
-            $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "User is not authorized"}
         "500":
-          description: "Error loading feed."
+          description: Ошибка сервера
           schema:
             $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "Error loading feed"}
-      summary: "Get feed."
+      summary: Получить ленту
       tags:
       - Feed
   /api/hello:
     get:
-      description: "Checks API availability. Always returns 'Hello, world!'."
+      description: Проверяет доступность API, всегда возвращает "Hello, world!"
       produces:
       - application/json
       responses:
         "200":
-          description: "Successful response."
+          description: Hello, world!
           schema:
             type: string
-          examples:
-            application/json: "Hello, world!"
-      summary: "Ping."
+      summary: Ping
       tags:
       - Misc
   /api/login:
     post:
       consumes:
       - application/json
-      description: "Authenticates the user and establishes a session."
+      description: Аутентифицирует пользователя и устанавливает сессию
       parameters:
-      - description: "Login credentials."
+      - description: Данные для входа
         in: body
         name: request
         required: true
@@ -172,33 +113,74 @@ paths:
       - application/json
       responses:
         "200":
-          description: "Successful login."
+          description: OK
           schema:
             type: string
-          examples:
-            application/json: "OK"
         "400":
-          description: "Invalid request data."
+          description: Некорректные данные
           schema:
             $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "Invalid request data"}
         "401":
-          description: "Invalid username or password."
+          description: Неверный логин или пароль
           schema:
             $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "Invalid username or password"}
-      summary: "User login."
+      summary: Авторизация
       tags:
       - Auth
+  /api/logout:
+    post:
+      description: Удаляет сессию пользователя
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Выход из системы
+      tags:
+      - Auth
+  /api/post:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Добавляет новый пост в ленту
+      parameters:
+      - description: Текст поста
+        in: formData
+        name: text
+        type: string
+      - description: Изображения
+        in: formData
+        name: pics
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Добавить пост
+      tags:
+      - Feed
   /api/signup:
     post:
       consumes:
       - application/json
-      description: "Creates a new user account."
+      description: Создает новую учетную запись пользователя
       parameters:
-      - description: "Registration data."
+      - description: Данные для регистрации
         in: body
         name: request
         required: true
@@ -208,27 +190,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: "User ID of the newly created account."
+          description: user_id нового пользователя
           schema:
+            additionalProperties: true
             type: object
-          examples:
-            application/json: {"user_id": "a1b2c3d4-e5f6-7g8h-9i10-jk11lm12no13"}
         "400":
-          description: "Invalid request data."
+          description: Некорректные данные
           schema:
             $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "Invalid request data"}
         "409":
-          description: "Username already taken."
+          description: Логин уже занят
           schema:
             $ref: '#/definitions/forms.ErrorForm'
-          examples:
-            application/json: {"error": "Username already taken"}
-      summary: "User registration."
+      summary: Регистрация пользователя
       tags:
       - Auth
-schemes:
-- http
-- https
 swagger: "2.0"

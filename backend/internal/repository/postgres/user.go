@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
+	"quickflow/config/postgres"
+	"quickflow/utils/validation"
 
 	"github.com/google/uuid"
-	"quickflow/config"
+
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/utils"
 )
 
 const insertUserQuery = `
@@ -35,13 +36,19 @@ type PostgresUserRepository struct {
 	connPool *pgxpool.Pool
 }
 
+// NewPostgresUserRepository creates new storage instance.
 func NewPostgresUserRepository() *PostgresUserRepository {
-	connPool, err := pgxpool.New(context.Background(), config.NewPostgresConfig().GetURL())
+	connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v", err)
 	}
 
 	return &PostgresUserRepository{connPool: connPool}
+}
+
+// Close закрывает пул соединений
+func (p *PostgresUserRepository) Close() {
+	p.connPool.Close()
 }
 
 // IsExists checks if user with login exists.
@@ -84,7 +91,7 @@ func (i *PostgresUserRepository) GetUser(ctx context.Context, loginData models.L
 		return models.User{}, errors.New("user not found")
 	}
 
-	if !utils.CheckPassword(loginData.Password, userPostgres.Password.String, userPostgres.Salt.String) {
+	if !validation.CheckPassword(loginData.Password, userPostgres.Password.String, userPostgres.Salt.String) {
 		return models.User{}, errors.New("incorrect login or password")
 	}
 
@@ -104,8 +111,4 @@ func (i *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 	}
 
 	return userPostgres.ConvertToUser(), nil
-}
-
-func (i *PostgresUserRepository) Close() {
-	i.connPool.Close()
 }
