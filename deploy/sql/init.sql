@@ -6,9 +6,24 @@ create table if not exists "user" (
 );
 
 create table if not exists university(
-                                         id int generated always as identity primary key,
+                                         id int primary key generated always as identity,
                                          name text not null unique,
-                                         city text not null
+                                         city text not null,
+                                         faculty text not null,
+                                         graduation_year int check (graduation_year >= 0)
+);
+
+create table if not exists school(
+                                     id int primary key generated always as identity,
+                                     city text not null,
+                                     name text not null
+);
+
+create table if not exists contact_info(
+                                           id int primary key generated always as identity,
+                                           city text,
+                                           phone_number text,
+                                           email text
 );
 
 create table if not exists profile(
@@ -20,14 +35,9 @@ create table if not exists profile(
                                       lastname text not null,
                                       sex int default 0 check (sex >= 0),
                                       birth_date date,
-                                      city text,
-                                      phone_number text unique check (length(phone_number) = 11),
-                                      email text unique,
-                                      school_city text,
-                                      school_name text,
-                                      university int references university(id) on delete set null,
-                                      faculty text,
-                                      graduation_year int check (graduation_year >= 0),
+                                      contact_info_id int references contact_info(id) on delete set null,
+                                      school_id int references school(id) on delete set null,
+                                      university_id int references university(id) on delete set null,
                                       foreign key (id) references "user"(id) on delete cascade
 );
 
