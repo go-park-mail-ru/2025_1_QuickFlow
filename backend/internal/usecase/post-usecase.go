@@ -81,31 +81,6 @@ func (p *PostService) DeletePost(ctx context.Context, user models.User, postId u
 	return nil
 }
 
-func (p *PostService) ModifyPost(ctx context.Context, user models.User, post models.Post) error {
-	belongsTo, err := p.postRepo.BelongsTo(ctx, user.Id, post.Id)
-	if err != nil {
-		return ErrPostNotFound
-	}
-	if !belongsTo {
-		return ErrPostDoesNotBelongToUser
-	}
-
-	// Getting old post
-	//oldPost, err := p.postRepo.GetPost(ctx, post.Id)
-
-	// Upload new images
-	if len(post.Images) > 0 {
-		post.ImagesURL, err = p.fileRepo.UploadManyFiles(ctx, post.Images)
-		if err != nil {
-			return fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
-		}
-	}
-
-	//
-
-	return nil
-}
-
 // FetchFeed returns feed for user.
 func (p *PostService) FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	posts, err := p.postRepo.GetPostsForUId(ctx, user.Id, numPosts, timestamp)
