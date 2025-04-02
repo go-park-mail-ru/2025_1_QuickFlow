@@ -41,7 +41,6 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	// routing
 	r := mux.NewRouter()
 	r.Use(middleware.CORSMiddleware(*corsCfg))
-	r.Use(middleware.CSRFMiddleware)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
@@ -53,7 +52,6 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 		}
 	}).Methods(http.MethodOptions)
 
-	r.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
 	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
@@ -69,11 +67,13 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	// Subrouter for protected routes
 	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
 	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
+	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(newAuthService))
 	protectedGet.HandleFunc("/feed", newPostHandler.GetFeed).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
 
 	server := http.Server{
 		Addr:         cfg.Addr,
