@@ -82,7 +82,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 
     apiDeleteRouter := r.PathPrefix("/").Subrouter()
     apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
-    apiDeleteRouter.HandleFunc("/post/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
+    apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
 
     server := http.Server{
         Addr:         cfg.Addr,
