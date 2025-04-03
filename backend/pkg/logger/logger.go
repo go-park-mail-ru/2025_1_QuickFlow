@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -12,6 +13,8 @@ import (
 
 var Log *logrus.Logger
 
+type requestId string
+
 func init() {
 	Log = logrus.New()
 	Log.SetFormatter(&CustomFormatter{})
@@ -19,23 +22,28 @@ func init() {
 	Log.SetLevel(logrus.InfoLevel)
 }
 
-func Info(args ...interface{}) {
-	logWithContext().Info(args...)
+func Info(ctx context.Context, args ...interface{}) {
+	logWithContext(ctx).Info(args...)
 }
 
-func Warn(args ...interface{}) {
-	logWithContext().Warn(args...)
+func Warn(ctx context.Context, args ...interface{}) {
+	logWithContext(ctx).Warn(args...)
 }
 
-func Error(args ...interface{}) {
-	logWithContext().Error(args...)
+func Error(ctx context.Context, args ...interface{}) {
+	logWithContext(ctx).Error(args...)
 }
 
-func Debug(args ...interface{}) {
-	logWithContext().Debug(args...)
+func Debug(ctx context.Context, args ...interface{}) {
+	logWithContext(ctx).Debug(args...)
 }
 
-func logWithContext() *logrus.Entry {
+func logWithContext(ctx context.Context) *logrus.Entry {
+	reqId, ok := ctx.Value("requestId").(requestId)
+	if !ok {
+		reqId = "unknownRequestId"
+	}
+
 	pc, _, _, ok := runtime.Caller(2)
 	if !ok {
 		return Log.WithFields(logrus.Fields{
@@ -73,11 +81,10 @@ func logWithContext() *logrus.Entry {
 		funcName = strings.Join(parts[1:], ".")
 	}
 
-	funcName = strings.TrimLeft(funcName, "*")
-
 	return Log.WithFields(logrus.Fields{
-		"package":  packageName,
-		"function": funcName,
+		"requestId": reqId,
+		"package":   packageName,
+		"function":  funcName,
 	})
 }
 
@@ -103,14 +110,16 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		levelColor = "\033[0m" // Без цвета
 	}
 
-	timestamp := time.Now().Format("2006-01-02T15:04:05")
+	level := fmt.Sprintf("%s[%s]\033[0m", levelColor, strings.ToUpper(entry.Level.String()))
+	timestamp := time.Now().Format("2000-01-01T01:00:00")
+	reqId := entry.Data["requestId"]
 	packageName := fmt.Sprintf("\033[33m[%s]\033[0m", entry.Data["package"])
 	funcName := fmt.Sprintf("\033[36m[%s]\033[0m", entry.Data["function"])
-	level := fmt.Sprintf("%s[%s]\033[0m", levelColor, strings.ToUpper(entry.Level.String()))
 
-	logMessage := fmt.Sprintf("%s[%s]%s%s %s\n",
+	logMessage := fmt.Sprintf("%s[%s][%s]%s%s %s\n",
 		level,
 		timestamp,
+		reqId,
 		packageName,
 		funcName,
 		entry.Message,
