@@ -13,7 +13,9 @@ import (
 
 var Log *logrus.Logger
 
-type requestId string
+type ReqIdKey string
+
+const RequestID ReqIdKey = "requestID"
 
 func init() {
 	Log = logrus.New()
@@ -39,9 +41,9 @@ func Debug(ctx context.Context, args ...interface{}) {
 }
 
 func logWithContext(ctx context.Context) *logrus.Entry {
-	reqId, ok := ctx.Value("requestId").(requestId)
+	reqId, ok := ctx.Value(RequestID).(ReqIdKey)
 	if !ok {
-		reqId = "unknownRequestId"
+		reqId = "unknownRequestID"
 	}
 
 	pc, _, _, ok := runtime.Caller(2)
@@ -81,8 +83,10 @@ func logWithContext(ctx context.Context) *logrus.Entry {
 		funcName = strings.Join(parts[1:], ".")
 	}
 
+	packageName = strings.TrimLeft(packageName, "/")
+
 	return Log.WithFields(logrus.Fields{
-		"requestId": reqId,
+		"requestID": reqId,
 		"package":   packageName,
 		"function":  funcName,
 	})
@@ -110,9 +114,11 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		levelColor = "\033[0m" // Без цвета
 	}
 
+	loc, _ := time.LoadLocation("Europe/Moscow")
+
 	level := fmt.Sprintf("%s[%s]\033[0m", levelColor, strings.ToUpper(entry.Level.String()))
-	timestamp := time.Now().Format("2000-01-01T01:00:00")
-	reqId := entry.Data["requestId"]
+	timestamp := time.Now().In(loc).Format("2006-01-02T15:04:05")
+	reqId := entry.Data["requestID"]
 	packageName := fmt.Sprintf("\033[33m[%s]\033[0m", entry.Data["package"])
 	funcName := fmt.Sprintf("\033[36m[%s]\033[0m", entry.Data["function"])
 
