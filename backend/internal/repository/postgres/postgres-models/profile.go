@@ -66,14 +66,16 @@ func (p *ProfilePostgres) ConvertToProfile() models.Profile {
 	}
 
 	return models.Profile{
-		UserId:        p.Id.Bytes,
-		Name:          p.Name.String,
-		Surname:       p.Surname.String,
-		Sex:           models.Sex(p.Sex.Int32),
-		DateOfBirth:   p.DateOfBirth.Time,
-		Bio:           p.Bio.String,
-		AvatarUrl:     p.AvatarUrl.String,
-		BackgroundUrl: p.BackgroundUrl.String,
+		UserId: p.Id.Bytes,
+		BasicInfo: &models.BasicInfo{
+			Name:          p.Name.String,
+			Surname:       p.Surname.String,
+			Sex:           models.Sex(p.Sex.Int32),
+			DateOfBirth:   p.DateOfBirth.Time,
+			Bio:           p.Bio.String,
+			AvatarUrl:     p.AvatarUrl.String,
+			BackgroundUrl: p.BackgroundUrl.String,
+		},
 
 		ContactInfo:         profile.ContactInfo,
 		SchoolEducation:     profile.SchoolEducation,

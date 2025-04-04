@@ -77,11 +77,13 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	profile := models.Profile{
-		AvatarUrl:   "",
-		Name:        form.Name,
-		Surname:     form.Surname,
-		Sex:         form.Sex,
-		DateOfBirth: date,
+		BasicInfo: &models.BasicInfo{
+			AvatarUrl:   "",
+			Name:        form.Name,
+			Surname:     form.Surname,
+			Sex:         form.Sex,
+			DateOfBirth: date,
+		},
 	}
 
 	// validation
@@ -89,7 +91,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err = validation.ValidateProfile(profile.Name, profile.Surname); err != nil {
+	if err = validation.ValidateProfile(profile.BasicInfo.Name, profile.BasicInfo.Surname); err != nil {
 		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}

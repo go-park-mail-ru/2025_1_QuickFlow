@@ -23,8 +23,7 @@ type ContactInfo struct {
 	Phone string
 }
 
-type Profile struct {
-	UserId        uuid.UUID
+type BasicInfo struct {
 	Name          string
 	Surname       string
 	Sex           Sex
@@ -32,10 +31,16 @@ type Profile struct {
 	Bio           string
 	AvatarUrl     string
 	BackgroundUrl string
-	Avatar        *File
-	Background    *File
+}
 
+type Profile struct {
+	UserId uuid.UUID
+
+	BasicInfo           *BasicInfo
 	ContactInfo         *ContactInfo
 	SchoolEducation     *SchoolEducation
 	UniversityEducation *UniversityEducation
+
+	Avatar     *File
+	Background *File
 }
