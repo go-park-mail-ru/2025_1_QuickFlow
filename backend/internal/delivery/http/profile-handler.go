@@ -1,33 +1,33 @@
 package http
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"strconv"
-	"strings"
+    "context"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "strconv"
+    "strings"
 
-	"github.com/gorilla/mux"
+    "github.com/gorilla/mux"
 
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	http2 "quickflow/utils/http"
+    "quickflow/internal/delivery/forms"
+    "quickflow/internal/models"
+    http2 "quickflow/utils/http"
 )
 
 type ProfileUseCase interface {
-	GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error)
-	UpdateProfile(ctx context.Context, newProfile models.Profile) error
+    GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error)
+    UpdateProfile(ctx context.Context, newProfile models.Profile) error
 }
 
 type ProfileHandler struct {
-	profileUC ProfileUseCase
+    profileUC ProfileUseCase
 }
 
 func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
-	return &ProfileHandler{
-		profileUC: profileUC,
-	}
+    return &ProfileHandler{
+        profileUC: profileUC,
+    }
 }
 
 // GetProfile returns user profile
@@ -42,27 +42,20 @@ func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
 // @Failure 404 {object} forms.ErrorForm "Failed to get profile"
 // @Router /api/profile/{id} [get]
 func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	// user whose profile is requested
-	userRequested := mux.Vars(r)["username"]
+    // user whose profile is requested
+    userRequested := mux.Vars(r)["username"]
+    profileInfo, err := p.profileUC.GetUserInfoByUserName(r.Context(), userRequested)
+    if err != nil {
+        http2.WriteJSONError(w, "error while getting profile", http.StatusNotFound)
+        return
+    }
 
-	//id, err := uuid.Parse(userRequested)
-	//if err != nil {
-	//	http2.WriteJSONError(w, "Failed to parse user id", http.StatusBadRequest)
-	//	return
-	//}
-
-	profileInfo, err := p.profileUC.GetUserInfoByUserName(r.Context(), userRequested)
-	if err != nil {
-		http2.WriteJSONError(w, "error while getting profile", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested))
-	if err != nil {
-		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
-		return
-	}
+    w.Header().Set("Content-Type", "application/json")
+    err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested))
+    if err != nil {
+        http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
+        return
+    }
 }
 
 // UpdateProfile updates user profile
@@ -82,72 +75,72 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} forms.ErrorForm "Failed to update profile"
 // @Router /api/profile [post]
 func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value("user").(models.User)
-	if !ok {
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
-		return
-	}
+    user, ok := r.Context().Value("user").(models.User)
+    if !ok {
+        http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+        return
+    }
 
-	var profileForm forms.ProfileForm
-	err := r.ParseMultipartForm(10 << 20) // 10 MB
-	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
-		return
-	}
+    var profileForm forms.ProfileForm
+    err := r.ParseMultipartForm(10 << 20) // 10 MB
+    if err != nil {
+        http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+        return
+    }
 
-	sex, err := strconv.ParseInt(r.FormValue("sex"), 10, 32)
-	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
-		return
-	}
+    sex, err := strconv.ParseInt(r.FormValue("sex"), 10, 32)
+    if err != nil {
+        http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+        return
+    }
 
-	profileForm.Name = r.FormValue("firstname")
-	profileForm.Surname = r.FormValue("lastname")
-	profileForm.Sex = models.Sex(sex)
-	profileForm.DateOfBirth = r.FormValue("birth_date")
-	profileForm.Bio = r.FormValue("bio")
+    profileForm.Name = r.FormValue("firstname")
+    profileForm.Surname = r.FormValue("lastname")
+    profileForm.Sex = models.Sex(sex)
+    profileForm.DateOfBirth = r.FormValue("birth_date")
+    profileForm.Bio = r.FormValue("bio")
 
-	// retrieving files if passed
-	profileForm.Avatar, err = http2.GetFile(r, "avatar")
-	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest)
-		return
-	}
-	profileForm.Background, err = http2.GetFile(r, "cover")
-	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest)
-		return
-	}
+    // retrieving files if passed
+    profileForm.Avatar, err = http2.GetFile(r, "avatar")
+    if err != nil {
+        http2.WriteJSONError(w, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest)
+        return
+    }
+    profileForm.Background, err = http2.GetFile(r, "cover")
+    if err != nil {
+        http2.WriteJSONError(w, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest)
+        return
+    }
 
-	// getting additional info
-	var contactInfo forms.ContactInfo
-	err = json.NewDecoder(strings.NewReader(r.FormValue("contact_info"))).Decode(&contactInfo)
-	if err == nil {
-		profileForm.ContactInfo = &contactInfo
-	}
+    // getting additional info
+    var contactInfo forms.ContactInfo
+    err = json.NewDecoder(strings.NewReader(r.FormValue("contact_info"))).Decode(&contactInfo)
+    if err == nil {
+        profileForm.ContactInfo = &contactInfo
+    }
 
-	var schoolEducation forms.SchoolEducationForm
-	err = json.NewDecoder(strings.NewReader(r.FormValue("school_education"))).Decode(&schoolEducation)
-	if err == nil {
-		profileForm.SchoolEducation = &schoolEducation
-	}
+    var schoolEducation forms.SchoolEducationForm
+    err = json.NewDecoder(strings.NewReader(r.FormValue("school_education"))).Decode(&schoolEducation)
+    if err == nil {
+        profileForm.SchoolEducation = &schoolEducation
+    }
 
-	var universityEducation forms.UniversityEducationForm
-	err = json.NewDecoder(strings.NewReader(r.FormValue("university_education"))).Decode(&universityEducation)
-	if err == nil {
-		profileForm.UniversityEducation = &universityEducation
-	}
+    var universityEducation forms.UniversityEducationForm
+    err = json.NewDecoder(strings.NewReader(r.FormValue("university_education"))).Decode(&universityEducation)
+    if err == nil {
+        profileForm.UniversityEducation = &universityEducation
+    }
 
-	// converting form to model
-	profile, err := profileForm.FormToModel()
-	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
-		return
-	}
+    // converting form to model
+    profile, err := profileForm.FormToModel()
+    if err != nil {
+        http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+        return
+    }
 
-	profile.UserId = user.Id
-	err = p.profileUC.UpdateProfile(r.Context(), profile)
-	if err != nil {
-		http2.WriteJSONError(w, err.Error(), http.StatusInternalServerError)
-	}
+    profile.UserId = user.Id
+    err = p.profileUC.UpdateProfile(r.Context(), profile)
+    if err != nil {
+        http2.WriteJSONError(w, err.Error(), http.StatusInternalServerError)
+    }
 }
