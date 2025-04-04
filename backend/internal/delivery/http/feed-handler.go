@@ -3,10 +3,8 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"mime/multipart"
+	"github.com/google/uuid"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"quickflow/config"
@@ -18,81 +16,17 @@ import (
 type PostUseCase interface {
 	FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
 	AddPost(ctx context.Context, post models.Post) error
+	DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error
 }
 
 type FeedHandler struct {
 	postUseCase PostUseCase
-	authUseCase AuthUseCase
 }
 
 // NewFeedHandler creates new feed handler.
-func NewFeedHandler(postUseCase PostUseCase, authUseCase AuthUseCase) *FeedHandler {
+func NewFeedHandler(postUseCase PostUseCase) *FeedHandler {
 	return &FeedHandler{
 		postUseCase: postUseCase,
-		authUseCase: authUseCase,
-	}
-}
-
-// AddPost добавляет новый пост
-// @Summary Добавить пост
-// @Description Добавляет новый пост в ленту
-// @Tags Feed
-// @Accept multipart/form-data
-// @Produce json
-// @Param text formData string true "Текст поста"
-// @Param pics formData file false "Изображения"
-// @Success 200 {string} string "OK"
-// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
-// @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
-// @Router /api/post [post]
-func (f *FeedHandler) AddPost(w http.ResponseWriter, r *http.Request) {
-	// extracting user from context
-	user, ok := r.Context().Value("user").(models.User)
-	if !ok {
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
-		return
-	}
-
-	err := r.ParseMultipartForm(10 << 20) // 10 MB
-	if err != nil {
-		http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
-		return
-	}
-
-	// parsing JSON
-	var postForm forms.PostForm
-	postForm.Text = r.FormValue("text")
-
-	for _, fileHeaders := range r.MultipartForm.File["pics"] {
-		var mimeType string
-		if mimeType, err = detectMimeType(fileHeaders); err != nil {
-			http2.WriteJSONError(w, "Failed to detect MIME type", http.StatusBadRequest)
-			return
-		}
-
-		file, err := fileHeaders.Open()
-		if err != nil {
-			http2.WriteJSONError(w, "Failed to open file", http.StatusBadRequest)
-			return
-		}
-
-		postForm.Images = append(postForm.Images, models.File{
-			Reader:   file,
-			Name:     fileHeaders.Filename,
-			Size:     fileHeaders.Size,
-			Ext:      filepath.Ext(fileHeaders.Filename),
-			MimeType: mimeType,
-		})
-
-		file.Close()
-	}
-
-	post := postForm.ToPostModel(user.Id)
-
-	err = f.postUseCase.AddPost(r.Context(), post)
-	if err != nil {
-		http2.WriteJSONError(w, "Failed to add post", http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -147,29 +81,4 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
 		return
 	}
-}
-
-// detectMimeType определяет MIME-тип файла, сначала проверяя заголовки, затем анализируя содержимое.
-func detectMimeType(fileHeader *multipart.FileHeader) (string, error) {
-	// Попробуем получить MIME-тип из заголовков
-	mimeType := fileHeader.Header.Get("Content-Type")
-	if mimeType != "" {
-		return mimeType, nil
-	}
-
-	// Если в заголовках нет, пробуем определить по содержимому
-	file, err := fileHeader.Open()
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	// Читаем первые 512 байтов (это стандартный размер для определения типа)
-	buf := make([]byte, 512)
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		return "", err
-	}
-
-	return http.DetectContentType(buf[:n]), nil
 }

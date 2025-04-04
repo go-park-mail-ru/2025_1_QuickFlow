@@ -105,27 +105,30 @@ func validateCreds(str string) bool {
 	return true
 }
 
-func Validate(login string, password string, firstName string, lastName string) error {
+func ValidateUser(login, password string) error {
 	switch {
-
 	case !validateLogin(login):
 		return errors.New("invalid login")
 
 	case !validatePassword(password):
 		return errors.New("invalid password")
+	}
+	return nil
+}
 
+func ValidateProfile(firstName, lastName string) error {
+	switch {
 	case !validateCreds(firstName):
 		return errors.New("invalid first name")
 
 	case !validateCreds(lastName):
 		return errors.New("invalid last name")
-
 	}
 
 	return nil
 }
 
-func CheckPassword(password string, userPassword string, userSalt string) bool {
+func CheckPassword(password, userPassword, userSalt string) bool {
 	passwordCheck := sha256.Sum256([]byte(password + userSalt))
 	if hex.EncodeToString(passwordCheck[:]) == userPassword {
 		return true
@@ -133,7 +136,7 @@ func CheckPassword(password string, userPassword string, userSalt string) bool {
 	return false
 }
 
-func HashPassword(password string, salt string) string {
+func HashPassword(password, salt string) string {
 	data := password + salt
 	hash := sha256.Sum256([]byte(data))
 

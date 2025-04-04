@@ -7,10 +7,10 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/sync/errgroup"
+	thread_safe_slice "quickflow/pkg/thread-safe-slice"
 
 	minioconfig "quickflow/config/minio"
 	"quickflow/internal/models"
-	thread_safe_map "quickflow/pkg/thread-safe-map"
 )
 
 type MinioRepository struct {
@@ -53,21 +53,24 @@ func NewMinioRepository(cfg *minioconfig.MinioConfig) (*MinioRepository, error) 
 }
 
 // UploadFile uploads file to MinIO and returns a public URL.
-func (m *MinioRepository) UploadFile(ctx context.Context, file models.File) (string, error) {
-	_, err := m.client.PutObject(ctx, m.PostsBucketName, file.Name, file.Reader, file.Size, minio.PutObjectOptions{
+func (m *MinioRepository) UploadFile(ctx context.Context, file *models.File) (string, error) {
+	uuID := uuid.New()
+	fileName := uuID.String() + file.Ext
+
+	_, err := m.client.PutObject(ctx, m.PostsBucketName, fileName, file.Reader, file.Size, minio.PutObjectOptions{
 		ContentType: file.MimeType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("could not upload file: %v", err)
 	}
 
-	publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, file.Name)
+	publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, fileName)
 	return publicURL, nil
 }
 
 // UploadManyFiles uploads multiple files and returns a map of public URLs.
-func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []models.File) (map[uuid.UUID]string, error) {
-	urls := thread_safe_map.NewThreadSafeMap[uuid.UUID, string]()
+func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
+	urls := thread_safe_slice.NewThreadSafeSlice[string]()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -88,7 +91,7 @@ func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []models.Fi
 			}
 
 			publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, fileName)
-			urls.Set(uuID, publicURL)
+			urls.Add(publicURL)
 			return nil
 		})
 	}
@@ -96,7 +99,7 @@ func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []models.Fi
 	if err := wg.Wait(); err != nil {
 		return nil, err
 	}
-	return urls.GetMapCopy(), nil
+	return urls.GetSliceCopy(), nil
 }
 
 // GetFileURL returns a public URL for the file.
