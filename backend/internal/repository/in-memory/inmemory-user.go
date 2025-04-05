@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"quickflow/utils/validation"
 
 	"quickflow/internal/models"
 	tsmap "quickflow/pkg/thread-safe-map"
+	"quickflow/utils/validation"
 )
 
 type InMemoryUserRepository struct {

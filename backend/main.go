@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"log"
-	minio_config "quickflow/config/minio"
 
 	"quickflow/config"
 	"quickflow/config/cors"
+	minio_config "quickflow/config/minio"
 	"quickflow/internal"
 )
 

@@ -3,14 +3,15 @@ package usecase
 import (
 	"context"
 	"errors"
-	mock_usecase "quickflow/internal/usecase/mocks"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
 	"quickflow/internal/models"
+	mock_usecase "quickflow/internal/usecase/mocks"
 )
 
 func TestAddPost(t *testing.T) {

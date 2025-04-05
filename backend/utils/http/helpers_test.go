@@ -3,9 +3,10 @@ package http_test
 import (
 	"net/http"
 	"net/http/httptest"
-	http2 "quickflow/utils/http"
 	"strings"
 	"testing"
+
+	http2 "quickflow/utils/http"
 )
 
 func TestWriteJSONError(t *testing.T) {

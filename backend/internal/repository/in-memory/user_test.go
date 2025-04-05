@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
-	"quickflow/utils"
+	"quickflow/utils/validation"
 )
 
 func TestInMemoryUserRepository_SaveUser(t *testing.T) {
@@ -38,8 +38,8 @@ func TestInMemoryUserRepository_SaveUser(t *testing.T) {
 func TestInMemoryUserRepository_GetUser(t *testing.T) {
 	repo := NewInMemoryUserRepository()
 
-	salt := utils.GenSalt()
-	hashedPassword := utils.HashPassword("password", salt)
+	salt := validation.GenSalt()
+	hashedPassword := validation.HashPassword("password", salt)
 
 	user := models.User{Id: uuid.New(), Login: "user1", Password: hashedPassword, Salt: salt}
 	repo.SaveUser(context.Background(), user)

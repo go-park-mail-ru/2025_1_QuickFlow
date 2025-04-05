@@ -1,11 +1,12 @@
 package minio_config
 
 import (
-	"github.com/BurntSushi/toml"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/BurntSushi/toml"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadMinioConfig_Success(t *testing.T) {

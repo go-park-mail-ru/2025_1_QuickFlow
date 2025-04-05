@@ -1,15 +1,19 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
-	"quickflow/internal/models"
+
+	"github.com/google/uuid"
 
 	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
 )
 
 // WriteJSONError sends JSON error response.
@@ -17,6 +21,12 @@ func WriteJSONError(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(forms.ErrorForm{Error: message})
+}
+
+func SetRequestId(ctx context.Context) context.Context {
+	return context.WithValue(ctx,
+		logger.RequestID,
+		logger.ReqIdKey(uuid.New().String()))
 }
 
 // GetFiles retrieves files from multipart form by key.
