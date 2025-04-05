@@ -6,11 +6,12 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
+
+	models "quickflow/internal/models"
 )
 
 // MockUserRepository is a mock of UserRepository interface.

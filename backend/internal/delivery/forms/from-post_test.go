@@ -1,10 +1,12 @@
 package forms
 
 import (
-	"github.com/google/uuid"
-	"quickflow/internal/models"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+
+	"quickflow/internal/models"
 )
 
 func TestPostOut_FromPost(t *testing.T) {
@@ -19,7 +21,7 @@ func TestPostOut_FromPost(t *testing.T) {
 				Id:           uuid.New(),
 				CreatorId:    uuid.New(),
 				Desc:         "Test Post Description",
-				Pics:         []string{"pic1.jpg", "pic2.jpg"},
+				Images:       []string{"pic1.jpg", "pic2.jpg"},
 				CreatedAt:    time.Date(2025, 3, 11, 15, 30, 0, 0, time.UTC),
 				LikeCount:    10,
 				RepostCount:  5,
@@ -52,10 +54,10 @@ func TestPostOut_FromPost(t *testing.T) {
 
 			// Проверка остальных полей
 			if postOut.Desc != tt.expected.Desc {
-				t.Errorf("FromPost() Desc = %v, want %v", postOut.Desc, tt.expected.Desc)
+				t.Errorf("FromPost() Text = %v, want %v", postOut.Desc, tt.expected.Desc)
 			}
 			if !equalStringSlices(postOut.Pics, tt.expected.Pics) {
-				t.Errorf("FromPost() Pics = %v, want %v", postOut.Pics, tt.expected.Pics)
+				t.Errorf("FromPost() Images = %v, want %v", postOut.Pics, tt.expected.Pics)
 			}
 			if postOut.CreatedAt != tt.expected.CreatedAt {
 				t.Errorf("FromPost() CreatedAt = %v, want %v", postOut.CreatedAt, tt.expected.CreatedAt)

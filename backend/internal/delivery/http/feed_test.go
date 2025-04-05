@@ -5,19 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/golang/mock/gomock"
-	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	http2 "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/mocks"
 	"quickflow/internal/models"
-	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFeedHandler_GetFeed(t *testing.T) {

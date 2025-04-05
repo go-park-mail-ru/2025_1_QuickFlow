@@ -3,14 +3,35 @@ package forms
 import (
 	"errors"
 	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/google/uuid"
+
 	"quickflow/config"
 	"quickflow/internal/models"
-	"strconv"
 )
 
+type File struct {
+	Name string
+	Data []byte
+}
+
 type PostForm struct {
-	Desc string   `json:"text"`
-	Pics []string `json:"pics"`
+	Text     string         `json:"text"`
+	Images   []*models.File `json:"pics"`
+	IsRepost bool           `json:"is_repost"`
+}
+
+func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
+	var postModel models.Post
+	postModel.Desc = p.Text
+	postModel.CreatorId = userId
+	postModel.CreatedAt = time.Now()
+	postModel.Images = p.Images
+	postModel.IsRepost = p.IsRepost
+
+	return postModel
 }
 
 type FeedForm struct {
@@ -48,15 +69,22 @@ type PostOut struct {
 	LikeCount    int      `json:"like_count"`
 	RepostCount  int      `json:"repost_count"`
 	CommentCount int      `json:"comment_count"`
+	IsRepost     bool     `json:"is_repost"`
 }
 
 func (p *PostOut) FromPost(post models.Post) {
+	var urls []string
+	for _, url := range post.ImagesURL {
+		urls = append(urls, url)
+	}
+
 	p.Id = post.Id.String()
 	p.CreatorId = post.CreatorId.String()
 	p.Desc = post.Desc
-	p.Pics = post.Pics
+	p.Pics = urls
 	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount
+	p.IsRepost = post.IsRepost
 }

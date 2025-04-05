@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"quickflow/config"
+	redis2 "quickflow/config/redis"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
 )
@@ -19,9 +19,12 @@ type RedisSessionRepository struct {
 }
 
 func NewRedisSessionRepository() *RedisSessionRepository {
+	redisCfg := redis2.NewRedisConfig()
+
 	return &RedisSessionRepository{
 		rdb: redis.NewClient(&redis.Options{
-			Addr: config.NewRedisConfig().GetURL(),
+			Addr:     redisCfg.GetURL(),
+			Password: redisCfg.GetPass(),
 		}),
 	}
 }

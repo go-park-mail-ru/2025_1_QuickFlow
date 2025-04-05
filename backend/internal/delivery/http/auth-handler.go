@@ -5,19 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	http2 "quickflow/utils/http"
 	"time"
 
 	"github.com/google/uuid"
 
+	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
-	"quickflow/utils"
+	http2 "quickflow/utils/http"
+	"quickflow/utils/validation"
 )
 
 type AuthUseCase interface {
-	CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error)
+	CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error)
 	GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
 	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
 	DeleteUserSession(ctx context.Context, session string) error
@@ -33,14 +34,30 @@ func NewAuthHandler(authUseCase AuthUseCase) *AuthHandler {
 	}
 }
 
-// Greet greets the user
+// Greet проверяет доступность API
+// @Summary Ping
+// @Description Проверяет доступность API, всегда возвращает "Hello, world!"
+// @Tags Misc
+// @Produce json
+// @Success 200 {string} string "Hello, world!"
+// @Router /api/hello [get]
 func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode("Hello World")
 }
 
-// SignUp creates new user.
+// SignUp создает нового пользователя
+// @Summary Регистрация пользователя
+// @Description Создает новую учетную запись пользователя
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body forms.SignUpForm true "Данные для регистрации"
+// @Success 200 {object} map[string]interface{} "user_id нового пользователя"
+// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
+// @Failure 409 {object} forms.ErrorForm "Логин уже занят"
+// @Router /api/signup [post]
 func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
@@ -56,28 +73,46 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// converting transport form to domain model
 	user := models.User{
-		Login:       form.Login,
-		Name:        form.Name,
-		Surname:     form.Surname,
-		Sex:         form.Sex,
-		DateOfBirth: form.DateOfBirth,
-		Password:    form.Password,
+		Login:    form.Login,
+		Password: form.Password,
+	}
+
+	date, err := time.Parse(config.DateLayout, form.DateOfBirth)
+	if err != nil {
+		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	profile := models.Profile{
+		BasicInfo: &models.BasicInfo{
+			AvatarUrl:   "",
+			Name:        form.Name,
+			Surname:     form.Surname,
+			Sex:         form.Sex,
+			DateOfBirth: date,
+		},
 	}
 
 	// validation
-	if err := utils.Validate(user.Login, user.Password, user.Name, user.Surname); err != nil {
-		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
+	if err := validation.ValidateUser(user.Login, user.Password); err != nil {
 		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
+		return
+	}
+	if err = validation.ValidateProfile(profile.BasicInfo.Name, profile.BasicInfo.Surname); err != nil {
+		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
 		return
 	}
 
 	// process data
-	id, session, err := a.authUseCase.CreateUser(r.Context(), user)
+	id, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Create user error: %s", err.Error()))
 		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
 		return
 	}
+
 	logger.Info(ctx, fmt.Sprintf("Successfully created new user with ID: %s", id.String()))
 
 	http.SetCookie(w, &http.Cookie{
@@ -97,7 +132,17 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, "Successfully processed signup request")
 }
 
-// Login logs in user.
+// Login аутентифицирует пользователя
+// @Summary Авторизация
+// @Description Аутентифицирует пользователя и устанавливает сессию
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body forms.AuthForm true "Данные для входа"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} forms.ErrorForm "Некорректные данные"
+// @Failure 401 {object} forms.ErrorForm "Неверный логин или пароль"
+// @Router /api/login [post]
 func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
@@ -138,6 +183,13 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, "Successfully processed login request")
 }
 
+// Logout завершает сессию пользователя
+// @Summary Выход из системы
+// @Description Удаляет сессию пользователя
+// @Tags Auth
+// @Success 200 {string} string "OK"
+// @Failure 401 {object} forms.ErrorForm "Пользователь не авторизован"
+// @Router /api/logout [post]
 func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
@@ -154,16 +206,19 @@ func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Parse cookie error: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
 	if _, err = a.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: cookieUUID}); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Couldn't find user session: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
 	if err = a.authUseCase.DeleteUserSession(r.Context(), cookie.Value); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Delete session error: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
 	cookie.Expires = time.Now().AddDate(0, 0, -1)

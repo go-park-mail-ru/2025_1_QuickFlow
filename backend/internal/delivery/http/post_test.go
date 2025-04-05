@@ -6,14 +6,15 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
@@ -43,7 +44,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			expectedPost: models.Post{
 				CreatorId: userID,
 				Desc:      "Hello, world!",
-				Pics:      []string{"pic1.jpg", "pic2.jpg"},
+				Images:    []string{"pic1.jpg", "pic2.jpg"},
 				CreatedAt: time.Now(),
 			},
 		},
@@ -59,7 +60,7 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 			expectedPost: models.Post{
 				CreatorId: userID,
 				Desc:      "This should fail",
-				Pics:      []string{"pic3.jpg"},
+				Images:    []string{"pic3.jpg"},
 				CreatedAt: time.Time{},
 			},
 		},

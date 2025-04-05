@@ -9,12 +9,15 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - redis
-    environment:
-      DATABASE_URL: postgres://user:password@postgres:5432/quickflow_db
-      REDIS_URL: redis:6379
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
     restart: always
+    env_file:
+      - .env
 
   postgres:
     image: postgres:15
@@ -38,7 +41,30 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./config/redis/redis.conf:/etc/redis/redis.conf
+    command: ["redis-server", "/etc/redis/redis.conf"]
+
+  # s3 хранилище minio
+  minio:
+    image: 'bitnami/minio:latest'
+    container_name: minio
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - minio_data:/data
+      - minio_config:/root/.minio
+    env_file:
+      - .env
 
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
+  minio_config:

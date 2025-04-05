@@ -3,7 +3,7 @@ package models
 import (
 	"github.com/google/uuid"
 
-	"quickflow/utils"
+	"quickflow/utils/validation"
 )
 
 type Sex int
@@ -14,31 +14,23 @@ const (
 )
 
 type User struct {
-	Id          uuid.UUID
-	Login       string
-	Name        string
-	Surname     string
-	Sex         Sex
-	DateOfBirth string
-	Password    string
-	Salt        string
+	Id       uuid.UUID
+	Login    string
+	Password string
+	Salt     string
 }
 
 // CreateUser creates new user.
 func CreateUser(user User) (User, error) {
 	id := uuid.New()
-	salt := utils.GenSalt()
-	hashedPassword := utils.HashPassword(user.Password, salt)
+	salt := validation.GenSalt()
+	hashedPassword := validation.HashPassword(user.Password, salt)
 
 	newUser := User{
-		Id:          id,
-		Login:       user.Login,
-		Name:        user.Name,
-		Surname:     user.Surname,
-		Sex:         user.Sex,
-		DateOfBirth: user.DateOfBirth,
-		Password:    hashedPassword,
-		Salt:        salt,
+		Id:       id,
+		Login:    user.Login,
+		Password: hashedPassword,
+		Salt:     salt,
 	}
 
 	return newUser, nil
