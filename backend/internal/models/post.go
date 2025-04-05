@@ -11,12 +11,13 @@ type Post struct {
 	Id           uuid.UUID
 	CreatorId    uuid.UUID
 	Desc         string
-	Images       []File
-	ImagesURL    map[uuid.UUID]string
+	Images       []*File
+	ImagesURL    []string
 	CreatedAt    time.Time
 	LikeCount    int
 	RepostCount  int
 	CommentCount int
+	IsRepost     bool
 }
 
 type File struct {

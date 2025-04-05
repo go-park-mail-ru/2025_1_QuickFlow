@@ -16,8 +16,9 @@ type File struct {
 }
 
 type PostForm struct {
-	Text   string        `json:"text"`
-	Images []models.File `json:"pics"`
+	Text     string         `json:"text"`
+	Images   []*models.File `json:"pics"`
+	IsRepost bool           `json:"is_repost"`
 }
 
 func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
@@ -26,6 +27,7 @@ func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
 	postModel.CreatorId = userId
 	postModel.CreatedAt = time.Now()
 	postModel.Images = p.Images
+	postModel.IsRepost = p.IsRepost
 
 	return postModel
 }
@@ -65,6 +67,7 @@ type PostOut struct {
 	LikeCount    int      `json:"like_count"`
 	RepostCount  int      `json:"repost_count"`
 	CommentCount int      `json:"comment_count"`
+	IsRepost     bool     `json:"is_repost"`
 }
 
 func (p *PostOut) FromPost(post models.Post) {
@@ -81,4 +84,5 @@ func (p *PostOut) FromPost(post models.Post) {
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount
+	p.IsRepost = post.IsRepost
 }
