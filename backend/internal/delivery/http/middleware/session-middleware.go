@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	http2 "quickflow/internal/delivery/http"
-	httpUtils "quickflow/utils/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
+	http2 "quickflow/internal/delivery/http"
 	"quickflow/internal/models"
+	httpUtils "quickflow/utils/http"
 )
 
 func SessionMiddleware(authUseCase http2.AuthUseCase) mux.MiddlewareFunc {

@@ -70,18 +70,21 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     apiPostRouter.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
     apiPostRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
 
-    // Subrouter for protected routes
-    protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
-    protectedPost.Use(middleware.SessionMiddleware(newAuthService))
-    protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
+	// Subrouter for protected routes
+	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
+	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
+	protectedPost.Use(middleware.CSRFMiddleware)
+	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 
-    protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
-    protectedGet.Use(middleware.SessionMiddleware(newAuthService))
-    protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
+	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
+	protectedGet.Use(middleware.SessionMiddleware(newAuthService))
+	protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
     protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 
     apiDeleteRouter := r.PathPrefix("/").Subrouter()
     apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
+	apiDeleteRouter.Use(middleware.CSRFMiddleware)
     apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
 
     server := http.Server{

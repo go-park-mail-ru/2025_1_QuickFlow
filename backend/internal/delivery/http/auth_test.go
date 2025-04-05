@@ -5,14 +5,15 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestAuthHandler_SignUp(t *testing.T) {

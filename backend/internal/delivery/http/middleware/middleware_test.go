@@ -2,15 +2,16 @@ package middleware
 
 import (
 	"errors"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/config/cors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
+	"quickflow/config/cors"
 	"quickflow/internal/delivery/http/mocks"
 	"quickflow/internal/models"
 )
@@ -128,4 +129,85 @@ func TestSessionMiddleware(t *testing.T) {
 		handler.ServeHTTP(w, r)
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
+}
+
+func TestCSRFMiddleware(t *testing.T) {
+	tests := []struct {
+		name           string
+		method         string
+		setCookie      bool
+		setHeader      bool
+		cookieValue    string
+		headerValue    string
+		expectedStatus int
+	}{
+		{
+			name:           "GET request",
+			method:         http.MethodGet,
+			setCookie:      false,
+			setHeader:      false,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "POST missing CSRF token",
+			method:         http.MethodPost,
+			setCookie:      false,
+			setHeader:      false,
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "POST missing header",
+			method:         http.MethodPost,
+			setCookie:      true,
+			cookieValue:    "123",
+			setHeader:      false,
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "POST token mismatch",
+			method:         http.MethodPost,
+			setCookie:      true,
+			cookieValue:    "123",
+			setHeader:      true,
+			headerValue:    "456",
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "POST valid CSRF token",
+			method:         http.MethodPost,
+			setCookie:      true,
+			cookieValue:    "123",
+			setHeader:      true,
+			headerValue:    "123",
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	okHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, "/", nil)
+
+			if tt.setCookie {
+				req.AddCookie(&http.Cookie{
+					Name:  "csrf_token",
+					Value: tt.cookieValue,
+				})
+			}
+
+			if tt.setHeader {
+				req.Header.Set("X-CSRF-Token", tt.headerValue)
+			}
+
+			rr := httptest.NewRecorder()
+
+			handler := CSRFMiddleware(okHandler)
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tt.expectedStatus, rr.Code)
+		})
+	}
 }
