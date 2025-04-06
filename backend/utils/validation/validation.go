@@ -130,10 +130,8 @@ func ValidateProfile(firstName, lastName string) error {
 
 func CheckPassword(password, userPassword, userSalt string) bool {
 	passwordCheck := sha256.Sum256([]byte(password + userSalt))
-	if hex.EncodeToString(passwordCheck[:]) == userPassword {
-		return true
-	}
-	return false
+
+	return hex.EncodeToString(passwordCheck[:]) == userPassword
 }
 
 func HashPassword(password, salt string) string {

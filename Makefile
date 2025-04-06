@@ -34,3 +34,6 @@ logs:
 
 ps:
 	$(COMPOSE) -f $(COMPOSE_FILE) ps
+
+lint:
+	cd backend && golangci-lint run ./...
