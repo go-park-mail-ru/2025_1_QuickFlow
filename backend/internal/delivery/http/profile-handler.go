@@ -3,8 +3,11 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"quickflow/internal/usecase"
+	"quickflow/pkg/logger"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -38,20 +41,31 @@ func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
 // @Param id path string true "User ID"
 // @Success 200 {object} forms.ProfileForm "User profile"
 // @Failure 400 {object} forms.ErrorForm "Failed to parse user id"
-// @Failure 404 {object} forms.ErrorForm "Failed to get profile"
+// @Failure 404 {object} forms.ErrorForm "Profile not found"
+// @Failure 500 {object} forms.ErrorForm "Failed to get profile"
 // @Router /api/profile/{id} [get]
 func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	// user whose profile is requested
+	ctx := http2.SetRequestId(r.Context())
 	userRequested := mux.Vars(r)["username"]
-	profileInfo, err := p.profileUC.GetUserInfoByUserName(r.Context(), userRequested)
-	if err != nil {
-		http2.WriteJSONError(w, "error while getting profile", http.StatusNotFound)
+	logger.Info(ctx, fmt.Sprintf("Request profile of %s", userRequested))
+
+	profileInfo, err := p.profileUC.GetUserInfoByUserName(ctx, userRequested)
+	if errors.Is(err, usecase.ErrNotFound) {
+		logger.Info(ctx, fmt.Sprintf("Profile of %s not found", userRequested))
+		http2.WriteJSONError(w, "profile not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		logger.Info(ctx, fmt.Sprintf("Unexpected error: %s", err.Error()))
+		http2.WriteJSONError(w, "error while getting profile", http.StatusInternalServerError)
 		return
 	}
+	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully fetched", userRequested))
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested))
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode profile: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
 		return
 	}
@@ -74,33 +88,33 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} forms.ErrorForm "Failed to update profile"
 // @Router /api/profile [post]
 func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value("user").(models.User)
+	ctx := http2.SetRequestId(r.Context())
+	user, ok := ctx.Value("user").(models.User)
 	if !ok {
+		logger.Error(ctx, "Failed to get user from context while updating profile")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
+	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Login))
 
 	var profileForm forms.ProfileForm
 	err := r.ParseMultipartForm(10 << 20) // 10 MB
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	//profileForm.Name = r.FormValue("firstname")
-	//profileForm.Surname = r.FormValue("lastname")
-	//profileForm.Sex = models.Sex(sex)
-	//profileForm.DateOfBirth = r.FormValue("birth_date")
-	//profileForm.Bio = r.FormValue("bio")
-
 	// retrieving files if passed
 	profileForm.Avatar, err = http2.GetFile(r, "avatar")
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get avatar: %s", err.Error()))
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest)
 		return
 	}
 	profileForm.Background, err = http2.GetFile(r, "cover")
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get cover: %s", err.Error()))
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -137,6 +151,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !recievedValidInfo {
+		logger.Error(ctx, "No valid data provided")
 		http2.WriteJSONError(w, "No valid data provided", http.StatusBadRequest)
 		return
 	}
@@ -144,13 +159,27 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	// converting form to model
 	profile, err := profileForm.FormToModel()
 	if err != nil {
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+		logger.Error(ctx, fmt.Sprintf("Failed to convert form to model: %s", err.Error()))
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %+v", err), http.StatusBadRequest)
 		return
 	}
 
+	logger.Info(ctx, fmt.Sprintf("Recieved profile update: %v", profile))
+
 	profile.UserId = user.Id
-	err = p.profileUC.UpdateProfile(r.Context(), profile)
-	if err != nil {
+	err = p.profileUC.UpdateProfile(ctx, profile)
+	if errors.Is(err, usecase.ErrNotFound) {
+		logger.Error(ctx, fmt.Sprintf("Profile of %s not found", user.Login))
+		http2.WriteJSONError(w, "profile not found", http.StatusNotFound)
+		return
+	} else if errors.Is(err, usecase.ErrInvalidProfileInfo) {
+		logger.Error(ctx, fmt.Sprintf("Invalid profile info: %s", err.Error()))
+		http2.WriteJSONError(w, "invalid profile info", http.StatusBadRequest)
+		return
+	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to update profile: %s", err.Error()))
 		http2.WriteJSONError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully updated", user.Login))
 }

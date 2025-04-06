@@ -119,7 +119,7 @@ func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.User{}, usecase.ErrNotFound
 	} else if err != nil {
-		return models.User{}, usecase.DataBaseError
+		return models.User{}, err
 	}
 
 	return user.ConvertToUser(), nil

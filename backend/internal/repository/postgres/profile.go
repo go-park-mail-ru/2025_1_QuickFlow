@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"quickflow/internal/usecase"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -174,7 +175,7 @@ func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, n
 			return fmt.Errorf("unable to update profile: %w", err)
 		}
 		if commandTag.RowsAffected() == 0 {
-			return errors.New("profile not found")
+			return usecase.ErrNotFound
 		}
 	}
 
