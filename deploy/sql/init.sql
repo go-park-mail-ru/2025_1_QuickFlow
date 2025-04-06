@@ -115,7 +115,10 @@ create table if not exists friendship(
 create table if not exists chat(
                                    id uuid primary key,
                                    type int default 0,
-                                   created_at timestamptz not null default now()
+                                   name text check (length(name) > 0),
+                                   avatar_url text check (length(name) > 0),
+                                   created_at timestamptz not null default now(),
+                                   updated_at timestamptz not null default now()
 );
 
 create table if not exists chat_user(
