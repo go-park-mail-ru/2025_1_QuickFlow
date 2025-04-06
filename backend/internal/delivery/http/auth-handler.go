@@ -79,6 +79,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	date, err := time.Parse(config.DateLayout, form.DateOfBirth)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
 		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}

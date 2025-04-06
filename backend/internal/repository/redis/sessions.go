@@ -78,7 +78,7 @@ func (r *RedisSessionRepository) IsExists(ctx context.Context, session uuid.UUID
 		return false, fmt.Errorf("failed to find user in Redis for sessionId: %w", err)
 
 	default:
-		logger.Info(ctx, "Successfully found user in Redis for sessionId: %s", session.String())
+		logger.Info(ctx, fmt.Sprintf("Successfully found user in Redis for sessionId: %s", session.String()))
 		return true, nil
 	}
 }
