@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,4 +45,24 @@ type Profile struct {
 
 	Avatar     *File
 	Background *File
+}
+
+func (p Profile) String() string {
+	return fmt.Sprintf(
+		"Profile{UserId: %s, BasicInfo: %s, ContactInfo: %s, SchoolEducation: %s, UniversityEducation: %s, Avatar: %s, Background: %s}",
+		p.UserId,
+		formatIfNotNil(p.BasicInfo),
+		formatIfNotNil(p.ContactInfo),
+		formatIfNotNil(p.SchoolEducation),
+		formatIfNotNil(p.UniversityEducation),
+		formatIfNotNil(p.Avatar),
+		formatIfNotNil(p.Background),
+	)
+}
+
+func formatIfNotNil(v interface{}) string {
+	if v == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%+v", v)
 }

@@ -27,3 +27,7 @@ type File struct {
 	Ext      string
 	MimeType string
 }
+
+func (f File) String() string {
+	return f.Name
+}

@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrNotFound   = errors.New("not found")
-	DataBaseError = errors.New("database error")
+	ErrNotFound      = errors.New("not found")
+	ErrAlreadyExists = errors.New("already exists")
 )
 
 type UserRepository interface {
@@ -49,32 +49,32 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, prof
 func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error) {
 	var err error
 	if user, err = models.CreateUser(user); err != nil {
-		return uuid.Nil, models.Session{}, err
+		return uuid.Nil, models.Session{}, fmt.Errorf("models.CreateUser: %w", err)
 	}
 
 	exists, err := a.userRepo.IsExists(ctx, user.Login)
 	if err != nil {
-		return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.IsExists: %w", err)
+		return uuid.Nil, models.Session{}, fmt.Errorf("a.userRepo.IsExists: %w", err)
 	}
 
 	if exists {
-		return uuid.Nil, models.Session{}, errors.New("user already exists")
+		return uuid.Nil, models.Session{}, ErrAlreadyExists
 	}
 
 	userId, err := a.userRepo.SaveUser(ctx, user)
 	if err != nil {
-		return uuid.Nil, models.Session{}, err
+		return uuid.Nil, models.Session{}, fmt.Errorf("a.userRepo.SaveUser: %w", err)
 	}
 	profile.UserId = userId
 
 	if err = a.profileRepo.SaveProfile(ctx, profile); err != nil {
-		return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.SaveProfile: %w", err)
+		return uuid.Nil, models.Session{}, fmt.Errorf("a.profileRepo.SaveProfile: %w", err)
 	}
 
 	session := models.CreateSession()
 	exists, err = a.sessionRepo.IsExists(ctx, session.SessionId)
 	if err != nil {
-		return uuid.Nil, models.Session{}, fmt.Errorf("p.repo.IsExists: %w", err)
+		return uuid.Nil, models.Session{}, fmt.Errorf("a.sessionRepo.IsExists: %w", err)
 	}
 
 	if exists {
@@ -82,7 +82,7 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile 
 	}
 
 	if err = a.sessionRepo.SaveSession(ctx, userId, session); err != nil {
-		return uuid.Nil, models.Session{}, err
+		return uuid.Nil, models.Session{}, fmt.Errorf("a.sessionRepo.SaveSession: %w", err)
 	}
 
 	return userId, session, nil
@@ -92,13 +92,13 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile 
 func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
 	user, err := a.userRepo.GetUser(ctx, authData)
 	if err != nil {
-		return models.Session{}, err
+		return models.Session{}, fmt.Errorf("a.userRepo.GetUser: %w", err)
 	}
 
 	session := models.CreateSession()
 	exists, err := a.sessionRepo.IsExists(ctx, session.SessionId)
 	if err != nil {
-		return models.Session{}, fmt.Errorf("p.repo.IsExists: %w", err)
+		return models.Session{}, fmt.Errorf("a.sessionRepo.IsExists: %w", err)
 	}
 
 	if exists {
@@ -106,7 +106,7 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 	}
 
 	if err = a.sessionRepo.SaveSession(ctx, user.Id, session); err != nil {
-		return models.Session{}, err
+		return models.Session{}, fmt.Errorf("a.sessionRepo.SaveSession: %w", err)
 	}
 
 	return session, nil
@@ -116,17 +116,18 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 func (a *AuthService) LookupUserSession(ctx context.Context, session models.Session) (models.User, error) {
 	userID, err := a.sessionRepo.LookupUserSession(ctx, session)
 	if err != nil {
-		return models.User{}, fmt.Errorf("p.repo.LookupUserSession: %w", err)
+		return models.User{}, fmt.Errorf("a.sessionRepo.LookupUserSession: %w", err)
 	}
 
 	user, err := a.userRepo.GetUserByUId(ctx, userID)
 	if err != nil {
-		return models.User{}, fmt.Errorf("p.repo.GetUserByUId: %w", err)
+		return models.User{}, fmt.Errorf("a.userRepo.GetUserByUId: %w", err)
 	}
 
 	return user, nil
 }
 
+// DeleteUserSession deletes user session.
 func (a *AuthService) DeleteUserSession(ctx context.Context, sessionId string) error {
 	return a.sessionRepo.DeleteSession(ctx, sessionId)
 }

@@ -57,7 +57,7 @@ func (p *PostService) AddPost(ctx context.Context, post models.Post) error {
 	// Update post images with urls
 	err = p.postRepo.AddPost(ctx, post)
 	if err != nil {
-		return fmt.Errorf("p.repo.AddPost: %w", err)
+		return fmt.Errorf("p.postRepo.AddPost: %w", err)
 	}
 
 	return nil
@@ -75,7 +75,7 @@ func (p *PostService) DeletePost(ctx context.Context, user models.User, postId u
 
 	err = p.postRepo.DeletePost(ctx, postId)
 	if err != nil {
-		return fmt.Errorf("p.repo.DeletePost: %w", err)
+		return fmt.Errorf("p.postRepo.DeletePost: %w", err)
 	}
 
 	return nil
