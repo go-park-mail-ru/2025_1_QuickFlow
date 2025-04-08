@@ -2,10 +2,15 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
+	"quickflow/config/postgres"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/internal/usecase"
 )
 
 const (
@@ -20,10 +25,30 @@ const (
         join chat_user cu on c.id = cu.chat_id
         WHERE cu.user_id = $1
 `
+
+	getChatQuery = `
+		SELECT id, name, avatar_url, type, created_at, updated_at
+		FROM chat
+		WHERE id = $1
+`
 )
 
 type ChatRepository struct {
 	connPool *pgxpool.Pool
+}
+
+func NewPostgresChatRepository() *ChatRepository {
+	connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
+	if err != nil {
+		log.Fatalf("Unable to create connection pool: %v", err)
+	}
+
+	return &ChatRepository{connPool: connPool}
+}
+
+// Close закрывает пул соединений
+func (c *ChatRepository) Close() {
+	c.connPool.Close()
 }
 
 func (c *ChatRepository) CreateChat(ctx context.Context, chat models.Chat) error {
@@ -66,9 +91,54 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	return chats, nil
 }
 
-//GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error)
-//Exists(ctx context.Context, chatId uuid.UUID) (bool, error)
-//DeleteChat(ctx context.Context, chatId uuid.UUID) error
-//IsParticipant(ctx context.Context, chatId, userId uuid.UUID) (bool, error)
-//JoinChat(ctx context.Context, chatId, userId uuid.UUID) error
-//LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error
+func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
+	var chatPostgres pgmodels.ChatPostgres
+	err := c.connPool.QueryRow(ctx, getChatQuery, chatId).Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Chat{}, usecase.ErrNotFound
+	} else if err != nil {
+		return models.Chat{}, err
+	}
+
+	return *chatPostgres.ToChat(), nil
+}
+
+func (c *ChatRepository) Exists(ctx context.Context, chatId uuid.UUID) (bool, error) {
+	var exists bool
+	err := c.connPool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM chat WHERE id = $1)", chatId).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+func (c *ChatRepository) DeleteChat(ctx context.Context, chatId uuid.UUID) error {
+	_, err := c.connPool.Exec(ctx, "DELETE FROM chat WHERE id = $1", chatId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (c *ChatRepository) IsParticipant(ctx context.Context, chatId, userId uuid.UUID) (bool, error) {
+	var exists bool
+	err := c.connPool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM chat_user WHERE chat_id = $1 AND user_id = $2)", chatId, userId).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func (c *ChatRepository) JoinChat(ctx context.Context, chatId, userId uuid.UUID) error {
+	_, err := c.connPool.Exec(ctx, "INSERT INTO chat_user (chat_id, user_id) VALUES ($1, $2)", chatId, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ChatRepository) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error {
+	_, err := c.connPool.Exec(ctx, "DELETE FROM chat_user WHERE chat_id = $1 AND user_id = $2", chatId, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}

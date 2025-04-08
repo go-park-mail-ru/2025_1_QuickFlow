@@ -31,17 +31,24 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newPostRepo := postgres.NewPostgresPostRepository()
 	newSessionRepo := redis.NewRedisSessionRepository()
 	newProfileRepo := postgres.NewPostgresProfileRepository()
+	newMessageRepo := postgres.NewPostgresMessageRepository()
+	newChatRepo := postgres.NewPostgresChatRepository()
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo, newProfileRepo)
 	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
 	newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
+	newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
+	_ = usecase.NewChatUseCase(newChatRepo, newFileRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
-	newFeedHandler := qfhttp.NewFeedHandler(newPostService)
+	newFeedHandler := qfhttp.NewFeedHandler(newPostService, newProfileService)
 	newPostHandler := qfhttp.NewPostHandler(newPostService)
 	newProfileHandler := qfhttp.NewProfileHandler(newProfileService)
+	newMessageHandler := qfhttp.NewMessageHandler(newMessageService)
 	defer newUserRepo.Close()
 	defer newPostRepo.Close()
 	defer newSessionRepo.Close()
 	defer newProfileRepo.Close()
+	defer newMessageRepo.Close()
+	defer newChatRepo.Close()
 
 	// routing
 	r := mux.NewRouter()
@@ -73,18 +80,20 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	// Subrouter for protected routes
 	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
 	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
-	protectedPost.Use(middleware.CSRFMiddleware)
+	//protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessage).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(newAuthService))
 	protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
 
 	apiDeleteRouter := r.PathPrefix("/").Subrouter()
 	apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
-	apiDeleteRouter.Use(middleware.CSRFMiddleware)
+	//apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
 
 	server := http.Server{

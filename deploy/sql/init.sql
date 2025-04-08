@@ -137,6 +137,12 @@ create table if not exists message(
                                       is_read bool not null default false
 );
 
+create table if not exists message_file(
+                                           id int generated always as identity primary key,
+                                           message_id uuid references message(id) on delete cascade,
+                                           file_url text not null
+);
+
 create table if not exists community(
                                         id uuid primary key,
                                         owner_id uuid references "user"(id) on delete cascade,

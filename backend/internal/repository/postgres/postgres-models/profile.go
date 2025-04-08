@@ -83,3 +83,21 @@ func (p *ProfilePostgres) ConvertToProfile() models.Profile {
 		UniversityEducation: profile.UniversityEducation,
 	}
 }
+
+type PublicUserInfoPostgres struct {
+	Id        pgtype.UUID
+	Username  pgtype.Text
+	Firstname pgtype.Text
+	Lastname  pgtype.Text
+	AvatarURL pgtype.Text
+}
+
+func (p *PublicUserInfoPostgres) ConvertToPublicUserInfo() models.PublicUserInfo {
+	return models.PublicUserInfo{
+		Id:        p.Id.Bytes,
+		Username:  p.Username.String,
+		Firstname: p.Firstname.String,
+		Lastname:  p.Lastname.String,
+		AvatarURL: p.AvatarURL.String,
+	}
+}

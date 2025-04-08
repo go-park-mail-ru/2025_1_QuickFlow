@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
@@ -20,6 +21,8 @@ import (
 type ProfileUseCase interface {
 	GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error)
 	UpdateProfile(ctx context.Context, newProfile models.Profile) error
+	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
+	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error)
 }
 
 type ProfileHandler struct {

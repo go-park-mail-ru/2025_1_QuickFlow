@@ -13,6 +13,7 @@ import (
 
 var (
 	ErrInvalidProfileInfo = fmt.Errorf("invalid profile info")
+	ErrInvalidUserId      = fmt.Errorf("invalid user id")
 )
 
 type ProfileRepository interface {
@@ -21,6 +22,8 @@ type ProfileRepository interface {
 	UpdateProfileTextInfo(ctx context.Context, newProfile models.Profile) error
 	UpdateProfileAvatar(ctx context.Context, id uuid.UUID, url string) error
 	UpdateProfileCover(ctx context.Context, id uuid.UUID, url string) error
+	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
+	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models.PublicUserInfo, error)
 }
 
 type ProfileService struct {
@@ -102,4 +105,32 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Pr
 	}
 
 	return nil
+}
+
+func (p *ProfileService) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
+	if userId == uuid.Nil {
+		return models.PublicUserInfo{}, ErrInvalidUserId
+	}
+	publicInfo, err := p.profileRepo.GetPublicUserInfo(ctx, userId)
+	if err != nil {
+		return models.PublicUserInfo{}, fmt.Errorf("p.profileRepo.GetPublicUserInfo: %w", err)
+	}
+	return publicInfo, nil
+}
+
+func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error) {
+	if len(userIds) == 0 {
+		return nil, fmt.Errorf("userIds is empty")
+	}
+
+	publicInfo, err := p.profileRepo.GetPublicUsersInfo(ctx, userIds)
+	if err != nil {
+		return nil, fmt.Errorf("p.profileRepo.GetPublicUsersInfo: %w", err)
+	}
+
+	userInfoMap := make(map[uuid.UUID]models.PublicUserInfo)
+	for _, userInfo := range publicInfo {
+		userInfoMap[userInfo.Id] = userInfo
+	}
+	return userInfoMap, nil
 }

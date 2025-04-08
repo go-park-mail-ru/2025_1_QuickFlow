@@ -76,6 +76,18 @@ const GetEducationQuery = `
     where e.profile_id = $1;
 `
 
+const GetPublicUserInfoQuery = `
+	select u.id, firstname, lastname, profile_avatar, username 
+	from profile p join "user" u on p.id = u.id
+	where u.id = $1
+`
+
+const GetPublicUsersInfoQuery = `
+	select u.id, firstname, lastname, profile_avatar, username
+	from profile p join "user" u on p.id = u.id
+	where u.id = any($1)
+`
+
 type PostgresProfileRepository struct {
 	connPool *pgxpool.Pool
 }
@@ -237,6 +249,43 @@ func (p *PostgresProfileRepository) UpdateProfileCover(ctx context.Context, id u
 	return nil
 }
 
+func (p *PostgresProfileRepository) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
+	var publicInfo pgmodels.PublicUserInfoPostgres
+	err := p.connPool.QueryRow(ctx, GetPublicUserInfoQuery, userId).Scan(
+		&publicInfo.Id, &publicInfo.Firstname, &publicInfo.Lastname,
+		&publicInfo.AvatarURL, &publicInfo.Username)
+	if err != nil {
+		return models.PublicUserInfo{}, fmt.Errorf("unable to get public user info: %w", err)
+	}
+	return publicInfo.ConvertToPublicUserInfo(), nil
+}
+
+func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models.PublicUserInfo, error) {
+	if len(userIds) == 0 {
+		return nil, nil
+	}
+
+	rows, err := p.connPool.Query(ctx, GetPublicUsersInfoQuery, userIds)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get public user info: %w", err)
+	}
+	defer rows.Close()
+
+	var publicInfos []models.PublicUserInfo
+	for rows.Next() {
+		var publicInfo pgmodels.PublicUserInfoPostgres
+		err := rows.Scan(
+			&publicInfo.Id, &publicInfo.Firstname, &publicInfo.Lastname,
+			&publicInfo.AvatarURL, &publicInfo.Username)
+		if err != nil {
+			return nil, fmt.Errorf("unable to scan public user info: %w", err)
+		}
+		publicInfos = append(publicInfos, publicInfo.ConvertToPublicUserInfo())
+	}
+
+	return publicInfos, nil
+}
+
 func updateContactInfo(ctx context.Context, tx pgx.Tx, contactInfo models.ContactInfo) (pgtype.Int4, error) {
 	var contactInfoID pgtype.Int4
 
@@ -277,7 +326,7 @@ func updateSchoolInfo(ctx context.Context, tx pgx.Tx, education models.SchoolEdu
 				RETURNING id;
 			`, education.City, education.School).Scan(&schoolID)
 	}
-	if err != nil && err != pgx.ErrNoRows {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return pgtype.Int4{}, fmt.Errorf("unable to update school education: %w", err)
 	}
 	return schoolID, nil
