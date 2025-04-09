@@ -19,7 +19,8 @@ import (
 
 type AuthUseCase interface {
 	CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error)
-	GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
+	AuthUser(ctx context.Context, authData models.LoginData) (models.Session, error)
+	GetUserByUsername(ctx context.Context, username string) (models.User, error)
 	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
 	DeleteUserSession(ctx context.Context, session string) error
 }
@@ -164,7 +165,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	session, err := a.authUseCase.GetUser(r.Context(), loginData)
+	session, err := a.authUseCase.AuthUser(r.Context(), loginData)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Get User error: %s", err.Error()))
 		http2.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)

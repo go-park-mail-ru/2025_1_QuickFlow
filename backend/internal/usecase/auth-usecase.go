@@ -88,8 +88,8 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile 
 	return userId, session, nil
 }
 
-// GetUser checks if user exists and creates session.
-func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
+// AuthUser checks if user exists and creates session.
+func (a *AuthService) AuthUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
 	user, err := a.userRepo.GetUser(ctx, authData)
 	if err != nil {
 		return models.Session{}, fmt.Errorf("a.userRepo.GetUser: %w", err)
@@ -110,6 +110,15 @@ func (a *AuthService) GetUser(ctx context.Context, authData models.LoginData) (m
 	}
 
 	return session, nil
+}
+
+func (a *AuthService) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
+	user, err := a.userRepo.GetUserByUsername(ctx, username)
+	if err != nil {
+		return models.User{}, fmt.Errorf("a.userRepo.GetUserByUId: %w", err)
+	}
+
+	return user, nil
 }
 
 // LookupUserSession returns user by session.
