@@ -37,7 +37,7 @@ func (r *RedisSessionRepository) SaveSession(ctx context.Context, userId uuid.UU
 		return fmt.Errorf("saving session error: %w", err)
 	}
 
-	logger.Info(ctx, "Successfully saved session in Redis for userId: %s", userId.String())
+	logger.Info(ctx, fmt.Sprintf("Successfully saved session in Redis for userId: %s", userId.String()))
 
 	return nil
 }
@@ -47,7 +47,7 @@ func (r *RedisSessionRepository) LookupUserSession(ctx context.Context, session 
 
 	userId, err := r.rdb.Get(ctx, session.SessionId.String()).Result()
 	if err != nil {
-		logger.Error(ctx, "Failed to find user in Redis for sessionId: %s", session.SessionId.String())
+		logger.Error(ctx, fmt.Sprintf("Failed to find user in Redis for sessionId: %s", session.SessionId.String()))
 		return uuid.Nil, fmt.Errorf("unable to get userId: %w", err)
 	}
 
@@ -57,7 +57,7 @@ func (r *RedisSessionRepository) LookupUserSession(ctx context.Context, session 
 		return uuid.Nil, fmt.Errorf("unable to parse userId: %w", err)
 	}
 
-	logger.Info(ctx, "Successfully found user in Redis for sessionId: %s", session.SessionId.String())
+	logger.Info(ctx, fmt.Sprintf("Successfully found user in Redis for sessionId: %s", session.SessionId.String()))
 
 	return userIdUUID, nil
 }

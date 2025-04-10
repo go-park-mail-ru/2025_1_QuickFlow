@@ -107,7 +107,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	id, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
+	id, session, err := a.authUseCase.CreateUser(ctx, user, profile)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Create user error: %s", err.Error()))
 		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
@@ -164,7 +164,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	session, err := a.authUseCase.GetUser(r.Context(), loginData)
+	session, err := a.authUseCase.GetUser(ctx, loginData)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Get User error: %s", err.Error()))
 		http2.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
@@ -210,13 +210,13 @@ func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = a.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: cookieUUID}); err != nil {
+	if _, err = a.authUseCase.LookupUserSession(ctx, models.Session{SessionId: cookieUUID}); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Couldn't find user session: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if err = a.authUseCase.DeleteUserSession(r.Context(), cookie.Value); err != nil {
+	if err = a.authUseCase.DeleteUserSession(ctx, cookie.Value); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Delete session error: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
