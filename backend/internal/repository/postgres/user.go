@@ -71,7 +71,7 @@ func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models.User)
 	userPostgres := pgmodels.ConvertUserToPostgres(user)
 
 	_, err := u.connPool.Exec(ctx, insertUserQuery,
-		userPostgres.Id, userPostgres.Login,
+		userPostgres.Id, userPostgres.Username,
 		userPostgres.Password, userPostgres.Salt,
 	)
 	if err != nil {
@@ -86,7 +86,7 @@ func (u *PostgresUserRepository) GetUser(ctx context.Context, loginData models.L
 	var userPostgres pgmodels.UserPostgres
 
 	err := u.connPool.QueryRow(ctx, getUserByUsername, loginData.Login).Scan(
-		&userPostgres.Id, &userPostgres.Login,
+		&userPostgres.Id, &userPostgres.Username,
 		&userPostgres.Password, &userPostgres.Salt)
 	if err != nil {
 		return models.User{}, errors.New("user not found")
@@ -104,7 +104,7 @@ func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 	var userPostgres pgmodels.UserPostgres
 
 	err := u.connPool.QueryRow(ctx, getUserByUIdQuery,
-		userId).Scan(&userPostgres.Id, &userPostgres.Login,
+		userId).Scan(&userPostgres.Id, &userPostgres.Username,
 		&userPostgres.Password, &userPostgres.Salt)
 	if err != nil {
 		return models.User{}, errors.New("user not found")
@@ -115,7 +115,7 @@ func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 
 func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
 	var user pgmodels.UserPostgres
-	err := u.connPool.QueryRow(ctx, getUserByUsername, username).Scan(&user.Id, &user.Login, &user.Password, &user.Salt)
+	err := u.connPool.QueryRow(ctx, getUserByUsername, username).Scan(&user.Id, &user.Username, &user.Password, &user.Salt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.User{}, usecase.ErrNotFound
 	} else if err != nil {

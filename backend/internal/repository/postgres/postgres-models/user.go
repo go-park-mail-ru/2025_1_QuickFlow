@@ -1,42 +1,42 @@
 package postgres_models
 
 import (
-    "github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgtype"
 
-    "quickflow/internal/models"
+	"quickflow/internal/models"
 )
 
 type UserPostgres struct {
-    Id       pgtype.UUID
-    Login    pgtype.Text
-    Password pgtype.Text
-    Salt     pgtype.Text
+	Id       pgtype.UUID
+	Username pgtype.Text
+	Password pgtype.Text
+	Salt     pgtype.Text
 }
 
 // ConvertToUser converts UserPostgres to models.User.
 func (u *UserPostgres) ConvertToUser() models.User {
-    return models.User{
-        Id:       u.Id.Bytes,
-        Login:    u.Login.String,
-        Password: u.Password.String,
-        Salt:     u.Salt.String,
-    }
+	return models.User{
+		Id:       u.Id.Bytes,
+		Login:    u.Username.String,
+		Password: u.Password.String,
+		Salt:     u.Salt.String,
+	}
 }
 
 func convertStringToPostgresText(s string) pgtype.Text {
-    if len(s) == 0 {
-        return pgtype.Text{Valid: false}
-    }
-    return pgtype.Text{String: s, Valid: true}
+	if len(s) == 0 {
+		return pgtype.Text{Valid: false}
+	}
+	return pgtype.Text{String: s, Valid: true}
 }
 
 // ConvertUserToPostgres converts models.User to UserPostgres.
 func ConvertUserToPostgres(u models.User) UserPostgres {
 
-    return UserPostgres{
-        Id:       pgtype.UUID{Bytes: u.Id, Valid: true},
-        Login:    pgtype.Text{String: u.Login, Valid: true},
-        Password: pgtype.Text{String: u.Password, Valid: true},
-        Salt:     pgtype.Text{String: u.Salt, Valid: true},
-    }
+	return UserPostgres{
+		Id:       pgtype.UUID{Bytes: u.Id, Valid: true},
+		Username: pgtype.Text{String: u.Login, Valid: true},
+		Password: pgtype.Text{String: u.Password, Valid: true},
+		Salt:     pgtype.Text{String: u.Salt, Valid: true},
+	}
 }

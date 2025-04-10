@@ -31,6 +31,21 @@ const (
 		FROM chat
 		WHERE id = $1
 `
+
+	getPrivateChatQuery = `
+		SELECT id, name, avatar_url, type, created_at, updated_at
+		FROM chat
+		WHERE type = $1 AND id in
+			(select cu1.chat_id 
+			    from chat_user cu1 join chat_user cu2 on cu1.chat_id = cu2.chat_id
+			    where cu1.user_id = $2 and cu2.user_id = $3
+		)
+`
+	getChatParticipantsQuery = `
+		SELECT u.id, u.username 
+		FROM chat_user cu JOIN "user" u ON cu.user_id = u.id 
+		WHERE cu.chat_id = $1
+`
 )
 
 type ChatRepository struct {
@@ -103,6 +118,20 @@ func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.
 	return *chatPostgres.ToChat(), nil
 }
 
+func (c *ChatRepository) GetPrivateChat(ctx context.Context, sender, receiver uuid.UUID) (models.Chat, error) {
+	var chatPostgres pgmodels.ChatPostgres
+	err := c.connPool.QueryRow(ctx, getPrivateChatQuery, models.ChatTypePrivate, sender, receiver).
+		Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL,
+			&chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Chat{}, usecase.ErrNotFound
+	} else if err != nil {
+		return models.Chat{}, err
+	}
+
+	return *chatPostgres.ToChat(), nil
+}
+
 func (c *ChatRepository) Exists(ctx context.Context, chatId uuid.UUID) (bool, error) {
 	var exists bool
 	err := c.connPool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM chat WHERE id = $1)", chatId).Scan(&exists)
@@ -141,4 +170,32 @@ func (c *ChatRepository) LeaveChat(ctx context.Context, chatId, userId uuid.UUID
 		return err
 	}
 	return nil
+}
+
+func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
+	var users []models.User
+	rows, err := c.connPool.Query(ctx, getChatParticipantsQuery, chatId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user pgmodels.UserPostgres
+		err = rows.Scan(&user.Id, &user.Username)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user.ConvertToUser())
+	}
+
+	if len(users) == 0 {
+		return nil, usecase.ErrNotFound
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
