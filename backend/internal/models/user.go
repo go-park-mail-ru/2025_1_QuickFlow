@@ -14,7 +14,7 @@ const (
 
 type User struct {
 	Id       uuid.UUID
-	Login    string
+	Username string
 	Password string
 	Salt     string
 }
@@ -27,7 +27,7 @@ func CreateUser(user User) (User, error) {
 
 	newUser := User{
 		Id:       id,
-		Login:    user.Login,
+		Username: user.Username,
 		Password: hashedPassword,
 		Salt:     salt,
 	}

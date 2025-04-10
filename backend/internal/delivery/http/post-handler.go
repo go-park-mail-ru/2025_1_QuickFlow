@@ -48,7 +48,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("User %s requested to add post", user.Login))
+	logger.Info(ctx, fmt.Sprintf("User %s requested to add post", user.Username))
 
 	err := r.ParseMultipartForm(10 << 20) // 10 MB
 	if err != nil {
@@ -117,7 +117,7 @@ func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get post id", http.StatusBadRequest)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("User %s requested to delete post with id %s", user.Login, postIdString))
+	logger.Info(ctx, fmt.Sprintf("User %s requested to delete post with id %s", user.Username, postIdString))
 
 	postId, err := uuid.Parse(postIdString)
 	if err != nil {
@@ -128,7 +128,7 @@ func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 
 	err = p.postUseCase.DeletePost(ctx, user, postId)
 	if errors.Is(err, usecase.ErrPostDoesNotBelongToUser) {
-		logger.Error(ctx, fmt.Sprintf("Post %s does not belong to user %s", postIdString, user.Login))
+		logger.Error(ctx, fmt.Sprintf("Post %s does not belong to user %s", postIdString, user.Username))
 		http2.WriteJSONError(w, "Post does not belong to user", http.StatusForbidden)
 		return
 	} else if errors.Is(err, usecase.ErrPostNotFound) {

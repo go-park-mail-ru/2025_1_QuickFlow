@@ -52,7 +52,7 @@ func (a *AuthService) CreateUser(ctx context.Context, user models.User, profile 
 		return uuid.Nil, models.Session{}, fmt.Errorf("models.CreateUser: %w", err)
 	}
 
-	exists, err := a.userRepo.IsExists(ctx, user.Login)
+	exists, err := a.userRepo.IsExists(ctx, user.Username)
 	if err != nil {
 		return uuid.Nil, models.Session{}, fmt.Errorf("a.userRepo.IsExists: %w", err)
 	}

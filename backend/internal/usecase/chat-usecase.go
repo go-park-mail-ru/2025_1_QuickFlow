@@ -182,3 +182,11 @@ func (c *ChatUseCase) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) e
 	}
 	return nil
 }
+
+func (c *ChatUseCase) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
+	participants, err := c.chatRepo.GetChatParticipants(ctx, chatId)
+	if err != nil {
+		return nil, fmt.Errorf("c.chatRepo.GetChatParticipants: %w", err)
+	}
+	return participants, nil
+}

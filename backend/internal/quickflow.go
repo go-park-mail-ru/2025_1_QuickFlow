@@ -2,7 +2,10 @@ package internal
 
 import (
 	"fmt"
+	"github.com/gorilla/websocket"
 	"net/http"
+	websocket2 "quickflow/internal/delivery/ws"
+	"quickflow/internal/models"
 
 	"github.com/gorilla/mux"
 
@@ -51,6 +54,8 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	defer newMessageRepo.Close()
 	defer newChatRepo.Close()
 
+	connManager := websocket2.NewWebSocketManager(newMessageService, newChatService)
+
 	// routing
 	r := mux.NewRouter()
 	r.Use(middleware.CORSMiddleware(*corsCfg))
@@ -92,6 +97,17 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+	protectedGet.Handle("/ws", middleware.WebSocketMiddleware(newAuthService)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Получаем WebSocket соединение и пользователя из контекста
+		conn := r.Context().Value("wsConn").(*websocket.Conn)
+		user := r.Context().Value("user").(models.User)
+
+		// Добавляем новое соединение в менеджер
+		connManager.AddConnection(user.Id, conn)
+
+		// Обрабатываем сообщения от клиента
+		connManager.HandleMessages(conn, &user)
+	}))).Methods(http.MethodGet)
 
 	apiDeleteRouter := r.PathPrefix("/").Subrouter()
 	apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))

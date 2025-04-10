@@ -74,7 +74,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// converting transport form to domain model
 	user := models.User{
-		Login:    form.Login,
+		Username: form.Login,
 		Password: form.Password,
 	}
 
@@ -96,7 +96,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validation
-	if err := validation.ValidateUser(user.Login, user.Password); err != nil {
+	if err := validation.ValidateUser(user.Username, user.Password); err != nil {
 		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
 		return

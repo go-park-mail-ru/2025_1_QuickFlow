@@ -17,7 +17,7 @@ type UserPostgres struct {
 func (u *UserPostgres) ConvertToUser() models.User {
 	return models.User{
 		Id:       u.Id.Bytes,
-		Login:    u.Username.String,
+		Username: u.Username.String,
 		Password: u.Password.String,
 		Salt:     u.Salt.String,
 	}
@@ -35,7 +35,7 @@ func ConvertUserToPostgres(u models.User) UserPostgres {
 
 	return UserPostgres{
 		Id:       pgtype.UUID{Bytes: u.Id, Valid: true},
-		Username: pgtype.Text{String: u.Login, Valid: true},
+		Username: pgtype.Text{String: u.Username, Valid: true},
 		Password: pgtype.Text{String: u.Password, Valid: true},
 		Salt:     pgtype.Text{String: u.Salt, Valid: true},
 	}

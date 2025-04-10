@@ -98,7 +98,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Login))
+	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Username))
 
 	var profileForm forms.ProfileForm
 	err := r.ParseMultipartForm(10 << 20) // 10 MB
@@ -172,7 +172,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profile.UserId = user.Id
 	err = p.profileUC.UpdateProfile(ctx, profile)
 	if errors.Is(err, usecase.ErrNotFound) {
-		logger.Error(ctx, fmt.Sprintf("Profile of %s not found", user.Login))
+		logger.Error(ctx, fmt.Sprintf("Profile of %s not found", user.Username))
 		http2.WriteJSONError(w, "profile not found", http.StatusNotFound)
 		return
 	} else if errors.Is(err, usecase.ErrInvalidProfileInfo) {
@@ -184,5 +184,5 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully updated", user.Login))
+	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully updated", user.Username))
 }
