@@ -18,3 +18,6 @@ mockgen:
 	${MOCKGEN} -source=$(DELIEVERY_PATH)/http/feed-handler.go -destination=$(DELIEVERY_PATH)/http/mocks/feed-mock.go -package=mocks
 	${MOCKGEN} -source=$(USECASE_PATH)/auth-usecase.go -destination=$(USECASE_PATH)/mocks/auth-mock.go -package=mocks
 	${MOCKGEN} -source=$(USECASE_PATH)/post-usecase.go -destination=$(USECASE_PATH)/mocks/post-mock.go -package=mocks
+
+gendock:
+	swag init --parseDependency --parseInternal --parseDepth=2 --output ../docs/docs.go --dir .

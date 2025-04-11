@@ -41,7 +41,7 @@ func (m *GetMessagesForm) GetParams(values url.Values) error {
 }
 
 type MessageOut struct {
-	ID             uuid.UUID `json:"id"`
+	ID             uuid.UUID `json:"id,omitempty"`
 	Text           string    `json:"text"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
@@ -50,6 +50,20 @@ type MessageOut struct {
 
 	SenderId uuid.UUID `json:"sender_id"`
 	ChatId   uuid.UUID `json:"chat_id"`
+}
+
+func ToMessageOut(message models.Message) MessageOut {
+	return MessageOut{
+		ID:             message.ID,
+		Text:           message.Text,
+		CreatedAt:      message.CreatedAt,
+		UpdatedAt:      message.UpdatedAt,
+		IsRead:         message.IsRead,
+		AttachmentURLs: message.AttachmentURLs,
+
+		SenderId: message.SenderID,
+		ChatId:   message.ChatID,
+	}
 }
 
 func ToMessagesOut(messages []models.Message) []MessageOut {

@@ -24,14 +24,7 @@ const (
         FROM chat c
         join chat_user cu on c.id = cu.chat_id
         WHERE cu.user_id = $1
-`
-
-	getLastChatMessageQuery = `
-		SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read
-        FROM message
-        WHERE chat_id = $1
-        where created_at = max(created_at)
-        LIMIT $2
+        ORDER BY c.updated_at DESC
 `
 
 	getChatQuery = `

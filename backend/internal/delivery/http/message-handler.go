@@ -110,6 +110,19 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// SendMessageToUsername godoc
+// @Summary Send message to user
+// @Description Send message to user
+// @Tags Messages
+// @Accept json
+// @Produce json
+// @Param username path string true "Username"
+// @Param request body forms.MessageForm true "Message data"
+// @Success 200 {object} forms.MessageOut "Message"
+// @Failure 400 {object} forms.ErrorForm "Invalid data"
+// @Failure 404 {object} forms.ErrorForm "User not found"
+// @Failure 500 {object} forms.ErrorForm "Server error"
+// @Router /api/messages/{username} [post]
 func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 	user, ok := ctx.Value("user").(models.User)

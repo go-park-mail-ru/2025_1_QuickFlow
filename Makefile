@@ -25,7 +25,12 @@ else
 endif
 
 down:
-	$(COMPOSE) -f $(COMPOSE_FILE) down
+ifeq ($(ERASE),yes)
+	$(COMPOSE) -f $(COMPOSE_FILE) down -v
+else
+	$(COMPOSE) -f $(COMPOSE_FILE) down -v
+endif
+
 
 restart: down up
 

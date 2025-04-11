@@ -34,6 +34,19 @@ func NewChatHandler(chatUseCase ChatUseCase) *ChatHandler {
 	}
 }
 
+// GetUserChats godoc
+// @Summary Get user chats
+// @Description Get user chats
+// @Tags Chats
+// @Accept json
+// @Produce json
+// @Param ts query string false "Timestamp"
+// @Param chats_count query int true "Number of chats"
+// @Success 200 {array} forms.ChatOut "List of chats"
+// @Failure 400 {object} forms.ErrorForm "Invalid data"
+// @Failure 403 {object} forms.ErrorForm "User is not a participant in the chat"
+// @Failure 500 {object} forms.ErrorForm "Server error"
+// @Router /api/chats [get]
 func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 	logger.Info(ctx, "Got GetUserChats request")

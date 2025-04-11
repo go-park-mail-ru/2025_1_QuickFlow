@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"quickflow/pkg/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -126,6 +127,13 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 			return fmt.Errorf("unable to save file URL to database: %w", err)
 		}
 	}
+
+	_, err = m.connPool.Exec(ctx, `update chat set updated_at = $1 where id = $2`,
+		messagePostgres.UpdatedAt, messagePostgres.ChatID)
+	if err != nil {
+		logger.Error(ctx, "Unable to update chat updated_at: ", err)
+		return fmt.Errorf("unable to update chat updated_at: %w", err)
+	}
 	return nil
 }
 
@@ -142,4 +150,21 @@ func (m *MessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) e
 		return fmt.Errorf("unable to mark message as read: %w", err)
 	}
 	return nil
+}
+
+func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error) {
+	var messagePostgres pgmodels.MessagePostgres
+	err := m.connPool.QueryRow(ctx, getLastChatMessage, chatId).Scan(
+		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
+		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt,
+		&messagePostgres.IsRead)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		logger.Error(ctx, "Unable to get last message from database: ", err)
+		return nil, fmt.Errorf("unable to get last message from database: %w", err)
+	}
+
+	message := messagePostgres.ToMessage()
+	return &message, nil
 }

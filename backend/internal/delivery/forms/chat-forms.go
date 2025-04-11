@@ -2,6 +2,7 @@ package forms
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"net/url"
 	"quickflow/config"
 	"quickflow/internal/models"
@@ -15,12 +16,13 @@ type GetChatsForm struct {
 }
 
 type ChatOut struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	AvatarURL string    `json:"avatar_url,omitempty"`
-	Type      string    `json:"type"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name,omitempty"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+	AvatarURL   string      `json:"avatar_url,omitempty"`
+	Type        string      `json:"type"`
+	LastMessage *MessageOut `json:"last_message,omitempty"`
 }
 
 func (g *GetChatsForm) GetParams(values url.Values) error {
@@ -48,10 +50,10 @@ func (g *GetChatsForm) GetParams(values url.Values) error {
 	return nil
 }
 
-func ToChatsOut(chat []models.Chat) []ChatOut {
+func ToChatsOut(chats []models.Chat) []ChatOut {
 	var chatsOut []ChatOut
 	var chatType string
-	for _, chat := range chat {
+	for _, chat := range chats {
 		if chat.Type == models.ChatTypePrivate {
 			chatType = "private"
 		} else if chat.Type == models.ChatTypeGroup {
@@ -59,14 +61,20 @@ func ToChatsOut(chat []models.Chat) []ChatOut {
 		} else {
 			chatType = "unknown"
 		}
-		chatsOut = append(chatsOut, ChatOut{
+
+		chatOut := ChatOut{
 			ID:        chat.ID.String(),
 			Name:      chat.Name,
 			CreatedAt: chat.CreatedAt,
 			UpdatedAt: chat.UpdatedAt,
 			AvatarURL: chat.AvatarURL,
 			Type:      chatType,
-		})
+		}
+		if chat.LastMessage.ID != uuid.Nil {
+			msg := ToMessageOut(chat.LastMessage)
+			chatOut.LastMessage = &msg
+		}
+		chatsOut = append(chatsOut, chatOut)
 	}
 	return chatsOut
 }

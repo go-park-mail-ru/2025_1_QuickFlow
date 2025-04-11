@@ -33,13 +33,15 @@ type ChatUseCase struct {
 	chatRepo    ChatRepository
 	fileRepo    FileRepository
 	profileRepo ProfileRepository
+	messageRepo MessageRepository
 }
 
-func NewChatUseCase(charRepo ChatRepository, fileRepo FileRepository, profileRepo ProfileRepository) *ChatUseCase {
+func NewChatUseCase(charRepo ChatRepository, fileRepo FileRepository, profileRepo ProfileRepository, messageRepo MessageRepository) *ChatUseCase {
 	return &ChatUseCase{
 		chatRepo:    charRepo,
 		fileRepo:    fileRepo,
 		profileRepo: profileRepo,
+		messageRepo: messageRepo,
 	}
 }
 
@@ -106,6 +108,15 @@ func (c *ChatUseCase) GetUserChats(ctx context.Context, userId uuid.UUID) ([]mod
 					chats[i].AvatarURL = publicUsersInfo[j].AvatarURL
 					break
 				}
+			}
+
+			lastMessage, err := c.messageRepo.GetLastChatMessage(ctx, chats[i].ID)
+			if err != nil {
+				return nil, fmt.Errorf("c.messageRepo.GetLastChatMessage: %w", err)
+			}
+
+			if lastMessage != nil {
+				chats[i].LastMessage = *lastMessage
 			}
 		}
 	}

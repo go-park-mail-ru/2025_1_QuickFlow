@@ -40,7 +40,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
 	newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
 	newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
-	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo)
+	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
 	newFeedHandler := qfhttp.NewFeedHandler(newPostService, newProfileService)
 	newPostHandler := qfhttp.NewPostHandler(newPostService)
