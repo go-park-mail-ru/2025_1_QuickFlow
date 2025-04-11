@@ -25,7 +25,7 @@ const getOlderPostsLimitQuery = `
 	select id, creator_id, text, created_at, like_count, repost_count, comment_count, is_repost
 	from post 
 	where created_at < $1 
-	order by created_at 
+	order by created_at desc
 	limit $2
 `
 

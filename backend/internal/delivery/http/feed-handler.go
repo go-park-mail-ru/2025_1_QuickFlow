@@ -47,7 +47,7 @@ func NewFeedHandler(postUseCase PostUseCase, profileUseCase ProfileUseCase) *Fee
 // @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
 // @Router /api/feed [get]
 func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	// extracting user from context
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {

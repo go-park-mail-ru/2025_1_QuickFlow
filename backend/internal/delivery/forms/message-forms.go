@@ -88,7 +88,7 @@ type MessageForm struct {
 	Text            string    `form:"text" json:"text"`
 	ChatId          uuid.UUID `form:"chat_id" json:"chat_id,omitempty"`
 	AttachmentsUrls []string  `form:"attachment_urls" json:"attachment_urls,omitempty"`
-	ReceiverId      uuid.UUID `json:"-"`
+	ReceiverId      uuid.UUID `json:"receiver_id,omitempty"`
 	SenderId        uuid.UUID `json:"-"`
 }
 

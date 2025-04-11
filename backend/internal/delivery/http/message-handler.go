@@ -18,7 +18,7 @@ import (
 
 type MessageUseCase interface {
 	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
-	SaveMessage(ctx context.Context, message models.Message) error
+	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 	MarkRead(ctx context.Context, messageId uuid.UUID) error
 }
@@ -51,7 +51,7 @@ func NewMessageHandler(messageUseCase MessageUseCase, authUseCase AuthUseCase) *
 // @Router /api/messages/{chat_id} [get]
 // GetMessagesForChat godoc
 func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	// extracting user from context
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
@@ -124,7 +124,7 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 // @Failure 500 {object} forms.ErrorForm "Server error"
 // @Router /api/messages/{username} [post]
 func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while sending message")
@@ -164,7 +164,7 @@ func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Re
 	messageForm.ReceiverId = userRecipient.Id
 
 	message := messageForm.ToMessageModel()
-	err = m.messageUseCase.SaveMessage(ctx, message)
+	_, err = m.messageUseCase.SaveMessage(ctx, message)
 	if err != nil {
 		logger.Error(ctx, "Failed to save message: %v", message)
 		http2.WriteJSONError(w, "Failed to save message", http.StatusInternalServerError)

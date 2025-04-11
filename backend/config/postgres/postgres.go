@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	defaultDataBaseURL string = "postgresql://user:password@localhost:5432/quickflow_db"
+	defaultDataBaseURL string = "postgresql://quickflow_admin:SuperSecurePassword1@localhost:5432/quickflow_db"
 )
 
 type PostgresConfig struct {

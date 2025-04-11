@@ -20,6 +20,7 @@ type ProfileInfo struct {
 }
 
 type ProfileForm struct {
+	Id         string       `json:"id,omitempty"`
 	Avatar     *models.File `json:"-"`
 	Background *models.File `json:"-"`
 
@@ -58,6 +59,7 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 
 func ModelToForm(profile models.Profile, username string) ProfileForm {
 	return ProfileForm{
+		Id:                  profile.UserId.String(),
 		ProfileInfo:         BasicInfoToForm(*profile.BasicInfo, username),
 		SchoolEducation:     SchoolEducationToForm(profile.SchoolEducation),
 		UniversityEducation: UniversityEducationToForm(profile.UniversityEducation),

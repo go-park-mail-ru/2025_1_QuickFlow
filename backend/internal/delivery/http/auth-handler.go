@@ -55,12 +55,12 @@ func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body forms.SignUpForm true "Данные для регистрации"
-// @Success 200 {object} map[string]interface{} "user_id нового пользователя"
+// @Success 200 {object} forms.SignUpResponse "Успешная регистрация"
 // @Failure 400 {object} forms.ErrorForm "Некорректные данные"
-// @Failure 409 {object} forms.ErrorForm "Логин уже занят"
+// @Failure 409 {object} forms.ErrorForm "Пользователь с таким логином уже существует"
 // @Router /api/signup [post]
 func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 
 	logger.Info(ctx, "Got  signup request")
 
@@ -140,13 +140,13 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body forms.AuthForm true "Данные для входа"
-// @Success 200 {string} string "OK"
+// @Param request body forms.AuthForm true "Данные для авторизации"
+// @Success 200 {object} forms.AuthResponse "Успешная авторизация"
 // @Failure 400 {object} forms.ErrorForm "Некорректные данные"
-// @Failure 401 {object} forms.ErrorForm "Неверный логин или пароль"
+// @Failure 401 {object} forms.ErrorForm "Пользователь не авторизован"
 // @Router /api/login [post]
 func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 
 	logger.Info(ctx, "Got login request")
 
@@ -187,13 +187,15 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Logout завершает сессию пользователя
 // @Summary Выход из системы
-// @Description Удаляет сессию пользователя
+// @Description Завершает сессию пользователя
 // @Tags Auth
-// @Success 200 {string} string "OK"
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "Успешный выход"
 // @Failure 401 {object} forms.ErrorForm "Пользователь не авторизован"
 // @Router /api/logout [post]
 func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 
 	logger.Info(ctx, "Got logout request")
 

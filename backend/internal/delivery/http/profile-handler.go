@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
+	"strings"
+
+	"github.com/google/uuid"
+
 	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
-	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -46,10 +48,10 @@ func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
 // @Failure 400 {object} forms.ErrorForm "Failed to parse user id"
 // @Failure 404 {object} forms.ErrorForm "Profile not found"
 // @Failure 500 {object} forms.ErrorForm "Failed to get profile"
-// @Router /api/profile/{id} [get]
+// @Router /api/profile/{username} [get]
 func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	// user whose profile is requested
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	userRequested := mux.Vars(r)["username"]
 	logger.Info(ctx, fmt.Sprintf("Request profile of %s", userRequested))
 
@@ -91,7 +93,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} forms.ErrorForm "Failed to update profile"
 // @Router /api/profile [post]
 func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while updating profile")

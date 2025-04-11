@@ -41,7 +41,7 @@ func NewPostHandler(postUseCase PostUseCase) *PostHandler {
 // @Router /api/post [post]
 func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while adding post")
@@ -103,7 +103,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 // @Router /api/post/{post_id} [delete]
 func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while deleting post")

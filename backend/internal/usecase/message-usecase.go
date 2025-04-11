@@ -65,17 +65,17 @@ func (m *MessageUseCase) GetMessagesForChat(ctx context.Context, chatId uuid.UUI
 	return messages, nil
 }
 
-func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message) error {
+func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error) {
 	// validate
 	err := validation.ValidateMessage(message)
 	if err != nil {
-		return fmt.Errorf("validation.ValidateMessage: %w", err)
+		return uuid.Nil, fmt.Errorf("validation.ValidateMessage: %w", err)
 	}
 
 	// check if chat exists and create if it doesn't
 	if message.ChatID == uuid.Nil {
 		if message.ReceiverID == uuid.Nil {
-			return fmt.Errorf("both chatId and receiverId are empty")
+			return uuid.Nil, fmt.Errorf("both chatId and receiverId are empty")
 		}
 
 		chat, err := m.chatRepo.GetPrivateChat(ctx, message.SenderID, message.ReceiverID)
@@ -89,20 +89,20 @@ func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message
 
 			err = m.chatRepo.CreateChat(ctx, newChat)
 			if err != nil {
-				return fmt.Errorf("m.chatRepo.CreateChat: %w", err)
+				return uuid.Nil, fmt.Errorf("m.chatRepo.CreateChat: %w", err)
 			}
 			err = m.chatRepo.JoinChat(ctx, newChat.ID, message.SenderID)
 			if err != nil {
-				return fmt.Errorf("m.chatRepo.JoinChat: %w", err)
+				return uuid.Nil, fmt.Errorf("m.chatRepo.JoinChat: %w", err)
 			}
 			err = m.chatRepo.JoinChat(ctx, newChat.ID, message.ReceiverID)
 			if err != nil {
 				m.chatRepo.LeaveChat(ctx, newChat.ID, message.SenderID)
-				return fmt.Errorf("m.chatRepo.JoinChat: %w", err)
+				return uuid.Nil, fmt.Errorf("m.chatRepo.JoinChat: %w", err)
 			}
 			message.ChatID = newChat.ID
 		} else if err != nil {
-			return fmt.Errorf("m.chatRepo.GetChat: %w", err)
+			return uuid.Nil, fmt.Errorf("m.chatRepo.GetChat: %w", err)
 		} else {
 			message.ChatID = chat.ID
 		}
@@ -112,7 +112,7 @@ func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message
 	if len(message.Attachments) > 0 {
 		filesURLs, err := m.fileRepo.UploadManyFiles(ctx, message.Attachments)
 		if err != nil {
-			return fmt.Errorf("m.fileRepo.UploadManyFiles: %w", err)
+			return uuid.Nil, fmt.Errorf("m.fileRepo.UploadManyFiles: %w", err)
 		}
 		message.AttachmentURLs = filesURLs
 	}
@@ -120,10 +120,10 @@ func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message
 	// Save message to repository
 	err = m.messageRepo.SaveMessage(ctx, message)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
-	return nil
+	return message.ChatID, nil
 }
 
 func (m *MessageUseCase) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
+
+	"github.com/google/uuid"
+
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
@@ -48,7 +50,7 @@ func NewChatHandler(chatUseCase ChatUseCase) *ChatHandler {
 // @Failure 500 {object} forms.ErrorForm "Server error"
 // @Router /api/chats [get]
 func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	logger.Info(ctx, "Got GetUserChats request")
 
 	user, ok := ctx.Value("user").(models.User)
