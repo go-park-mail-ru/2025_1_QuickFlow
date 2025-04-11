@@ -2,13 +2,11 @@ package usecase
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"quickflow/internal/models"
 )
 
 type FriendsRepository interface {
-	GetFriends(ctx context.Context, userId uuid.UUID) ([]string, error)
-	GetFriendsInfo(ctx context.Context, friendIds []string) ([]models.FriendInfo, error)
+	GetFriendsPublicInfo(ctx context.Context, userID string) ([]models.FriendInfo, error)
 }
 
 type FriendsService struct {
@@ -22,17 +20,8 @@ func NewFriendsService(friendsRepo FriendsRepository) *FriendsService {
 	}
 }
 
-func (f *FriendsService) GetFriendsIds(ctx context.Context, userID uuid.UUID) ([]string, error) {
-	friendsIds, err := f.friendsRepo.GetFriends(ctx, userID)
-	if err != nil {
-		return []string{}, err
-	}
-
-	return friendsIds, nil
-}
-
-func (f *FriendsService) GetFriendsInfo(ctx context.Context, friendIDs []string) ([]models.FriendInfo, error) {
-	friendsIds, err := f.friendsRepo.GetFriendsInfo(ctx, friendIDs)
+func (f *FriendsService) GetFriendsInfo(ctx context.Context, userID string) ([]models.FriendInfo, error) {
+	friendsIds, err := f.friendsRepo.GetFriendsPublicInfo(ctx, userID)
 	if err != nil {
 		return []models.FriendInfo{}, err
 	}

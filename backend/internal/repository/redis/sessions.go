@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -70,7 +71,7 @@ func (r *RedisSessionRepository) IsExists(ctx context.Context, session uuid.UUID
 	switch {
 
 	case errors.Is(err, redis.Nil):
-		logger.Info(ctx, "User does not exist in Redis for sessionId: %s", session.String())
+		logger.Info(ctx, fmt.Sprintf("User does not exist in Redis for sessionId: %s", session.String()))
 		return false, nil
 
 	case err != nil:
@@ -97,5 +98,8 @@ func (r *RedisSessionRepository) DeleteSession(ctx context.Context, session stri
 }
 
 func (r *RedisSessionRepository) Close() {
-	r.rdb.Close()
+	err := r.rdb.Close()
+	if err != nil {
+		log.Fatal("unable to close Redis connection:", err.Error())
+	}
 }

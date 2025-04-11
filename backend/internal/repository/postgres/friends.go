@@ -5,23 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"quickflow/config/postgres"
+	"quickflow/internal/models"
+	postgresModels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/pkg/logger"
 )
 
 const (
-	GetFriendIDsQuery = `
-		select user2_id
-		from friendship
-		where user1_id = $1
-	`
-
 	GetFriendsInfoQuery = `
 	select 
 		u.id, 
@@ -35,7 +29,15 @@ const (
 	left join education e on e.profile_id = p.id
 	left join faculty f on f.id = e.faculty_id
 	left join university univ on f.university_id = univ.id
-	where u.id = any($1)
+	where u.id = any (
+    	select 
+        	case 
+            	when user1_id = $1 then user2_id
+            	else user1_id 
+        	end
+    	from friendship
+    	where user1_id = $1 or user2_id = $1
+	)
 `
 )
 
@@ -58,64 +60,43 @@ func (p *PostgresFriendsRepository) Close() {
 	p.connPool.Close()
 }
 
-func (p *PostgresFriendsRepository) GetFriends(ctx context.Context, userId uuid.UUID) ([]string, error) {
-	logger.Info(ctx, fmt.Sprintf("Getting friends for user %s", userId))
+func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string) ([]models.FriendInfo, error) {
+	logger.Info(ctx, fmt.Sprintf("Trying to get friends info for user %s", userID))
 
-	rows, err := p.connPool.Query(ctx, GetFriendIDsQuery, userId)
-	defer rows.Close()
-	friendIds := make([]string, 0)
-
-	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			newErr := fmt.Errorf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Message, pgErr.Detail, pgErr.Where)
-			logger.Error(ctx, newErr.Error())
-		} else {
-			logger.Error(ctx, fmt.Sprintf("Some other error: %s", err.Error()))
-		}
-
-		return friendIds, errors.New("unable to get friends ids")
-	}
-
-	for rows.Next() {
-		var friendID string
-		err = rows.Scan(&friendID)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("rows scanning error: %s", err.Error()))
-			return []string{}, errors.New("unable to get friends ids")
-		}
-		friendIds = append(friendIds, friendID)
-	}
-
-	return friendIds, nil
-}
-
-func (p *PostgresFriendsRepository) GetFriendsInfo(ctx context.Context, friendIDs []string) ([]models.FriendInfo, error) {
-	logger.Info(ctx, "Trying to get friends info")
-
-	rows, err := p.connPool.Query(ctx, GetFriendIDsQuery, friendIDs)
+	rows, err := p.connPool.Query(ctx, GetFriendsInfoQuery, userID)
 	defer rows.Close()
 	friendsInfo := make([]models.FriendInfo, 0)
 
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
 			newErr := fmt.Errorf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Message, pgErr.Detail, pgErr.Where)
 			logger.Error(ctx, newErr.Error())
-		} else {
-			logger.Error(ctx, fmt.Sprintf("Some other error: %s", err.Error()))
 		}
 
 		return friendsInfo, errors.New("unable to get friends info")
 	}
 
 	for rows.Next() {
-		var friendInfo models.FriendInfo
-		err = rows.Scan(&friendInfo)
+		var friendInfoPostgres postgresModels.FriendInfoPostgres
+		err = rows.Scan(
+			&friendInfoPostgres.Id,
+			&friendInfoPostgres.Username,
+			&friendInfoPostgres.Firstname,
+			&friendInfoPostgres.Lastname,
+			&friendInfoPostgres.AvatarURL,
+			&friendInfoPostgres.University,
+		)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("rows scanning error: %s", err.Error()))
 			return []models.FriendInfo{}, errors.New("unable to get friends info")
 		}
+
+		friendInfo := friendInfoPostgres.ConvertToFriendInfoPostgres()
 		friendsInfo = append(friendsInfo, friendInfo)
 	}
 
-	return []models.FriendInfo{}, nil
+	logger.Info(ctx, friendsInfo)
+
+	return friendsInfo, nil
 }
