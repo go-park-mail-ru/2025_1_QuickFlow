@@ -19,10 +19,11 @@ type ChatCreationInfo struct {
 }
 
 type Chat struct {
-	ID        uuid.UUID
-	Name      string
-	AvatarURL string
-	Type      ChatType
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID          uuid.UUID
+	Name        string
+	AvatarURL   string
+	Type        ChatType
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	LastMessage Message
 }

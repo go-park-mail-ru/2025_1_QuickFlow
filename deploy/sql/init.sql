@@ -134,6 +134,7 @@ create table if not exists message(
                                       sender_id uuid references "user"(id) on delete cascade,
                                       chat_id uuid references chat(id) on delete cascade,
                                       created_at timestamptz not null default now(),
+                                      updated_at timestamptz not null default now(),
                                       is_read bool not null default false
 );
 

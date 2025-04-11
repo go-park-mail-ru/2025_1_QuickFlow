@@ -26,6 +26,14 @@ const (
         WHERE cu.user_id = $1
 `
 
+	getLastChatMessageQuery = `
+		SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read
+        FROM message
+        WHERE chat_id = $1
+        where created_at = max(created_at)
+        LIMIT $2
+`
+
 	getChatQuery = `
 		SELECT id, name, avatar_url, type, created_at, updated_at
 		FROM chat

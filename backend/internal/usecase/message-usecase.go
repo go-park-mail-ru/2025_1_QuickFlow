@@ -18,7 +18,8 @@ var (
 )
 
 type MessageRepository interface {
-	GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Message, error)
+	GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
+	//GetLastNMessagesChat(ctx context.Context, chatId uuid.UUID, numMessages int) ([]models.Message, error)
 	SaveMessage(ctx context.Context, message models.Message) error
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 	MarkRead(ctx context.Context, messageId uuid.UUID) error
