@@ -16,8 +16,8 @@ func NewSearchService(userRepo UserRepository) *SearchService {
 	}
 }
 
-func (s *SearchService) SearchSimilarUser(ctx context.Context, username string, postsCount uint) ([]models.PublicUserInfo, error) {
-	users, err := s.userRepo.SearchSimilar(ctx, username, postsCount)
+func (s *SearchService) SearchSimilarUser(ctx context.Context, toSearch string, postsCount uint) ([]models.PublicUserInfo, error) {
+	users, err := s.userRepo.SearchSimilar(ctx, toSearch, postsCount)
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 type SearchUseCase interface {
-	SearchSimilarUser(ctx context.Context, username string, postsCount uint) ([]models.PublicUserInfo, error)
+	SearchSimilarUser(ctx context.Context, toSearch string, postsCount uint) ([]models.PublicUserInfo, error)
 }
 
 type SearchHandler struct {
@@ -34,7 +34,7 @@ func (s *SearchHandler) SearchSimilar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := s.searchUseCase.SearchSimilarUser(r.Context(), searchForm.Username, searchForm.UsersCount)
+	users, err := s.searchUseCase.SearchSimilarUser(r.Context(), searchForm.ToSearch, searchForm.UsersCount)
 	if err != nil {
 		logger.Error(r.Context(), fmt.Sprintf("Failed to search similar users: %s", err.Error()))
 		http.Error(w, "Failed to search similar users", http.StatusInternalServerError)
