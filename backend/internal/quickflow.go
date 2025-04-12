@@ -57,6 +57,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 
 	// routing
 	r := mux.NewRouter()
+	r.Use(middleware.RecoveryMiddleware)
 	r.Use(middleware.CORSMiddleware(*corsCfg))
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

@@ -1,23 +1,23 @@
 package http
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-	"strings"
+    "context"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "net/http"
+    "strings"
 
-	"github.com/google/uuid"
+    "github.com/google/uuid"
 
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
+    "quickflow/internal/usecase"
+    "quickflow/pkg/logger"
 
-	"github.com/gorilla/mux"
+    "github.com/gorilla/mux"
 
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	http2 "quickflow/utils/http"
+    "quickflow/internal/delivery/forms"
+    "quickflow/internal/models"
+    http2 "quickflow/utils/http"
 )
 
 type ProfileUseCase interface {

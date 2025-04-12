@@ -50,14 +50,14 @@ func (f *FeedForm) GetParams(values url.Values) error {
 		return errors.New("posts_count parameter missing")
 	}
 
-	numPosts, err = strconv.ParseInt(values.Get("posts_count"), 10, 64)
-	if err != nil {
-		return errors.New("failed to parse posts_count")
-	}
+    numPosts, err = strconv.ParseInt(values.Get("posts_count"), 10, 64)
+    if err != nil {
+        return errors.New("failed to parse posts_count")
+    }
 
-	f.Posts = int(numPosts)
-	f.Ts = values.Get("ts")
-	return nil
+    f.Posts = int(numPosts)
+    f.Ts = values.Get("ts")
+    return nil
 }
 
 type PublicUserInfoOut struct {
