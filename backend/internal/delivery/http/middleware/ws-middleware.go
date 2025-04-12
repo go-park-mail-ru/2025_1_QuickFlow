@@ -12,10 +12,8 @@ import (
 
 // WebSocketMiddleware устанавливает ws соединение с клиентом и обрабатывает сессии.
 func WebSocketMiddleware(connManager http2.IWebSocketManager) func(next http.Handler) http.Handler {
-	// Upgrader можно создать один раз для всего приложения.
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			// В данном примере разрешены все источники.
 			return true
 		},
 	}
@@ -33,6 +31,7 @@ func WebSocketMiddleware(connManager http2.IWebSocketManager) func(next http.Han
 			// Апгрейд соединения на WebSocket
 			conn, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
+				logger.Info(r.Context(), "Failed to upgrade connection to WebSocket:", err)
 				httpUtils.WriteJSONError(w, "Failed to upgrade to WebSocket", http.StatusBadRequest)
 				return
 			}

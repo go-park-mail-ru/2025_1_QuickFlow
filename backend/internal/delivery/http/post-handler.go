@@ -100,7 +100,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} forms.ErrorForm "Пост не принадлежит пользователю"
 // @Failure 404 {object} forms.ErrorForm "Пост не найден"
 // @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
-// @Router /api/post/{post_id} [delete]
+// @Router /api/posts/{post_id} [delete]
 func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
 	ctx := r.Context()

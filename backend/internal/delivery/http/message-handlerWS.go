@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
@@ -70,7 +72,7 @@ func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request
 	}()
 
 	for {
-		var messageForm forms.MessageForm
+		var messageRequest forms.MessageRequest
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			var closeErr *websocket.CloseError
@@ -89,12 +91,13 @@ func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request
 			return
 		}
 
-		err = json.Unmarshal(msg, &messageForm)
+		err = json.Unmarshal(msg, &messageRequest)
 		if err != nil {
 			logger.Error(ctx, "Error unmarshaling message:", err)
 			writeErrorToWS(conn, fmt.Sprintf("Invalid message format: %v", err))
 			continue
 		}
+		messageForm := messageRequest.Payload
 
 		actionStruct := struct {
 			Action string `json:"action"`

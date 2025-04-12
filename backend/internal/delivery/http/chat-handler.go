@@ -93,11 +93,14 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 		senders = append(senders, chat.LastMessage.SenderID)
 	}
 
-	publicInfos, err := c.profileUseCase.GetPublicUsersInfo(ctx, senders)
-	if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
-		http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
-		return
+	var publicInfos map[uuid.UUID]models.PublicUserInfo
+	if len(senders) != 0 {
+		publicInfos, err = c.profileUseCase.GetPublicUsersInfo(ctx, senders)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
+			http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
+			return
+		}
 	}
 	lastMessageSenderInfo := make(map[uuid.UUID]models.PublicUserInfo)
 	for _, info := range publicInfos {

@@ -21,7 +21,6 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 		return fmt.Errorf("config is nil")
 	}
 
-	//newRepo := repository.NewInMemory()
 	newFileRepo, err := minio.NewMinioRepository(minioCfg)
 	if err != nil {
 		return fmt.Errorf("could not create minio repository: %v", err)
@@ -86,7 +85,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	// Subrouter for protected routes
 	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
 	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
-	//protectedPost.Use(middleware.CSRFMiddleware)
+	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
@@ -104,7 +103,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 
 	apiDeleteRouter := r.PathPrefix("/").Subrouter()
 	apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
-	//apiDeleteRouter.Use(middleware.CSRFMiddleware)
+	apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
 
 	server := http.Server{
