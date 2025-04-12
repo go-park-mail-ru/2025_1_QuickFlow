@@ -2,8 +2,10 @@ package internal
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
+
 	"quickflow/config"
 	"quickflow/config/cors"
 	minio_config "quickflow/config/minio"
@@ -39,12 +41,14 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
 	newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
 	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
+	newSearchService := usecase.NewSearchService(newUserRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
 	newFeedHandler := qfhttp.NewFeedHandler(newPostService, newProfileService)
 	newPostHandler := qfhttp.NewPostHandler(newPostService)
 	newProfileHandler := qfhttp.NewProfileHandler(newProfileService, connManager)
 	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService)
 	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
+	newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
 	defer newUserRepo.Close()
 	defer newPostRepo.Close()
 	defer newSessionRepo.Close()
@@ -85,7 +89,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	// Subrouter for protected routes
 	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
 	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
-	protectedPost.Use(middleware.CSRFMiddleware)
+	//protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
@@ -95,7 +99,8 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+	//protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager))

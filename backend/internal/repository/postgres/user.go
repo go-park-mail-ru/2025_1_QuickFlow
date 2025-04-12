@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
 
 	"quickflow/config/postgres"
 	"quickflow/internal/models"
@@ -32,6 +33,19 @@ const (
 	select id, username, psw_hash, salt 
 	from "user"
 	where id = $1
+`
+
+	searchSimilarUsersQuery = `
+	select u.id, u.username, firstname, lastname, profile_avatar
+	from profile p 
+	join 
+	(
+	    select id, username, similarity(lower(username), lower($1)) as sim_factor
+	    from "user"
+	) u on p.id = u.id
+	where u.sim_factor > 0.3
+	order by sim_factor desc
+	limit $2;
 `
 )
 
@@ -124,4 +138,25 @@ func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username
 	}
 
 	return user.ConvertToUser(), nil
+}
+
+func (u *PostgresUserRepository) SearchSimilar(ctx context.Context, username string, postsCount uint) ([]models.PublicUserInfo, error) {
+	rows, err := u.connPool.Query(ctx, searchSimilarUsersQuery, username, postsCount)
+	if err != nil {
+		return nil, fmt.Errorf("u.connPool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	var users []models.PublicUserInfo
+	for rows.Next() {
+		var user pgmodels.PublicUserInfoPostgres
+		err = rows.Scan(&user.Id, &user.Username, &user.Firstname, &user.Lastname, &user.AvatarURL)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		users = append(users, user.ConvertToPublicUserInfo())
+	}
+
+	return users, nil
 }

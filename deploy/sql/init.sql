@@ -170,3 +170,6 @@ create table if not exists user_follow(
                                           unique (following_id, followed_id),
                                           check (following_id != followed_id)
 );
+
+create extension if not exists pg_trgm;
+SET pg_trgm.similarity_threshold = 0.3;
