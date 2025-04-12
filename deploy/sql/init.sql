@@ -44,6 +44,8 @@ create table if not exists profile(
                                       birth_date date,
                                       contact_info_id int references contact_info(id) on delete set null,
                                       school_id int references school(id) on delete set null,
+
+                                      last_seen timestamptz not null default now(),
                                       foreign key (id) references "user"(id) on delete cascade
 );
 
@@ -115,7 +117,10 @@ create table if not exists friendship(
 create table if not exists chat(
                                    id uuid primary key,
                                    type int default 0,
-                                   created_at timestamptz not null default now()
+                                   name text check (length(name) > 0),
+                                   avatar_url text check (length(name) > 0),
+                                   created_at timestamptz not null default now(),
+                                   updated_at timestamptz not null default now()
 );
 
 create table if not exists chat_user(
@@ -131,7 +136,14 @@ create table if not exists message(
                                       sender_id uuid references "user"(id) on delete cascade,
                                       chat_id uuid references chat(id) on delete cascade,
                                       created_at timestamptz not null default now(),
+                                      updated_at timestamptz not null default now(),
                                       is_read bool not null default false
+);
+
+create table if not exists message_file(
+                                           id int generated always as identity primary key,
+                                           message_id uuid references message(id) on delete cascade,
+                                           file_url text not null
 );
 
 create table if not exists community(

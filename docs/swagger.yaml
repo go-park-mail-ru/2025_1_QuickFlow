@@ -6,22 +6,82 @@ definitions:
       username:
         type: string
     type: object
+  forms.ChatOut:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      last_message:
+        $ref: '#/definitions/forms.MessageOut'
+      name:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  forms.ContactInfo:
+    properties:
+      city:
+        type: string
+      email:
+        type: string
+      phone:
+        type: string
+    type: object
   forms.ErrorForm:
     properties:
       error:
         example: error message
         type: string
     type: object
+  forms.MessageForm:
+    properties:
+      attachment_urls:
+        items:
+          type: string
+        type: array
+      chat_id:
+        type: string
+      text:
+        type: string
+    type: object
+  forms.MessageOut:
+    properties:
+      attachment_urls:
+        items:
+          type: string
+        type: array
+      chat_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      is_read:
+        type: boolean
+      sender_id:
+        type: string
+      text:
+        type: string
+      updated_at:
+        type: string
+    type: object
   forms.PostOut:
     properties:
+      author:
+        $ref: '#/definitions/forms.PublicUserInfoOut'
       comment_count:
         type: integer
       created_at:
         type: string
-      creator_id:
-        type: string
       id:
         type: string
+      is_repost:
+        type: boolean
       like_count:
         type: integer
       pics:
@@ -31,6 +91,56 @@ definitions:
       repost_count:
         type: integer
       text:
+        type: string
+    type: object
+  forms.ProfileForm:
+    properties:
+      contact_info:
+        $ref: '#/definitions/forms.ContactInfo'
+      profile:
+        $ref: '#/definitions/forms.ProfileInfo'
+      school:
+        $ref: '#/definitions/forms.SchoolEducationForm'
+      university:
+        $ref: '#/definitions/forms.UniversityEducationForm'
+    type: object
+  forms.ProfileInfo:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      birth_date:
+        type: string
+      cover_url:
+        type: string
+      firstname:
+        type: string
+      lastname:
+        type: string
+      sex:
+        type: integer
+      username:
+        type: string
+    type: object
+  forms.PublicUserInfoOut:
+    properties:
+      avatar_url:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: string
+      lastname:
+        type: string
+      username:
+        type: string
+    type: object
+  forms.SchoolEducationForm:
+    properties:
+      school_city:
+        type: string
+      school_name:
         type: string
     type: object
   forms.SignUpForm:
@@ -48,9 +158,59 @@ definitions:
       username:
         type: string
     type: object
+  forms.UniversityEducationForm:
+    properties:
+      faculty:
+        type: string
+      grad_year:
+        type: integer
+      univ_city:
+        type: string
+      univ_name:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
+  /api/chats:
+    get:
+      consumes:
+      - application/json
+      description: Get user chats
+      parameters:
+      - description: Timestamp
+        in: query
+        name: ts
+        type: string
+      - description: Number of chats
+        in: query
+        name: chats_count
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of chats
+          schema:
+            items:
+              $ref: '#/definitions/forms.ChatOut'
+            type: array
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "403":
+          description: User is not a participant in the chat
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Get user chats
+      tags:
+      - Chats
   /api/feed:
     get:
       description: Возвращает список постов, опубликованных до указанного времени
@@ -142,6 +302,89 @@ paths:
       summary: Выход из системы
       tags:
       - Auth
+  /api/messages/{chat_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get messages for a specific chat
+      parameters:
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: string
+      - description: Number of messages
+        in: query
+        name: posts_count
+        required: true
+        type: integer
+      - description: Timestamp
+        in: query
+        name: ts
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            items:
+              $ref: '#/definitions/forms.MessageOut'
+            type: array
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "403":
+          description: User is not a participant in the chat
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Get messages for chat
+      tags:
+      - Messages
+  /api/messages/{username}:
+    post:
+      consumes:
+      - application/json
+      description: Send message to user
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Message data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/forms.MessageForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message
+          schema:
+            $ref: '#/definitions/forms.MessageOut'
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Send message to user
+      tags:
+      - Messages
   /api/post:
     post:
       consumes:
@@ -151,6 +394,7 @@ paths:
       - description: Текст поста
         in: formData
         name: text
+        required: true
         type: string
       - description: Изображения
         in: formData
@@ -174,6 +418,125 @@ paths:
       summary: Добавить пост
       tags:
       - Feed
+  /api/post/{post_id}:
+    delete:
+      description: Удаляет пост из ленты
+      parameters:
+      - description: Идентификатор поста
+        in: path
+        name: post_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "403":
+          description: Пост не принадлежит пользователю
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "404":
+          description: Пост не найден
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Ошибка сервера
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Удалить пост
+      tags:
+      - Feed
+  /api/profile:
+    post:
+      consumes:
+      - application/json
+      description: Update user profile by id
+      parameters:
+      - description: First name
+        in: formData
+        name: firstname
+        required: true
+        type: string
+      - description: Last name
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: Birth date
+        in: formData
+        name: birth_date
+        required: true
+        type: string
+      - description: Sex
+        in: formData
+        name: sex
+        required: true
+        type: integer
+      - description: Bio
+        in: formData
+        name: bio
+        required: true
+        type: string
+      - description: Avatar
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated
+          schema:
+            type: string
+        "400":
+          description: Failed to parse form
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Failed to update profile
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Update user profile
+      tags:
+      - Profile
+  /api/profile/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get user profile by id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            $ref: '#/definitions/forms.ProfileForm'
+        "400":
+          description: Failed to parse user id
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "404":
+          description: Profile not found
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+        "500":
+          description: Failed to get profile
+          schema:
+            $ref: '#/definitions/forms.ErrorForm'
+      summary: Get user profile
+      tags:
+      - Profile
   /api/signup:
     post:
       consumes:

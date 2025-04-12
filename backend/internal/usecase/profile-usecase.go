@@ -24,6 +24,7 @@ type ProfileRepository interface {
 	UpdateProfileCover(ctx context.Context, id uuid.UUID, url string) error
 	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
 	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models.PublicUserInfo, error)
+	UpdateLastSeen(ctx context.Context, userId uuid.UUID) error
 }
 
 type ProfileService struct {
@@ -133,4 +134,12 @@ func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.
 		userInfoMap[userInfo.Id] = userInfo
 	}
 	return userInfoMap, nil
+}
+
+func (p *ProfileService) UpdateLastSeen(ctx context.Context, userId uuid.UUID) error {
+	err := p.profileRepo.UpdateLastSeen(ctx, userId)
+	if err != nil {
+		return fmt.Errorf("a.userRepo.UpdateLastSeen: %w", err)
+	}
+	return nil
 }

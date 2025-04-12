@@ -20,7 +20,7 @@ func TestInMemoryUserRepository_SaveUser(t *testing.T) {
 	}{
 		{
 			name:    "Save valid user",
-			user:    models.User{Id: uuid.New(), Login: "user1", Password: "password", Salt: "salt"},
+			user:    models.User{Id: uuid.New(), Username: "user1", Password: "password", Salt: "salt"},
 			wantErr: false,
 		},
 	}
@@ -41,7 +41,7 @@ func TestInMemoryUserRepository_GetUser(t *testing.T) {
 	salt := validation.GenSalt()
 	hashedPassword := validation.HashPassword("password", salt)
 
-	user := models.User{Id: uuid.New(), Login: "user1", Password: hashedPassword, Salt: salt}
+	user := models.User{Id: uuid.New(), Username: "user1", Password: hashedPassword, Salt: salt}
 	repo.SaveUser(context.Background(), user)
 
 	tests := []struct {
@@ -80,7 +80,7 @@ func TestInMemoryUserRepository_GetUser(t *testing.T) {
 func TestInMemoryUserRepository_GetUserByUId(t *testing.T) {
 	repo := NewInMemoryUserRepository()
 
-	user := models.User{Id: uuid.New(), Login: "user1", Password: "password", Salt: "salt"}
+	user := models.User{Id: uuid.New(), Username: "user1", Password: "password", Salt: "salt"}
 	repo.SaveUser(context.Background(), user)
 
 	tests := []struct {
@@ -119,7 +119,7 @@ func TestInMemoryUserRepository_GetUserByUId(t *testing.T) {
 func TestInMemoryUserRepository_IsExists(t *testing.T) {
 	repo := NewInMemoryUserRepository()
 
-	user := models.User{Id: uuid.New(), Login: "user1", Password: "password", Salt: "salt"}
+	user := models.User{Id: uuid.New(), Username: "user1", Password: "password", Salt: "salt"}
 	repo.SaveUser(context.Background(), user)
 
 	tests := []struct {

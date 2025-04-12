@@ -24,7 +24,7 @@ func NewInMemoryUserRepository() *InMemoryUserRepository {
 
 // SaveUser saves user to the repository.
 func (i *InMemoryUserRepository) SaveUser(_ context.Context, user models.User) (uuid.UUID, error) {
-	i.users.Set(user.Login, user)
+	i.users.Set(user.Username, user)
 
 	return user.Id, nil
 }

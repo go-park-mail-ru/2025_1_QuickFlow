@@ -19,7 +19,8 @@ import (
 
 type AuthUseCase interface {
 	CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error)
-	GetUser(ctx context.Context, authData models.LoginData) (models.Session, error)
+	AuthUser(ctx context.Context, authData models.LoginData) (models.Session, error)
+	GetUserByUsername(ctx context.Context, username string) (models.User, error)
 	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
 	DeleteUserSession(ctx context.Context, session string) error
 }
@@ -54,12 +55,12 @@ func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body forms.SignUpForm true "Данные для регистрации"
-// @Success 200 {object} map[string]interface{} "user_id нового пользователя"
+// @Success 200 {object} forms.SignUpResponse "Успешная регистрация"
 // @Failure 400 {object} forms.ErrorForm "Некорректные данные"
-// @Failure 409 {object} forms.ErrorForm "Логин уже занят"
+// @Failure 409 {object} forms.ErrorForm "Пользователь с таким логином уже существует"
 // @Router /api/signup [post]
 func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 
 	logger.Info(ctx, "Got  signup request")
 
@@ -73,7 +74,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// converting transport form to domain model
 	user := models.User{
-		Login:    form.Login,
+		Username: form.Login,
 		Password: form.Password,
 	}
 
@@ -95,7 +96,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validation
-	if err := validation.ValidateUser(user.Login, user.Password); err != nil {
+	if err := validation.ValidateUser(user.Username, user.Password); err != nil {
 		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
 		return
@@ -107,7 +108,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	id, session, err := a.authUseCase.CreateUser(ctx, user, profile)
+	id, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Create user error: %s", err.Error()))
 		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
@@ -139,13 +140,13 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body forms.AuthForm true "Данные для входа"
-// @Success 200 {string} string "OK"
+// @Param request body forms.AuthForm true "Данные для авторизации"
+// @Success 200 {object} forms.AuthResponse "Успешная авторизация"
 // @Failure 400 {object} forms.ErrorForm "Некорректные данные"
-// @Failure 401 {object} forms.ErrorForm "Неверный логин или пароль"
+// @Failure 401 {object} forms.ErrorForm "Пользователь не авторизован"
 // @Router /api/login [post]
 func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 
 	logger.Info(ctx, "Got login request")
 
@@ -164,7 +165,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	session, err := a.authUseCase.GetUser(ctx, loginData)
+	session, err := a.authUseCase.AuthUser(r.Context(), loginData)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Get User error: %s", err.Error()))
 		http2.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
@@ -186,13 +187,15 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Logout завершает сессию пользователя
 // @Summary Выход из системы
-// @Description Удаляет сессию пользователя
+// @Description Завершает сессию пользователя
 // @Tags Auth
-// @Success 200 {string} string "OK"
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "Успешный выход"
 // @Failure 401 {object} forms.ErrorForm "Пользователь не авторизован"
 // @Router /api/logout [post]
 func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 
 	logger.Info(ctx, "Got logout request")
 
@@ -210,13 +213,13 @@ func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = a.authUseCase.LookupUserSession(ctx, models.Session{SessionId: cookieUUID}); err != nil {
+	if _, err = a.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: cookieUUID}); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Couldn't find user session: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if err = a.authUseCase.DeleteUserSession(ctx, cookie.Value); err != nil {
+	if err = a.authUseCase.DeleteUserSession(r.Context(), cookie.Value); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Delete session error: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
