@@ -11,7 +11,7 @@ import (
 )
 
 // WebSocketMiddleware устанавливает ws соединение с клиентом и обрабатывает сессии.
-func WebSocketMiddleware(useCase http2.AuthUseCase) func(next http.Handler) http.Handler {
+func WebSocketMiddleware(connManager http2.IWebSocketManager) func(next http.Handler) http.Handler {
 	// Upgrader можно создать один раз для всего приложения.
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -43,6 +43,9 @@ func WebSocketMiddleware(useCase http2.AuthUseCase) func(next http.Handler) http
 			ctx := context.WithValue(r.Context(), "wsConn", conn)
 			ctx = context.WithValue(ctx, "user", user)
 			r = r.WithContext(ctx)
+
+			connManager.AddConnection(user.Id, conn)
+			defer connManager.RemoveConnection(user.Id)
 
 			// Передаем управление следующему обработчику
 			defer func() {

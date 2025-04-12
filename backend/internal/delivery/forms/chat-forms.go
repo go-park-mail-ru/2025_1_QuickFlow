@@ -23,6 +23,7 @@ type ChatOut struct {
 	AvatarURL   string      `json:"avatar_url,omitempty"`
 	Type        string      `json:"type"`
 	LastMessage *MessageOut `json:"last_message,omitempty"`
+	IsOnline    *bool       `json:"online,omitempty"`
 }
 
 func (g *GetChatsForm) GetParams(values url.Values) error {
@@ -50,7 +51,7 @@ func (g *GetChatsForm) GetParams(values url.Values) error {
 	return nil
 }
 
-func ToChatsOut(chats []models.Chat) []ChatOut {
+func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.PublicUserInfo) []ChatOut {
 	var chatsOut []ChatOut
 	var chatType string
 	for _, chat := range chats {
@@ -71,7 +72,7 @@ func ToChatsOut(chats []models.Chat) []ChatOut {
 			Type:      chatType,
 		}
 		if chat.LastMessage.ID != uuid.Nil {
-			msg := ToMessageOut(chat.LastMessage)
+			msg := ToMessageOut(chat.LastMessage, lastMessageSenderInfo[chat.LastMessage.SenderID])
 			chatOut.LastMessage = &msg
 		}
 		chatsOut = append(chatsOut, chatOut)

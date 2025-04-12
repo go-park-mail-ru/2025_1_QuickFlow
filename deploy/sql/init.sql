@@ -44,6 +44,8 @@ create table if not exists profile(
                                       birth_date date,
                                       contact_info_id int references contact_info(id) on delete set null,
                                       school_id int references school(id) on delete set null,
+
+                                      last_seen timestamptz not null default now(),
                                       foreign key (id) references "user"(id) on delete cascade
 );
 

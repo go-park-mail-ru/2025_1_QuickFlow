@@ -25,15 +25,18 @@ type ProfileUseCase interface {
 	UpdateProfile(ctx context.Context, newProfile models.Profile) error
 	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
 	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error)
+	UpdateLastSeen(ctx context.Context, userId uuid.UUID) error
 }
 
 type ProfileHandler struct {
-	profileUC ProfileUseCase
+	profileUC   ProfileUseCase
+	connService IWebSocketManager
 }
 
-func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
+func NewProfileHandler(profileUC ProfileUseCase, connService IWebSocketManager) *ProfileHandler {
 	return &ProfileHandler{
-		profileUC: profileUC,
+		profileUC:   profileUC,
+		connService: connService,
 	}
 }
 
@@ -67,8 +70,10 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully fetched", userRequested))
 
+	_, isOnline := p.connService.IsConnected(profileInfo.UserId)
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested))
+	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested, isOnline))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode profile: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)

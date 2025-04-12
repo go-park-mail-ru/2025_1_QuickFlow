@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"net/http"
+
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
 	http2 "quickflow/utils/http"
-	"time"
 )
 
 type MessageUseCase interface {
@@ -26,12 +28,14 @@ type MessageUseCase interface {
 type MessageHandler struct {
 	messageUseCase MessageUseCase
 	authUseCase    AuthUseCase
+	profileUseCase ProfileUseCase
 }
 
-func NewMessageHandler(messageUseCase MessageUseCase, authUseCase AuthUseCase) *MessageHandler {
+func NewMessageHandler(messageUseCase MessageUseCase, authUseCase AuthUseCase, profileUseCase ProfileUseCase) *MessageHandler {
 	return &MessageHandler{
 		messageUseCase: messageUseCase,
 		authUseCase:    authUseCase,
+		profileUseCase: profileUseCase,
 	}
 }
 
@@ -48,7 +52,7 @@ func NewMessageHandler(messageUseCase MessageUseCase, authUseCase AuthUseCase) *
 // @Failure 400 {object} forms.ErrorForm "Invalid data"
 // @Failure 403 {object} forms.ErrorForm "User is not a participant in the chat"
 // @Failure 500 {object} forms.ErrorForm "Server error"
-// @Router /api/messages/{chat_id} [get]
+// @Router /api/chats/{chat_id}/messages [get]
 // GetMessagesForChat godoc
 func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -100,7 +104,24 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Fetched %d messages for user %s", len(messages), user.Username))
-	messagesOut := forms.ToMessagesOut(messages)
+
+	senderIds := make([]uuid.UUID, 0, len(messages))
+	for _, message := range messages {
+		if message.SenderID != user.Id {
+			senderIds = append(senderIds, message.SenderID)
+		}
+	}
+
+	publicInfo, err := m.profileUseCase.GetPublicUsersInfo(ctx, senderIds)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
+		http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
+		return
+	}
+	for _, info := range publicInfo {
+		publicInfo[info.Id] = info
+	}
+	messagesOut := forms.ToMessagesOut(messages, publicInfo)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(messagesOut)
 	if err != nil {

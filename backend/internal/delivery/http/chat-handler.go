@@ -27,12 +27,16 @@ type ChatUseCase interface {
 }
 
 type ChatHandler struct {
-	chatUseCase ChatUseCase
+	chatUseCase    ChatUseCase
+	profileUseCase ProfileUseCase
+	connService    IWebSocketManager
 }
 
-func NewChatHandler(chatUseCase ChatUseCase) *ChatHandler {
+func NewChatHandler(chatUseCase ChatUseCase, profileUseCase ProfileUseCase, connService IWebSocketManager) *ChatHandler {
 	return &ChatHandler{
-		chatUseCase: chatUseCase,
+		chatUseCase:    chatUseCase,
+		profileUseCase: profileUseCase,
+		connService:    connService,
 	}
 }
 
@@ -84,7 +88,29 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info(ctx, fmt.Sprintf("Fetched %d chats for user %s", len(chats), user.Username))
 
-	chatsOut := forms.ToChatsOut(chats)
+	var senders []uuid.UUID
+	for _, chat := range chats {
+		senders = append(senders, chat.LastMessage.SenderID)
+	}
+
+	publicInfos, err := c.profileUseCase.GetPublicUsersInfo(ctx, senders)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
+		http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
+		return
+	}
+	lastMessageSenderInfo := make(map[uuid.UUID]models.PublicUserInfo)
+	for _, info := range publicInfos {
+		lastMessageSenderInfo[info.Id] = info
+	}
+	chatsOut := forms.ToChatsOut(chats, lastMessageSenderInfo)
+
+	for i, chat := range chatsOut {
+		if chat.Type == "private" && chat.LastMessage != nil {
+			_, isOnline := c.connService.IsConnected(uuid.MustParse(chat.LastMessage.Sender.ID))
+			chatsOut[i].IsOnline = &isOnline
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(chatsOut)
 	if err != nil {

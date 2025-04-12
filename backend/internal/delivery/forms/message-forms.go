@@ -48,11 +48,11 @@ type MessageOut struct {
 	IsRead         bool      `json:"is_read"`
 	AttachmentURLs []string  `json:"attachment_urls"`
 
-	SenderId uuid.UUID `json:"sender_id"`
-	ChatId   uuid.UUID `json:"chat_id"`
+	Sender PublicUserInfoOut `json:"sender"`
+	ChatId uuid.UUID         `json:"chat_id"`
 }
 
-func ToMessageOut(message models.Message) MessageOut {
+func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut {
 	return MessageOut{
 		ID:             message.ID,
 		Text:           message.Text,
@@ -61,12 +61,12 @@ func ToMessageOut(message models.Message) MessageOut {
 		IsRead:         message.IsRead,
 		AttachmentURLs: message.AttachmentURLs,
 
-		SenderId: message.SenderID,
-		ChatId:   message.ChatID,
+		Sender: PublicUserInfoToOut(info),
+		ChatId: message.ChatID,
 	}
 }
 
-func ToMessagesOut(messages []models.Message) []MessageOut {
+func ToMessagesOut(messages []models.Message, usersInfo map[uuid.UUID]models.PublicUserInfo) []MessageOut {
 	var messagesOut []MessageOut
 	for _, message := range messages {
 		messagesOut = append(messagesOut, MessageOut{
@@ -77,8 +77,8 @@ func ToMessagesOut(messages []models.Message) []MessageOut {
 			IsRead:         message.IsRead,
 			AttachmentURLs: message.AttachmentURLs,
 
-			SenderId: message.SenderID,
-			ChatId:   message.ChatID,
+			Sender: PublicUserInfoToOut(usersInfo[message.SenderID]),
+			ChatId: message.ChatID,
 		})
 	}
 	return messagesOut

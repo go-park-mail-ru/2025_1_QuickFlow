@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/google/uuid"
 	"quickflow/utils"
+	"time"
 )
 
 type Sex int
@@ -17,6 +18,7 @@ type User struct {
 	Username string
 	Password string
 	Salt     string
+	LastSeen time.Time
 }
 
 // CreateUser creates new user.

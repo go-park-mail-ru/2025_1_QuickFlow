@@ -32,6 +32,7 @@ type ProfilePostgres struct {
 	Bio           pgtype.Text
 	AvatarUrl     pgtype.Text
 	BackgroundUrl pgtype.Text
+	LastSeen      pgtype.Timestamptz
 
 	ContactInfo         *ContactInfoPostgres
 	SchoolEducation     *SchoolEducation
@@ -81,6 +82,7 @@ func (p *ProfilePostgres) ConvertToProfile() models.Profile {
 		ContactInfo:         profile.ContactInfo,
 		SchoolEducation:     profile.SchoolEducation,
 		UniversityEducation: profile.UniversityEducation,
+		LastSeen:            profile.LastSeen,
 	}
 }
 

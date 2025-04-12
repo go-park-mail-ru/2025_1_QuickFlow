@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"quickflow/internal/usecase"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
+	"quickflow/internal/usecase"
+	"time"
 
 	"quickflow/config/postgres"
 	"quickflow/internal/models"
@@ -23,7 +23,7 @@ const InsertProfileQuery = `
 `
 
 const GetProfileQuery = `
-    select id, bio, profile_avatar, profile_background, firstname, lastname, sex, birth_date, school_id, contact_info_id
+    select id, bio, profile_avatar, profile_background, firstname, lastname, sex, birth_date, school_id, contact_info_id, last_seen
     from profile
     where id = $1;
 `
@@ -87,6 +87,11 @@ const GetPublicUsersInfoQuery = `
 	from profile p join "user" u on p.id = u.id
 	where u.id = any($1)
 `
+const updateLastSeenQuery = `
+	update profile
+	set last_seen = $2
+	where id = $1
+`
 
 type PostgresProfileRepository struct {
 	connPool *pgxpool.Pool
@@ -126,7 +131,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 	var profile pgmodels.ProfilePostgres
 	err := p.connPool.QueryRow(ctx, GetProfileQuery, userId).Scan(&profile.Id, &profile.Bio, &profile.AvatarUrl,
 		&profile.BackgroundUrl, &profile.Name, &profile.Surname, &profile.Sex, &profile.DateOfBirth, &schoolId,
-		&contactInfoId)
+		&contactInfoId, &profile.LastSeen)
 	if err != nil {
 		return models.Profile{}, fmt.Errorf("unable to get profile: %w", err)
 	}
@@ -284,6 +289,14 @@ func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, user
 	}
 
 	return publicInfos, nil
+}
+
+func (p *PostgresProfileRepository) UpdateLastSeen(ctx context.Context, userId uuid.UUID) error {
+	_, err := p.connPool.Exec(ctx, updateLastSeenQuery, userId, time.Now())
+	if err != nil {
+		return fmt.Errorf("u.connPool.Exec: %w", err)
+	}
+	return nil
 }
 
 func updateContactInfo(ctx context.Context, tx pgx.Tx, contactInfo models.ContactInfo) (pgtype.Int4, error) {

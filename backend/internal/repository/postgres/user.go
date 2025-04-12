@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
 
 	"quickflow/config/postgres"
 	"quickflow/internal/models"
@@ -17,22 +16,24 @@ import (
 	"quickflow/utils/validation"
 )
 
-const insertUserQuery = `
+const (
+	insertUserQuery = `
 	insert into "user" (id, username, psw_hash, salt)
 	values ($1, $2, $3, $4)
 `
 
-const getUserByUsername = `
+	getUserByUsername = `
 	select id, username, psw_hash, salt
 	from "user" 
 	where username = $1
 `
 
-const getUserByUIdQuery = `
+	getUserByUIdQuery = `
 	select id, username, psw_hash, salt 
 	from "user"
 	where id = $1
 `
+)
 
 type PostgresUserRepository struct {
 	connPool *pgxpool.Pool
