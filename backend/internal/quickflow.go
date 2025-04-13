@@ -98,9 +98,9 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/friends", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/friends/add", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/friends/del", newFriendsHandler.DeleteFriend).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
