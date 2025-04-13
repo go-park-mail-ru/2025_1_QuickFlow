@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"log"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -250,4 +252,19 @@ func (p *PostgresFriendsRepository) Unfollow(ctx context.Context, userID string,
 	}
 
 	return nil
+}
+
+func (p *PostgresFriendsRepository) GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error) {
+	var status models.UserRelation
+	err := p.connPool.QueryRow(ctx, CheckFriendRequestQuery, user1, user2).Scan(&status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.RelationStranger, nil
+		}
+		logger.Error(ctx, fmt.Sprintf("unable to get friends info: %v", err))
+		return models.RelationStranger, errors.New("unable to get friends info")
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Relation between sender: %s and receiver: %s already exists", user1, user2))
+	return status, nil
 }

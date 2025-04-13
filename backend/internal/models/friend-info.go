@@ -17,4 +17,7 @@ const (
 	RelationFriend     UserRelation = "friend"
 	RelationFollowing  UserRelation = "following"
 	RelationFollowedBy UserRelation = "followed_by"
+	RelationStranger   UserRelation = "stranger"
+	RelationSelf       UserRelation = "self"
+	RelationNone       UserRelation = ""
 )

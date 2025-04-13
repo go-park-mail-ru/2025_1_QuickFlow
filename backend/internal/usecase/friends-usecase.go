@@ -3,9 +3,12 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strconv"
+
+	"github.com/google/uuid"
+
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
-	"strconv"
 )
 
 type FriendsRepository interface {
@@ -15,6 +18,7 @@ type FriendsRepository interface {
 	DeleteFriend(ctx context.Context, senderID string, receiverID string) error
 	Unfollow(ctx context.Context, userID string, friendID string) error
 	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
+	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error)
 }
 
 type FriendsService struct {
@@ -80,6 +84,23 @@ func (f *FriendsService) DeleteFriend(ctx context.Context, userID string, friend
 	}
 
 	return nil
+}
+
+func (f *FriendsService) GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error) {
+	if user1 == uuid.Nil || user2 == uuid.Nil {
+		return models.RelationStranger, fmt.Errorf("userID is empty")
+	}
+
+	if user1 == user2 {
+		return models.RelationSelf, nil
+	}
+
+	relation, err := f.friendsRepo.GetUserRelation(ctx, user1, user2)
+	if err != nil {
+		return models.RelationStranger, fmt.Errorf("f.friendsRepo.GetUserRelation: %w", err)
+	}
+
+	return relation, nil
 }
 
 func (f *FriendsService) Unfollow(ctx context.Context, userID string, friendID string) error {

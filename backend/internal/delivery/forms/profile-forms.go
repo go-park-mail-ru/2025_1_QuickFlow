@@ -30,6 +30,7 @@ type ProfileForm struct {
 	UniversityEducation *UniversityEducationForm `json:"university,omitempty"`
 	LastSeen            time.Time                `json:"last_seen,omitempty"`
 	IsOnline            *bool                    `json:"online,omitempty"`
+	Relation            models.UserRelation      `json:"relation,omitempty"`
 }
 
 func (f *ProfileForm) FormToModel() (models.Profile, error) {
@@ -63,7 +64,7 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 	}, nil
 }
 
-func ModelToForm(profile models.Profile, username string, isOnline bool) ProfileForm {
+func ModelToForm(profile models.Profile, username string, isOnline bool, relation models.UserRelation) ProfileForm {
 	return ProfileForm{
 		Id:                  profile.UserId.String(),
 		ProfileInfo:         BasicInfoToForm(*profile.BasicInfo, username),
@@ -71,6 +72,7 @@ func ModelToForm(profile models.Profile, username string, isOnline bool) Profile
 		UniversityEducation: UniversityEducationToForm(profile.UniversityEducation),
 		ContactInfo:         ContactInfoToForm(profile.ContactInfo),
 		IsOnline:            &isOnline,
+		Relation:            relation,
 	}
 }
 

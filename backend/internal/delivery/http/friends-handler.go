@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/google/uuid"
+
 	"quickflow/internal/delivery/forms"
 
 	"quickflow/internal/models"
@@ -19,6 +22,7 @@ type FriendsUseCase interface {
 	Unfollow(ctx context.Context, userID string, friendID string) error
 	DeleteFriend(ctx context.Context, user string, friend string) error
 	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
+	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error)
 }
 
 type FriendsHandler struct {
