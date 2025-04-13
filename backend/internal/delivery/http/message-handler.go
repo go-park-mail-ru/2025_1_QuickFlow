@@ -107,9 +107,7 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 
     senderIds := make([]uuid.UUID, 0, len(messages))
     for _, message := range messages {
-        if message.SenderID != user.Id {
-            senderIds = append(senderIds, message.SenderID)
-        }
+        senderIds = append(senderIds, message.SenderID)
     }
 
     publicInfo := make(map[uuid.UUID]models.PublicUserInfo)
