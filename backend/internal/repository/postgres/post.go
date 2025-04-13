@@ -149,3 +149,54 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 
 	return result, nil
 }
+
+func (p *PostgresPostRepository) UpdatePostText(ctx context.Context, postId uuid.UUID, text string) error {
+	_, err := p.connPool.Exec(ctx, "update post set text = $1 where id = $2", text, postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to update post %v in database: %s", postId, err.Error()))
+		return fmt.Errorf("unable to update post in database: %w", err)
+	}
+
+	return nil
+}
+
+func (p *PostgresPostRepository) UpdatePostFiles(ctx context.Context, postId uuid.UUID, fileURLs []string) error {
+	_, err := p.connPool.Exec(ctx, "delete from post_file where post_id = $1", postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to delete post pictures %v from database: %s", postId, err.Error()))
+		return fmt.Errorf("unable to delete post pictures from database: %w", err)
+	}
+
+	for _, fileURL := range fileURLs {
+		_, err = p.connPool.Exec(ctx, "insert into post_file (post_id, file_url) values ($1, $2)", postId, fileURL)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to insert post picture %v into database: %s", fileURL, err.Error()))
+			return fmt.Errorf("unable to insert post picture into database: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (p *PostgresPostRepository) GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error) {
+	rows, err := p.connPool.Query(ctx, getPhotosQuery, postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postId, err.Error()))
+		return nil, fmt.Errorf("unable to get post pictures from database: %w", err)
+	}
+	defer rows.Close()
+
+	var result []string
+	for rows.Next() {
+		var pic pgtype.Text
+		err = rows.Scan(&pic)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+			return nil, fmt.Errorf("unable to get post pictures from database: %w", err)
+		}
+
+		result = append(result, pic.String)
+	}
+
+	return result, nil
+}

@@ -1,25 +1,25 @@
 package postgres
 
 import (
-    "context"
-    "errors"
-    "fmt"
-    "log"
-    "time"
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"time"
 
-    "github.com/google/uuid"
-    "github.com/jackc/pgx/v5"
-    "github.com/jackc/pgx/v5/pgtype"
-    "github.com/jackc/pgx/v5/pgxpool"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 
-    "quickflow/config/postgres"
-    "quickflow/internal/models"
-    pgmodels "quickflow/internal/repository/postgres/postgres-models"
-    "quickflow/pkg/logger"
+	"quickflow/config/postgres"
+	"quickflow/internal/models"
+	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/pkg/logger"
 )
 
 const (
-    getMessagesForChatOlderQuery = `
+	getMessagesForChatOlderQuery = `
         SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read
         FROM message
         WHERE chat_id = $1 AND created_at < $2
@@ -27,22 +27,22 @@ const (
         LIMIT $3
     `
 
-    getFilesQuery = `
+	getFilesQuery = `
         SELECT file_url
         FROM message_file
         WHERE message_id = $1
 `
-    saveMessageQuery = `
+	saveMessageQuery = `
         INSERT INTO message (id, chat_id, sender_id, text, created_at, updated_at, is_read)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
-    markReadQuery = `
+	markReadQuery = `
         UPDATE message
         SET is_read = true
         WHERE id = $1
 `
 
-    getLastChatMessage = `
+	getLastChatMessage = `
     with otv as (
         select * from message m 
         where m.chat_id = $1
@@ -56,125 +56,125 @@ const (
 )
 
 type MessageRepository struct {
-    connPool *pgxpool.Pool
+	connPool *pgxpool.Pool
 }
 
 func NewPostgresMessageRepository() *MessageRepository {
-    connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
-    if err != nil {
-        log.Fatalf("Unable to create connection pool: %v", err)
-    }
+	connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
+	if err != nil {
+		log.Fatalf("Unable to create connection pool: %v", err)
+	}
 
-    return &MessageRepository{connPool: connPool}
+	return &MessageRepository{connPool: connPool}
 }
 
 // Close закрывает пул соединений
 func (m *MessageRepository) Close() {
-    m.connPool.Close()
+	m.connPool.Close()
 }
 
 func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID,
-    numMessages int, timestamp time.Time) ([]models.Message, error) {
-    rows, err := m.connPool.Query(ctx, getMessagesForChatOlderQuery, chatId, timestamp, numMessages)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	numMessages int, timestamp time.Time) ([]models.Message, error) {
+	rows, err := m.connPool.Query(ctx, getMessagesForChatOlderQuery, chatId, timestamp, numMessages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var messages []models.Message
-    for rows.Next() {
-        var messagePostgres pgmodels.MessagePostgres
-        if err := rows.Scan(&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
-            &messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt, &messagePostgres.IsRead); err != nil {
-            logger.Error(ctx, fmt.Sprintf("Unable to scan message from database for chat %v, numMessages %v, timestamp %v: %v",
-                chatId, numMessages, timestamp, err))
-            return nil, err
-        }
+	var messages []models.Message
+	for rows.Next() {
+		var messagePostgres pgmodels.MessagePostgres
+		if err := rows.Scan(&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
+			&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt, &messagePostgres.IsRead); err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan message from database for chat %v, numMessages %v, timestamp %v: %v",
+				chatId, numMessages, timestamp, err))
+			return nil, err
+		}
 
-        message := messagePostgres.ToMessage()
-        files, err := m.connPool.Query(ctx, getFilesQuery, messagePostgres.ID)
-        if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-            logger.Error(ctx, fmt.Sprintf("Unable to get files for message %v: %v", messagePostgres.ID, err))
-            return nil, err
-        }
-        for files.Next() {
-            var fileURL pgtype.Text
-            err = files.Scan(&fileURL)
-            if err != nil {
-                logger.Error(ctx, fmt.Sprintf("Unable to scan file URL for message %v: %v", messagePostgres.ID, err))
-                return nil, err
-            }
-            if fileURL.Valid {
-                message.AttachmentURLs = append(message.AttachmentURLs, fileURL.String)
-            }
-        }
-        files.Close()
+		message := messagePostgres.ToMessage()
+		files, err := m.connPool.Query(ctx, getFilesQuery, messagePostgres.ID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			logger.Error(ctx, fmt.Sprintf("Unable to get files for message %v: %v", messagePostgres.ID, err))
+			return nil, err
+		}
+		for files.Next() {
+			var fileURL pgtype.Text
+			err = files.Scan(&fileURL)
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Unable to scan file URL for message %v: %v", messagePostgres.ID, err))
+				return nil, err
+			}
+			if fileURL.Valid {
+				message.AttachmentURLs = append(message.AttachmentURLs, fileURL.String)
+			}
+		}
+		files.Close()
 
-        messages = append(messages, message)
-    }
-    logger.Info(ctx, fmt.Sprintf("Fetched %d messages for chat %s", len(messages), chatId))
+		messages = append(messages, message)
+	}
+	logger.Info(ctx, fmt.Sprintf("Fetched %d messages for chat %s", len(messages), chatId))
 
-    return messages, nil
+	return messages, nil
 }
 
 func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Message) error {
-    messagePostgres := pgmodels.FromMessage(message)
-    _, err := m.connPool.Exec(ctx, saveMessageQuery,
-        messagePostgres.ID, messagePostgres.ChatID, messagePostgres.SenderID,
-        messagePostgres.Text, messagePostgres.CreatedAt, messagePostgres.UpdatedAt,
-        messagePostgres.IsRead)
-    if err != nil {
-        logger.Error(ctx, fmt.Sprintf("Unable to save message %v to database: %s", messagePostgres.ID, err.Error()))
-        return fmt.Errorf("unable to save message to database: %w", err)
-    }
-    for _, fileURL := range messagePostgres.AttachmentsURLs {
-        _, err = m.connPool.Exec(ctx, "INSERT INTO message_file (message_id, file_url) VALUES ($1, $2)",
-            messagePostgres.ID, fileURL)
-        if err != nil {
-            logger.Error(ctx, fmt.Sprintf("Unable to save file URL %s for message %v to database: %s", fileURL, messagePostgres.ID, err.Error()))
-            return fmt.Errorf("unable to save file URL to database: %w", err)
-        }
-    }
+	messagePostgres := pgmodels.FromMessage(message)
+	_, err := m.connPool.Exec(ctx, saveMessageQuery,
+		messagePostgres.ID, messagePostgres.ChatID, messagePostgres.SenderID,
+		messagePostgres.Text, messagePostgres.CreatedAt, messagePostgres.UpdatedAt,
+		messagePostgres.IsRead)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to save message %v to database: %s", messagePostgres.ID, err.Error()))
+		return fmt.Errorf("unable to save message to database: %w", err)
+	}
+	for _, fileURL := range messagePostgres.AttachmentsURLs {
+		_, err = m.connPool.Exec(ctx, "INSERT INTO message_file (message_id, file_url) VALUES ($1, $2)",
+			messagePostgres.ID, fileURL)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to save file URL %s for message %v to database: %s", fileURL, messagePostgres.ID, err.Error()))
+			return fmt.Errorf("unable to save file URL to database: %w", err)
+		}
+	}
 
-    _, err = m.connPool.Exec(ctx, `update chat set updated_at = $1 where id = $2`,
-        messagePostgres.UpdatedAt, messagePostgres.ChatID)
-    if err != nil {
-        logger.Error(ctx, "Unable to update chat updated_at: ", err)
-        return fmt.Errorf("unable to update chat updated_at: %w", err)
-    }
-    return nil
+	_, err = m.connPool.Exec(ctx, `update chat set updated_at = $1 where id = $2`,
+		messagePostgres.UpdatedAt, messagePostgres.ChatID)
+	if err != nil {
+		logger.Error(ctx, "Unable to update chat updated_at: ", err)
+		return fmt.Errorf("unable to update chat updated_at: %w", err)
+	}
+	return nil
 }
 
 func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {
-    _, err := m.connPool.Exec(ctx, "DELETE FROM message WHERE id = $1", messageId)
-    if err != nil {
-        logger.Error(ctx, fmt.Sprintf("Unable to delete message %v from database: %s", messageId, err.Error()))
-        return fmt.Errorf("unable to delete message from database: %w", err)
-    }
-    return nil
+	_, err := m.connPool.Exec(ctx, "DELETE FROM message WHERE id = $1", messageId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to delete message %v from database: %s", messageId, err.Error()))
+		return fmt.Errorf("unable to delete message from database: %w", err)
+	}
+	return nil
 }
 func (m *MessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) error {
-    _, err := m.connPool.Exec(ctx, markReadQuery, messageId)
-    if err != nil {
-        logger.Error(ctx, fmt.Sprintf("Unable to mark message %v as read: %s", messageId, err.Error()))
-        return fmt.Errorf("unable to mark message as read: %w", err)
-    }
-    return nil
+	_, err := m.connPool.Exec(ctx, markReadQuery, messageId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to mark message %v as read: %s", messageId, err.Error()))
+		return fmt.Errorf("unable to mark message as read: %w", err)
+	}
+	return nil
 }
 
 func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error) {
-    var messagePostgres pgmodels.MessagePostgres
-    err := m.connPool.QueryRow(ctx, getLastChatMessage, chatId).Scan(
-        &messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
-        &messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt,
-        &messagePostgres.IsRead)
-    if errors.Is(err, pgx.ErrNoRows) {
-        return nil, nil
-    } else if err != nil {
-        logger.Error(ctx, "Unable to get last message from database: ", err)
-        return nil, fmt.Errorf("unable to get last message from database: %w", err)
-    }
+	var messagePostgres pgmodels.MessagePostgres
+	err := m.connPool.QueryRow(ctx, getLastChatMessage, chatId).Scan(
+		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
+		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt,
+		&messagePostgres.IsRead)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		logger.Error(ctx, "Unable to get last message from database: ", err)
+		return nil, fmt.Errorf("unable to get last message from database: %w", err)
+	}
 
-    message := messagePostgres.ToMessage()
-    return &message, nil
+	message := messagePostgres.ToMessage()
+	return &message, nil
 }

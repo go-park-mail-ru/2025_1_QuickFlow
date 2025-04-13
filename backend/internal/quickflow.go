@@ -91,6 +91,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     protectedPost.Use(middleware.SessionMiddleware(newAuthService))
     protectedPost.Use(middleware.CSRFMiddleware)
     protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
+    protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
     protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
     protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 

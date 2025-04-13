@@ -142,3 +142,73 @@ func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info(ctx, fmt.Sprintf("Successfully deleted post %s", postIdString))
 }
+
+// UpdatePost updates a post
+// @Summary Update post
+// @Description Updates a post
+// @Tags Post
+// @Accept json
+// @Produce json
+// @Param post_id path string true "Post ID"
+// @Param post body forms.UpdatePostForm true "Post data"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} forms.ErrorForm "Invalid data"
+// @Failure 403 {object} forms.ErrorForm "Post does not belong to user"
+// @Failure 404 {object} forms.ErrorForm "Post not found"
+// @Failure 500 {object} forms.ErrorForm "Server error"
+// @Router /api/post [put]
+func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
+	// extracting user from context
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while updating post")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	postIdString := mux.Vars(r)["post_id"]
+	postId, err := uuid.Parse(postIdString)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse post id: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to parse post id", http.StatusBadRequest)
+		return
+	}
+
+	err = r.ParseMultipartForm(10 << 20) // 10 MB
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	var updatePostForm forms.UpdatePostForm
+	updatePostForm.Text = r.FormValue("text")
+	updatePostForm.Images, err = http2.GetFiles(r, "pics")
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get files: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get files", http.StatusBadRequest)
+		return
+	}
+
+	updatePost, err := updatePostForm.ToPostUpdateModel(postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse update post: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to parse update post", http.StatusBadRequest)
+		return
+	}
+	err = p.postUseCase.UpdatePost(ctx, updatePost, user.Id)
+	if errors.Is(err, usecase.ErrPostDoesNotBelongToUser) {
+		logger.Error(ctx, fmt.Sprintf("Post %s does not belong to user %s", postIdString, user.Username))
+		http2.WriteJSONError(w, "Post does not belong to user", http.StatusForbidden)
+		return
+	} else if errors.Is(err, usecase.ErrPostNotFound) {
+		logger.Error(ctx, fmt.Sprintf("Post %s not found", postIdString))
+		http2.WriteJSONError(w, "Post not found", http.StatusNotFound)
+		return
+	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to update post: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to update post", http.StatusInternalServerError)
+		return
+	}
+}

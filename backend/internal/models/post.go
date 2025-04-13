@@ -31,3 +31,9 @@ type File struct {
 func (f File) String() string {
 	return f.Name
 }
+
+type PostUpdate struct {
+	Id    uuid.UUID
+	Desc  string
+	Files []*File
+}

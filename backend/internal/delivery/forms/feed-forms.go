@@ -50,14 +50,14 @@ func (f *FeedForm) GetParams(values url.Values) error {
 		return errors.New("posts_count parameter missing")
 	}
 
-    numPosts, err = strconv.ParseInt(values.Get("posts_count"), 10, 64)
-    if err != nil {
-        return errors.New("failed to parse posts_count")
-    }
+	numPosts, err = strconv.ParseInt(values.Get("posts_count"), 10, 64)
+	if err != nil {
+		return errors.New("failed to parse posts_count")
+	}
 
-    f.Posts = int(numPosts)
-    f.Ts = values.Get("ts")
-    return nil
+	f.Posts = int(numPosts)
+	f.Ts = values.Get("ts")
+	return nil
 }
 
 type PublicUserInfoOut struct {
@@ -105,4 +105,19 @@ func (p *PostOut) FromPost(post models.Post) {
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount
 	p.IsRepost = post.IsRepost
+}
+
+type UpdatePostForm struct {
+	Id     string         `json:"-"`
+	Text   string         `json:"text"`
+	Images []*models.File `json:"pics"`
+}
+
+func (p *UpdatePostForm) ToPostUpdateModel(postId uuid.UUID) (models.PostUpdate, error) {
+
+	return models.PostUpdate{
+		Id:    postId,
+		Desc:  p.Text,
+		Files: p.Images,
+	}, nil
 }
