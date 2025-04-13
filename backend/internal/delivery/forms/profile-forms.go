@@ -43,9 +43,13 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
         }
     }
 
-    basicInfo, err := ProfileInfoToModel(*f.ProfileInfo)
-    if err != nil {
-        return models.Profile{}, err
+    var basicInfo *models.BasicInfo
+    var err error
+    if f.ProfileInfo != nil {
+        basicInfo, err = ProfileInfoToModel(*f.ProfileInfo)
+        if err != nil {
+            return models.Profile{}, err
+        }
     }
 
     return models.Profile{
