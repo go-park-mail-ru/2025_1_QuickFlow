@@ -25,7 +25,7 @@ const (
 					else user1_id 
 				end as friend_id
 			from friendship
-			where user1_id = $1 or user2_id = $1
+			where (user1_id = $1 or user2_id = $1) and status = 'friend'
 		)
 		select 
 			u.id, 
@@ -54,6 +54,12 @@ const (
 		select status
 		from friendship
 		where user1_id = $1 and user2_id = $2
+	`
+
+	UpdateFriendRequestQuery = `
+		update friendship
+		set status = 'friend'
+		where user1_id = $1 and user2_id = $2 and status != 'friend'
 	`
 )
 
@@ -123,7 +129,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 }
 
 func (p *PostgresFriendsRepository) SendFriendRequest(ctx context.Context, senderID string, receiverID string) error {
-	logger.Info(ctx, fmt.Sprintf("Trying to insert frienf request to DB for user: %s", senderID))
+	logger.Info(ctx, fmt.Sprintf("Trying to insert friend request to DB for sender: %s and receiver %s", senderID, receiverID))
 	var status, sender, receiver string
 	if senderID > receiverID {
 		status = "followed_by"
@@ -161,13 +167,37 @@ func (p *PostgresFriendsRepository) IsExistsFriendRequest(ctx context.Context, s
 	err := p.connPool.QueryRow(ctx, CheckFriendRequestQuery, sender, receiver).Scan(&status)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			logger.Info(ctx, fmt.Sprintf("relation between sender: %s and receiver: %s doesn't exist", senderID, receiverID))
+			logger.Info(ctx, fmt.Sprintf("relation between sender: %s and receiver: %s doesn't exist or Incorrect IDs were given", senderID, receiverID))
 			return false, nil
 		}
 		logger.Error(ctx, fmt.Sprintf("unable to get friends info: %v", err))
-		return false, err
+		return false, errors.New("unable to get friends info")
 	}
 
 	logger.Error(ctx, fmt.Sprintf("Relation between sender: %s and receiver: %s already exists", senderID, receiverID))
 	return true, nil
+}
+
+func (p *PostgresFriendsRepository) AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error {
+	logger.Info(ctx, fmt.Sprintf("Trying to update friend request for sender: %s and receiver: %s", senderID, receiverID))
+	var sender, receiver string
+	if senderID > receiverID {
+		receiver = senderID
+		sender = receiverID
+	} else {
+		receiver = receiverID
+		sender = senderID
+	}
+
+	commandTag, err := p.connPool.Exec(ctx, UpdateFriendRequestQuery, sender, receiver)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		logger.Error(ctx, fmt.Sprintf("friend relation between sender: %s and receiver: %s doesn't exist or incorrect ID's were given", senderID, receiverID))
+		return errors.New("failed to accept friend request")
+	}
+
+	return nil
 }
