@@ -55,7 +55,7 @@ const (
 	CheckFriendRequestQuery = `
 		select status
 		from friendship
-		where user1_id = $1 and user2_id = $2
+		where (user1_id = $1 and user2_id = $2) or (user1_id = $2 and user2_id = $1)
 	`
 
 	UpdateFriendRequestQuery = `
@@ -164,17 +164,9 @@ func (p *PostgresFriendsRepository) SendFriendRequest(ctx context.Context, sende
 }
 
 func (p *PostgresFriendsRepository) IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error) {
-	var sender, receiver string
 	var status models.UserRelation
-	if senderID > receiverID {
-		receiver = senderID
-		sender = receiverID
-	} else {
-		receiver = receiverID
-		sender = senderID
-	}
 
-	err := p.connPool.QueryRow(ctx, CheckFriendRequestQuery, sender, receiver).Scan(&status)
+	err := p.connPool.QueryRow(ctx, CheckFriendRequestQuery, senderID, receiverID).Scan(&status)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			logger.Info(ctx, fmt.Sprintf("relation between sender: %s and receiver: %s doesn't exist or Incorrect IDs were given", senderID, receiverID))
