@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"quickflow/internal/models"
 	"quickflow/utils/validation"
 )
@@ -200,4 +201,12 @@ func (c *ChatUseCase) GetChatParticipants(ctx context.Context, chatId uuid.UUID)
 		return nil, fmt.Errorf("c.chatRepo.GetChatParticipants: %w", err)
 	}
 	return participants, nil
+}
+
+func (c *ChatUseCase) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error) {
+	chat, err := c.chatRepo.GetPrivateChat(ctx, userId1, userId2)
+	if err != nil {
+		return models.Chat{}, fmt.Errorf("c.chatRepo.GetPrivateChat: %w", err)
+	}
+	return chat, nil
 }
