@@ -14,6 +14,7 @@ type Post struct {
 	Images       []*File
 	ImagesURL    []string
 	CreatedAt    time.Time
+	UpdatedAt    time.Time
 	LikeCount    int
 	RepostCount  int
 	CommentCount int
@@ -30,4 +31,10 @@ type File struct {
 
 func (f File) String() string {
 	return f.Name
+}
+
+type PostUpdate struct {
+	Id    uuid.UUID
+	Desc  string
+	Files []*File
 }

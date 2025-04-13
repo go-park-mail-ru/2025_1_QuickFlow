@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"quickflow/pkg/logger"
 	"time"
+
+	"quickflow/pkg/logger"
 
 	"github.com/google/uuid"
 
@@ -20,6 +21,7 @@ type PostUseCase interface {
 	FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
 	AddPost(ctx context.Context, post models.Post) error
 	DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error
+	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) error
 }
 
 type FeedHandler struct {

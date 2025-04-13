@@ -57,7 +57,7 @@ func TestPostOut_FromPost(t *testing.T) {
 				t.Errorf("FromPost() Text = %v, want %v", postOut.Desc, tt.expected.Desc)
 			}
 			if !equalStringSlices(postOut.Pics, tt.expected.Pics) {
-				t.Errorf("FromPost() Images = %v, want %v", postOut.Pics, tt.expected.Pics)
+				t.Errorf("FromPost() Files = %v, want %v", postOut.Pics, tt.expected.Pics)
 			}
 			if postOut.CreatedAt != tt.expected.CreatedAt {
 				t.Errorf("FromPost() CreatedAt = %v, want %v", postOut.CreatedAt, tt.expected.CreatedAt)

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"quickflow/pkg/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +15,7 @@ import (
 	"quickflow/config/postgres"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/pkg/logger"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
         SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read
         FROM message
         WHERE chat_id = $1 AND created_at < $2
-        ORDER BY created_at DESC
+        ORDER BY created_at
         LIMIT $3
     `
 
@@ -73,8 +73,9 @@ func (m *MessageRepository) Close() {
 	m.connPool.Close()
 }
 
-func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Message, error) {
-	rows, err := m.connPool.Query(ctx, getMessagesForChatOlderQuery, chatId, timestamp, numPosts)
+func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID,
+	numMessages int, timestamp time.Time) ([]models.Message, error) {
+	rows, err := m.connPool.Query(ctx, getMessagesForChatOlderQuery, chatId, timestamp, numMessages)
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +86,22 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 		var messagePostgres pgmodels.MessagePostgres
 		if err := rows.Scan(&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
 			&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt, &messagePostgres.IsRead); err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan message from database for chat %v, numMessages %v, timestamp %v: %v",
+				chatId, numMessages, timestamp, err))
 			return nil, err
 		}
 
 		message := messagePostgres.ToMessage()
 		files, err := m.connPool.Query(ctx, getFilesQuery, messagePostgres.ID)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			logger.Error(ctx, fmt.Sprintf("Unable to get files for message %v: %v", messagePostgres.ID, err))
 			return nil, err
 		}
 		for files.Next() {
 			var fileURL pgtype.Text
 			err = files.Scan(&fileURL)
 			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Unable to scan file URL for message %v: %v", messagePostgres.ID, err))
 				return nil, err
 			}
 			if fileURL.Valid {
@@ -107,6 +112,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 
 		messages = append(messages, message)
 	}
+	logger.Info(ctx, fmt.Sprintf("Fetched %d messages for chat %s", len(messages), chatId))
 
 	return messages, nil
 }
@@ -118,12 +124,14 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 		messagePostgres.Text, messagePostgres.CreatedAt, messagePostgres.UpdatedAt,
 		messagePostgres.IsRead)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to save message %v to database: %s", messagePostgres.ID, err.Error()))
 		return fmt.Errorf("unable to save message to database: %w", err)
 	}
 	for _, fileURL := range messagePostgres.AttachmentsURLs {
 		_, err = m.connPool.Exec(ctx, "INSERT INTO message_file (message_id, file_url) VALUES ($1, $2)",
 			messagePostgres.ID, fileURL)
 		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to save file URL %s for message %v to database: %s", fileURL, messagePostgres.ID, err.Error()))
 			return fmt.Errorf("unable to save file URL to database: %w", err)
 		}
 	}
@@ -140,6 +148,7 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {
 	_, err := m.connPool.Exec(ctx, "DELETE FROM message WHERE id = $1", messageId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to delete message %v from database: %s", messageId, err.Error()))
 		return fmt.Errorf("unable to delete message from database: %w", err)
 	}
 	return nil
@@ -147,6 +156,7 @@ func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UU
 func (m *MessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) error {
 	_, err := m.connPool.Exec(ctx, markReadQuery, messageId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to mark message %v as read: %s", messageId, err.Error()))
 		return fmt.Errorf("unable to mark message as read: %w", err)
 	}
 	return nil

@@ -3,14 +3,18 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
+
 	"quickflow/config/postgres"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 	"quickflow/internal/usecase"
+	"quickflow/pkg/logger"
 )
 
 const (
@@ -72,14 +76,17 @@ func (c *ChatRepository) CreateChat(ctx context.Context, chat models.Chat) error
 	case models.ChatTypePrivate:
 		_, err := c.connPool.Exec(ctx, insertChatQuery, chat.ID, nil, nil, chat.Type, chat.CreatedAt, chat.UpdatedAt)
 		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to save private chat %v to database: %s", chat, err.Error()))
 			return err
 		}
 	case models.ChatTypeGroup:
 		_, err := c.connPool.Exec(ctx, insertChatQuery, chat.ID, chat.Name, chat.AvatarURL, chat.Type, chat.CreatedAt, chat.UpdatedAt)
 		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to save group chat %v to database: %s", chat, err.Error()))
 			return err
 		}
 	default:
+		logger.Error(ctx, fmt.Sprintf("Invalid chat type %v", chat.Type))
 		return usecase.ErrInvalidChatType
 	}
 
@@ -90,6 +97,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	var chats []models.Chat
 	rows, err := c.connPool.Query(ctx, getUserChatsQuery, userId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get user %v chats from database: %s", userId, err.Error()))
 		return nil, err
 	}
 	defer rows.Close()
@@ -99,10 +107,13 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	for rows.Next() {
 		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan chat from database for user %v: %s", userId, err.Error()))
 			return nil, err
 		}
 		chats = append(chats, *chatPostgres.ToChat())
 	}
+
+	logger.Info(ctx, fmt.Sprintf("Fetched %d chats for user %s", len(chats), userId))
 
 	return chats, nil
 }
@@ -111,10 +122,14 @@ func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.
 	var chatPostgres pgmodels.ChatPostgres
 	err := c.connPool.QueryRow(ctx, getChatQuery, chatId).Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
+		logger.Error(ctx, fmt.Sprintf("Chat with id %s not found", chatId))
 		return models.Chat{}, usecase.ErrNotFound
 	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get chat %v from database: %s", chatId, err.Error()))
 		return models.Chat{}, err
 	}
+
+	logger.Info(ctx, fmt.Sprintf("Fetched chat %v", chatPostgres))
 
 	return *chatPostgres.ToChat(), nil
 }
@@ -125,11 +140,14 @@ func (c *ChatRepository) GetPrivateChat(ctx context.Context, sender, receiver uu
 		Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL,
 			&chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
+		logger.Error(ctx, fmt.Sprintf("Private chat between %s and %s not found", sender, receiver))
 		return models.Chat{}, usecase.ErrNotFound
 	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get private chat between %s and %s from database: %s", sender, receiver, err.Error()))
 		return models.Chat{}, err
 	}
 
+	logger.Info(ctx, fmt.Sprintf("Fetched private chat between %s and %s", sender, receiver))
 	return *chatPostgres.ToChat(), nil
 }
 
@@ -137,6 +155,7 @@ func (c *ChatRepository) Exists(ctx context.Context, chatId uuid.UUID) (bool, er
 	var exists bool
 	err := c.connPool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM chat WHERE id = $1)", chatId).Scan(&exists)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to check if chat %v exists: %s", chatId, err.Error()))
 		return false, err
 	}
 	return exists, nil
@@ -144,6 +163,7 @@ func (c *ChatRepository) Exists(ctx context.Context, chatId uuid.UUID) (bool, er
 func (c *ChatRepository) DeleteChat(ctx context.Context, chatId uuid.UUID) error {
 	_, err := c.connPool.Exec(ctx, "DELETE FROM chat WHERE id = $1", chatId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to delete chat %v from database: %s", chatId, err.Error()))
 		return err
 	}
 	return nil
@@ -152,6 +172,7 @@ func (c *ChatRepository) IsParticipant(ctx context.Context, chatId, userId uuid.
 	var exists bool
 	err := c.connPool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM chat_user WHERE chat_id = $1 AND user_id = $2)", chatId, userId).Scan(&exists)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to check if user %v is participant in chat %v: %s", userId, chatId, err.Error()))
 		return false, err
 	}
 	return exists, nil
@@ -160,6 +181,7 @@ func (c *ChatRepository) IsParticipant(ctx context.Context, chatId, userId uuid.
 func (c *ChatRepository) JoinChat(ctx context.Context, chatId, userId uuid.UUID) error {
 	_, err := c.connPool.Exec(ctx, "INSERT INTO chat_user (chat_id, user_id) VALUES ($1, $2)", chatId, userId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to add user %v to chat %v: %s", userId, chatId, err.Error()))
 		return err
 	}
 	return nil
@@ -168,6 +190,7 @@ func (c *ChatRepository) JoinChat(ctx context.Context, chatId, userId uuid.UUID)
 func (c *ChatRepository) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error {
 	_, err := c.connPool.Exec(ctx, "DELETE FROM chat_user WHERE chat_id = $1 AND user_id = $2", chatId, userId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to remove user %v from chat %v: %s", userId, chatId, err.Error()))
 		return err
 	}
 	return nil
@@ -177,6 +200,7 @@ func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UU
 	var users []models.User
 	rows, err := c.connPool.Query(ctx, getChatParticipantsQuery, chatId)
 	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get chat %v participants from database: %s", chatId, err.Error()))
 		return nil, err
 	}
 	defer rows.Close()
@@ -185,18 +209,23 @@ func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UU
 		var user pgmodels.UserPostgres
 		err = rows.Scan(&user.Id, &user.Username)
 		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan user from database for chat %v: %s", chatId, err.Error()))
 			return nil, err
 		}
 		users = append(users, user.ConvertToUser())
 	}
 
 	if len(users) == 0 {
+		logger.Error(ctx, fmt.Sprintf("No participants found for chat %v", chatId))
 		return nil, usecase.ErrNotFound
 	}
 
 	if err = rows.Err(); err != nil {
+		logger.Error(ctx, fmt.Sprintf("Error while iterating over chat %v participants: %s", chatId, err.Error()))
 		return nil, err
 	}
+
+	logger.Info(ctx, fmt.Sprintf("Fetched %d participants for chat %s", len(users), chatId))
 
 	return users, nil
 }

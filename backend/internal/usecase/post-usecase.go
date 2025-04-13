@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,9 +20,12 @@ var (
 
 type PostRepository interface {
 	AddPost(ctx context.Context, post models.Post) error
+	UpdatePostText(ctx context.Context, postId uuid.UUID, text string) error
+	UpdatePostFiles(ctx context.Context, postId uuid.UUID, fileURLs []string) error
 	DeletePost(ctx context.Context, postId uuid.UUID) error
 	BelongsTo(ctx context.Context, userId uuid.UUID, postId uuid.UUID) (bool, error)
 	GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error)
 }
 
 type FileRepository interface {
@@ -75,9 +79,23 @@ func (p *PostService) DeletePost(ctx context.Context, user models.User, postId u
 		return ErrPostDoesNotBelongToUser
 	}
 
+	// retrieve post files
+	postFiles, err := p.postRepo.GetPostFiles(ctx, postId)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.GetPostFiles: %w", err)
+	}
+
 	err = p.postRepo.DeletePost(ctx, postId)
 	if err != nil {
 		return fmt.Errorf("p.postRepo.DeletePost: %w", err)
+	}
+
+	// delete post files
+	for _, pic := range postFiles {
+		err = p.fileRepo.DeleteFile(ctx, path.Base(pic))
+		if err != nil {
+			return fmt.Errorf("p.fileRepo.DeleteFile: %w", err)
+		}
 	}
 
 	return nil
@@ -91,4 +109,51 @@ func (p *PostService) FetchFeed(ctx context.Context, user models.User, numPosts 
 	}
 
 	return posts, nil
+}
+
+func (p *PostService) UpdatePost(ctx context.Context, postUpdate models.PostUpdate, userId uuid.UUID) error {
+	// check if user owns the post
+	belongsTo, err := p.postRepo.BelongsTo(ctx, userId, postUpdate.Id)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.BelongsTo: %w", err)
+	}
+
+	if !belongsTo {
+		return ErrPostDoesNotBelongToUser
+	}
+
+	// retrieve old post photos
+	oldPics, err := p.postRepo.GetPostFiles(ctx, postUpdate.Id)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.GetPostFiles: %w", err)
+	}
+
+	// Upload files to storage
+	var fileURLs []string
+	if len(postUpdate.Files) != 0 {
+		fileURLs, err = p.fileRepo.UploadManyFiles(ctx, postUpdate.Files)
+		if err != nil {
+			return fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
+		}
+	}
+
+	err = p.postRepo.UpdatePostText(ctx, postUpdate.Id, postUpdate.Desc)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.UpdatePostText: %w", err)
+	}
+
+	err = p.postRepo.UpdatePostFiles(ctx, postUpdate.Id, fileURLs)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.UpdatePostFiles: %w", err)
+	}
+
+	// delete old photos
+	for _, pic := range oldPics {
+		err = p.fileRepo.DeleteFile(ctx, path.Base(pic))
+		if err != nil {
+			return fmt.Errorf("p.fileRepo.DeleteFile: %w", err)
+		}
+	}
+
+	return nil
 }

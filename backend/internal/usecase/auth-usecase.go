@@ -21,6 +21,8 @@ type UserRepository interface {
 	GetUserByUsername(ctx context.Context, username string) (models.User, error)
 	GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error)
 	IsExists(ctx context.Context, login string) (bool, error)
+
+	SearchSimilar(ctx context.Context, toSearch string, postsCount uint) ([]models.PublicUserInfo, error)
 }
 
 type SessionRepository interface {

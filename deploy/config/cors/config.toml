@@ -1,5 +1,5 @@
 allowed_origins = ["https://www.quickflowapp.ru"]
-allowed_methos = ["GET", "POST", "DELETE"]
+allowed_methos = ["GET", "POST", "DELETE", "PUT"]
 allowed_headers = ["Cookie", "Content-Type", "X-CSRF-Token"]
 exposed_headers = ["Content-Type", "X-CSRF-Token"]
 allow_credentials = true

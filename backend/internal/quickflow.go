@@ -2,8 +2,10 @@ package internal
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
+
 	"quickflow/config"
 	"quickflow/config/cors"
 	minio_config "quickflow/config/minio"
@@ -41,6 +43,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
 	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
 	newFriendsService := usecase.NewFriendsService(newFriendsRepo)
+	newSearchService := usecase.NewSearchService(newUserRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
 	newFeedHandler := qfhttp.NewFeedHandler(newPostService, newProfileService)
 	newPostHandler := qfhttp.NewPostHandler(newPostService)
@@ -48,6 +51,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService)
 	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
 	newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
+	newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
 
 	defer newUserRepo.Close()
 	defer newPostRepo.Close()
@@ -92,6 +96,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
 	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/friends", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/friends/add", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
@@ -105,6 +110,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager))
