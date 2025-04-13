@@ -9,6 +9,10 @@ type FriendRequest struct {
 	ReceiverID string `json:"receiver_id"`
 }
 
+type FriendRequestDel struct {
+	FriendID string `json:"friend_id"`
+}
+
 type FriendsInfoOut struct {
 	ID         uuid.UUID `json:"id"`
 	Username   string    `json:"username"`

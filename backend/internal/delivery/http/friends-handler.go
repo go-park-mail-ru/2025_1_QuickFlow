@@ -16,6 +16,7 @@ type FriendsUseCase interface {
 	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, bool, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
+	DeleteFriend(ctx context.Context, user string, friend string) error
 	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
 }
 
@@ -100,6 +101,8 @@ func (f *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	logger.Info(ctx, "Trying to parse request body")
+
 	var req forms.FriendRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -107,6 +110,9 @@ func (f *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
 		return
 	}
+
+	logger.Info(ctx, "Successfully parsed request body")
+	logger.Info(ctx, fmt.Sprintf("Trying to check relation between sender %s and receiver %s", user.Username, req.ReceiverID))
 
 	isExists, err := f.friendsUseCase.IsExistsFriendRequest(ctx, user.Id.String(), req.ReceiverID)
 	if err != nil {
@@ -141,6 +147,8 @@ func (f *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	logger.Info(ctx, "Trying to parse request body")
+
 	var req forms.FriendRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -149,11 +157,44 @@ func (f *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	logger.Info(ctx, "Successfully parsed request body")
+	logger.Info(ctx, fmt.Sprintf("User %s trying to accept friend %s ", user.Username, req.ReceiverID))
+
 	if err = f.friendsUseCase.AcceptFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
 		http2.WriteJSONError(w, "Failed to accept friend request", http.StatusInternalServerError)
 		return
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Successfully accepted friend request from user %s", req.ReceiverID))
+}
 
+func (f *FriendsHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
+	ctx := http2.SetRequestId(r.Context())
+
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while fetching friends")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Trying to parse request body")
+
+	var req forms.FriendRequestDel
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to decode request body: %s", err))
+		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	logger.Info(ctx, "Successfully parsed request body")
+	logger.Info(ctx, fmt.Sprintf("User %s trying to delete friend %s ", user.Username, req.FriendID))
+
+	if err = f.friendsUseCase.DeleteFriend(ctx, user.Id.String(), req.FriendID); err != nil {
+		http2.WriteJSONError(w, "Failed to accept friend request", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Successfully deleted friend from user %s", req.FriendID))
 }

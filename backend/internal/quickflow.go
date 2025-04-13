@@ -90,11 +90,12 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	// Subrouter for protected routes
 	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
 	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
-	//protectedPost.Use(middleware.CSRFMiddleware)
+	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/friends", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/friends/add", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/friends/del", newFriendsHandler.DeleteFriend).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
@@ -103,7 +104,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
-	//protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager))

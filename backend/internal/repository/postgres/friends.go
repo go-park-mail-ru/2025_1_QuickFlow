@@ -61,6 +61,12 @@ const (
 		set status = 'friend'
 		where user1_id = $1 and user2_id = $2 and status != 'friend'
 	`
+
+	UpdateFriendStatusQuery = `
+	update friendship
+	set status = $3
+	where user1_id = $1 and user2_id = $2 and status = 'friend'
+	`
 )
 
 type PostgresFriendsRepository struct {
@@ -200,4 +206,31 @@ func (p *PostgresFriendsRepository) AcceptFriendRequest(ctx context.Context, sen
 	}
 
 	return nil
+}
+
+func (p *PostgresFriendsRepository) DeleteFriend(ctx context.Context, userID string, friendID string) error {
+	logger.Info(ctx, fmt.Sprintf("Trying to remove friend: %s for user: %s ", friendID, userID))
+	var status, user1, user2 string
+	if userID < friendID {
+		status = "followed_by"
+		user1 = userID
+		user2 = friendID
+	} else {
+		status = "following"
+		user1 = friendID
+		user2 = userID
+	}
+
+	commandTag, err := p.connPool.Exec(ctx, UpdateFriendStatusQuery, user1, user2, status)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		logger.Error(ctx, fmt.Sprintf("friend relation between sender: %s and receiver: %s doesn't exist or incorrect ID's were given", userID, friendID))
+		return errors.New("failed to delete friend")
+	}
+
+	return nil
+
 }
