@@ -1,23 +1,23 @@
 package http
 
 import (
-    "context"
-    "encoding/json"
-    "errors"
-    "fmt"
-    "net/http"
-    "strings"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
 
-    "github.com/google/uuid"
+	"github.com/google/uuid"
 
-    "quickflow/internal/usecase"
-    "quickflow/pkg/logger"
+	"quickflow/internal/usecase"
+	"quickflow/pkg/logger"
 
-    "github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 
-    "quickflow/internal/delivery/forms"
-    "quickflow/internal/models"
-    http2 "quickflow/utils/http"
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
+	http2 "quickflow/utils/http"
 )
 
 type ProfileUseCase interface {
@@ -29,14 +29,20 @@ type ProfileUseCase interface {
 }
 
 type ProfileHandler struct {
-	profileUC   ProfileUseCase
-	connService IWebSocketManager
+	profileUC      ProfileUseCase
+	friendsUseCase FriendsUseCase
+	authUseCase    AuthUseCase
+	chatUseCase    ChatUseCase
+	connService    IWebSocketManager
 }
 
-func NewProfileHandler(profileUC ProfileUseCase, connService IWebSocketManager) *ProfileHandler {
+func NewProfileHandler(profileUC ProfileUseCase, friendUseCase FriendsUseCase, authUseCase AuthUseCase, chatUseCase ChatUseCase, connService IWebSocketManager) *ProfileHandler {
 	return &ProfileHandler{
-		profileUC:   profileUC,
-		connService: connService,
+		profileUC:      profileUC,
+		connService:    connService,
+		friendsUseCase: friendUseCase,
+		authUseCase:    authUseCase,
+		chatUseCase:    chatUseCase,
 	}
 }
 
@@ -72,8 +78,48 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	_, isOnline := p.connService.IsConnected(profileInfo.UserId)
 
+	var relation = models.RelationNone
+	var chatId *uuid.UUID
+	if session, err := r.Cookie("session"); err == nil {
+		// parse session
+		sessionUuid, err := uuid.Parse(session.Value)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to parse session: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to parse session", http.StatusBadRequest)
+			return
+		}
+
+		// lookup user by session
+		user, err := p.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid})
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to lookup user by session: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to authorize user", http.StatusUnauthorized)
+			return
+		}
+
+		rel, err := p.friendsUseCase.GetUserRelation(ctx, user.Id, profileInfo.UserId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user relation", http.StatusInternalServerError)
+			return
+		}
+		relation = rel
+
+		// get chat id
+		chat, err := p.chatUseCase.GetPrivateChat(ctx, user.Id, profileInfo.UserId)
+		if err != nil && !errors.Is(err, usecase.ErrNotFound) {
+			logger.Error(ctx, fmt.Sprintf("Failed to get chat id: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get chat id", http.StatusInternalServerError)
+			return
+		} else {
+			if err == nil {
+				chatId = &chat.ID
+			}
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested, isOnline))
+	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested, isOnline, relation, chatId))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode profile: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)

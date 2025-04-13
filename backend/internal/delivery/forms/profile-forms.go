@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
+
 	"quickflow/config"
 	"quickflow/internal/models"
 )
@@ -28,8 +30,10 @@ type ProfileForm struct {
 	ContactInfo         *ContactInfo             `json:"contact_info,omitempty"`
 	SchoolEducation     *SchoolEducationForm     `json:"school,omitempty"`
 	UniversityEducation *UniversityEducationForm `json:"university,omitempty"`
-	LastSeen            time.Time                `json:"last_seen,omitempty"`
+	LastSeen            string                   `json:"last_seen,omitempty"`
 	IsOnline            *bool                    `json:"online,omitempty"`
+	Relation            models.UserRelation      `json:"relation,omitempty"`
+	ChatId              *uuid.UUID               `json:"chat_id,omitempty"`
 }
 
 func (f *ProfileForm) FormToModel() (models.Profile, error) {
@@ -63,15 +67,21 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 	}, nil
 }
 
-func ModelToForm(profile models.Profile, username string, isOnline bool) ProfileForm {
-	return ProfileForm{
+func ModelToForm(profile models.Profile, username string, isOnline bool, relation models.UserRelation, uuid *uuid.UUID) ProfileForm {
+	profileForm := ProfileForm{
 		Id:                  profile.UserId.String(),
 		ProfileInfo:         BasicInfoToForm(*profile.BasicInfo, username),
 		SchoolEducation:     SchoolEducationToForm(profile.SchoolEducation),
 		UniversityEducation: UniversityEducationToForm(profile.UniversityEducation),
 		ContactInfo:         ContactInfoToForm(profile.ContactInfo),
 		IsOnline:            &isOnline,
+		Relation:            relation,
+		ChatId:              uuid,
 	}
+	if !isOnline {
+		profileForm.LastSeen = profile.LastSeen.Format(config.TimeStampLayout)
+	}
+	return profileForm
 }
 
 type ContactInfo struct {
