@@ -78,7 +78,7 @@ func ModelToForm(profile models.Profile, username string, isOnline bool, relatio
 		Relation:            relation,
 		ChatId:              uuid,
 	}
-	if isOnline {
+	if !isOnline {
 		profileForm.LastSeen = profile.LastSeen.Format(config.TimeStampLayout)
 	}
 	return profileForm
