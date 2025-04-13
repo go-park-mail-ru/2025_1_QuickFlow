@@ -100,7 +100,6 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
@@ -120,6 +119,8 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
 	apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
 
 	server := http.Server{
 		Addr:         cfg.Addr,

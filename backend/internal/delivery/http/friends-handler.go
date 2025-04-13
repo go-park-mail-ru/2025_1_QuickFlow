@@ -16,6 +16,7 @@ type FriendsUseCase interface {
 	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, bool, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
+	Unfollow(ctx context.Context, userID string, friendID string) error
 	DeleteFriend(ctx context.Context, user string, friend string) error
 	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
 }
@@ -197,4 +198,35 @@ func (f *FriendsHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Successfully deleted friend from user %s", req.FriendID))
+}
+
+func (f *FriendsHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
+	ctx := http2.SetRequestId(r.Context())
+
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while fetching friends")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Trying to parse request body")
+
+	var req forms.FriendRequestDel
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to decode request body: %s", err))
+		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
+		return
+	}
+
+	logger.Info(ctx, "Successfully parsed request body")
+	logger.Info(ctx, fmt.Sprintf("User: %s trying to unfollow userЖ %s ", user.Username, req.FriendID))
+
+	if err = f.friendsUseCase.Unfollow(ctx, user.Id.String(), req.FriendID); err != nil {
+		http2.WriteJSONError(w, "Failed to unfollow user", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Successfully unfollowed friend from user %s", req.FriendID))
 }
