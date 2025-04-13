@@ -20,6 +20,7 @@ type ChatUseCase interface {
 	CreateChat(ctx context.Context, chatInfo models.ChatCreationInfo) (models.Chat, error)
 	GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error)
 	GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error)
+	GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error)
 	DeleteChat(ctx context.Context, chatId uuid.UUID) error
 	GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error)
 	JoinChat(ctx context.Context, chatId, userId uuid.UUID) error

@@ -2,12 +2,14 @@ package forms
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"net/url"
-	"quickflow/config"
-	"quickflow/internal/models"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
+
+	"quickflow/config"
+	"quickflow/internal/models"
 )
 
 type GetChatsForm struct {
@@ -18,8 +20,8 @@ type GetChatsForm struct {
 type ChatOut struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name,omitempty"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	CreatedAt   string      `json:"created_at"`
+	UpdatedAt   string      `json:"updated_at"`
 	AvatarURL   string      `json:"avatar_url,omitempty"`
 	Type        string      `json:"type"`
 	LastMessage *MessageOut `json:"last_message,omitempty"`
@@ -66,8 +68,8 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 		chatOut := ChatOut{
 			ID:        chat.ID.String(),
 			Name:      chat.Name,
-			CreatedAt: chat.CreatedAt,
-			UpdatedAt: chat.UpdatedAt,
+			CreatedAt: chat.CreatedAt.Format(config.TimeStampLayout),
+			UpdatedAt: chat.UpdatedAt.Format(config.TimeStampLayout),
 			AvatarURL: chat.AvatarURL,
 			Type:      chatType,
 		}
