@@ -46,7 +46,7 @@ services:
 
   # s3 хранилище minio
   minio:
-    image: 'bitnami/minio:latest'
+    image: minio/minio:latest
     container_name: minio
     restart: always
     ports:
@@ -57,9 +57,14 @@ services:
       interval: 10s
       timeout: 10s
       retries: 3
+    environment:
+      - MINIO_MODE=production
+      - MINIO_DATA_DIR=/data  # Путь хранения данных
+      - MINIO_CONFIG_DIR=/root/.minio  # Путь конфигурации
     volumes:
       - minio_data:/data
       - minio_config:/root/.minio
+    command: server /data --console-address ":9001"
     env_file:
       - .env
 
