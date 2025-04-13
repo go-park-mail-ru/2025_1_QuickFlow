@@ -16,6 +16,7 @@ type FriendsRepository interface {
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	DeleteFriend(ctx context.Context, senderID string, receiverID string) error
+	Unfollow(ctx context.Context, userID string, friendID string) error
 	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
 	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error)
 }
@@ -100,4 +101,12 @@ func (f *FriendsService) GetUserRelation(ctx context.Context, user1 uuid.UUID, u
 	}
 
 	return relation, nil
+}
+
+func (f *FriendsService) Unfollow(ctx context.Context, userID string, friendID string) error {
+	if err := f.friendsRepo.Unfollow(ctx, userID, friendID); err != nil {
+		return err
+	}
+
+	return nil
 }

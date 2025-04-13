@@ -67,9 +67,14 @@ const (
 	`
 
 	UpdateFriendStatusQuery = `
-	update friendship
-	set status = $3
-	where user1_id = $1 and user2_id = $2 and status = $4
+		update friendship
+		set status = $3
+		where user1_id = $1 and user2_id = $2 and status = $4
+	`
+
+	DeleteFollowerRelationQuery = `
+		delete from friendship
+		where ((user1_id = $1 and user2_id = $2) or (user1_id = $2 and user2_id = $1)) and status in ($3, $4)
 	`
 )
 
@@ -207,7 +212,7 @@ func (p *PostgresFriendsRepository) AcceptFriendRequest(ctx context.Context, sen
 }
 
 func (p *PostgresFriendsRepository) DeleteFriend(ctx context.Context, userID string, friendID string) error {
-	logger.Info(ctx, fmt.Sprintf("Trying to remove friend: %s for user: %s ", friendID, userID))
+	logger.Info(ctx, fmt.Sprintf("Trying to delete friend: %s for user: %s ", friendID, userID))
 	var user1, user2 string
 	var status models.UserRelation
 	if userID < friendID {
@@ -231,7 +236,22 @@ func (p *PostgresFriendsRepository) DeleteFriend(ctx context.Context, userID str
 	}
 
 	return nil
+}
 
+func (p *PostgresFriendsRepository) Unfollow(ctx context.Context, userID string, friendID string) error {
+	logger.Info(ctx, fmt.Sprintf("Trying to unfollow user: %s for user: %s ", friendID, userID))
+
+	commandTag, err := p.connPool.Exec(ctx, DeleteFollowerRelationQuery, userID, friendID, models.RelationFollowedBy, models.RelationFriend)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		logger.Error(ctx, fmt.Sprintf("follower relation between user: %s and user: %s doesn't exist or incorrect ID's were given", userID, friendID))
+		return errors.New("failed to delete friend")
+	}
+
+	return nil
 }
 
 func (p *PostgresFriendsRepository) GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error) {
