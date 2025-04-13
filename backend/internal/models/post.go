@@ -14,6 +14,7 @@ type Post struct {
 	Images       []*File
 	ImagesURL    []string
 	CreatedAt    time.Time
+	UpdatedAt    time.Time
 	LikeCount    int
 	RepostCount  int
 	CommentCount int

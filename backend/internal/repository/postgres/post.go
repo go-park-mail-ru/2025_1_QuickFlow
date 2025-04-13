@@ -23,7 +23,7 @@ const getPhotosQuery = `
 `
 
 const getOlderPostsLimitQuery = `
-	select id, creator_id, text, created_at, like_count, repost_count, comment_count, is_repost
+	select id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
 	from post 
 	where created_at < $1 
 	order by created_at desc
@@ -31,8 +31,8 @@ const getOlderPostsLimitQuery = `
 `
 
 const insertPostQuery = `
-	insert into post (id, creator_id, text, created_at, like_count, repost_count, comment_count, is_repost)
-	values ($1, $2, $3, $4, $5, $6, $7, $8)
+	insert into post (id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost)
+	values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 const insertPhotoQuery = `
@@ -63,7 +63,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 	postPostgres := pgmodels.ConvertPostToPostgres(post)
 	_, err := p.connPool.Exec(ctx, insertPostQuery,
 		postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
-		postPostgres.CreatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
+		postPostgres.CreatedAt, postPostgres.UpdatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
 		postPostgres.CommentCount, postPostgres.IsRepost)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to save post %v to database: %s", post, err.Error()))
@@ -120,7 +120,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
 			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
-			&postPostgres.CreatedAt, &postPostgres.LikeCount,
+			&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
 			&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan post %v from database: %s", postPostgres.Id, err.Error()))
@@ -151,7 +151,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 }
 
 func (p *PostgresPostRepository) UpdatePostText(ctx context.Context, postId uuid.UUID, text string) error {
-	_, err := p.connPool.Exec(ctx, "update post set text = $1 where id = $2", text, postId)
+	_, err := p.connPool.Exec(ctx, "update post set text = $1, updated_at = $2 where id = $3", text, time.Now(), postId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to update post %v in database: %s", postId, err.Error()))
 		return fmt.Errorf("unable to update post in database: %w", err)

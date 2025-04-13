@@ -28,6 +28,7 @@ func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
 	postModel.Desc = p.Text
 	postModel.CreatorId = userId
 	postModel.CreatedAt = time.Now()
+	postModel.UpdatedAt = time.Now()
 	postModel.Images = p.Images
 	postModel.IsRepost = p.IsRepost
 
@@ -85,6 +86,7 @@ type PostOut struct {
 	Desc         string            `json:"text"`
 	Pics         []string          `json:"pics"`
 	CreatedAt    string            `json:"created_at"`
+	UpdatedAt    string            `json:"updated_at"`
 	LikeCount    int               `json:"like_count"`
 	RepostCount  int               `json:"repost_count"`
 	CommentCount int               `json:"comment_count"`
@@ -101,6 +103,7 @@ func (p *PostOut) FromPost(post models.Post) {
 	p.Desc = post.Desc
 	p.Pics = urls
 	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
+	p.UpdatedAt = post.UpdatedAt.Format(config.TimeStampLayout)
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount

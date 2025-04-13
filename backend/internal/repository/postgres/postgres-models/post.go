@@ -11,7 +11,8 @@ type PostPostgres struct {
     CreatorId    pgtype.UUID
     Desc         pgtype.Text
     ImagesURLs   []pgtype.Text
-    CreatedAt    pgtype.Timestamp
+    CreatedAt    pgtype.Timestamptz
+    UpdatedAt    pgtype.Timestamptz
     LikeCount    pgtype.Int8
     RepostCount  pgtype.Int8
     CommentCount pgtype.Int8
@@ -32,7 +33,8 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
         CreatorId:    pgtype.UUID{Bytes: post.CreatorId, Valid: true},
         Desc:         convertStringToPostgresText(post.Desc),
         ImagesURLs:   pics,
-        CreatedAt:    pgtype.Timestamp{Time: post.CreatedAt, Valid: true},
+        CreatedAt:    pgtype.Timestamptz{Time: post.CreatedAt, Valid: true},
+        UpdatedAt:    pgtype.Timestamptz{Time: post.UpdatedAt, Valid: true},
         LikeCount:    pgtype.Int8{Int64: int64(post.LikeCount), Valid: true},
         RepostCount:  pgtype.Int8{Int64: int64(post.RepostCount), Valid: true},
         CommentCount: pgtype.Int8{Int64: int64(post.CommentCount), Valid: true},
@@ -54,6 +56,7 @@ func (p *PostPostgres) ToPost() models.Post {
         Desc:         p.Desc.String,
         ImagesURL:    picsSlice,
         CreatedAt:    p.CreatedAt.Time,
+        UpdatedAt:    p.UpdatedAt.Time,
         LikeCount:    int(p.LikeCount.Int64),
         RepostCount:  int(p.RepostCount.Int64),
         CommentCount: int(p.CommentCount.Int64),
