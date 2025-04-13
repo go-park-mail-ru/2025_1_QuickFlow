@@ -22,6 +22,11 @@ type MinioRepository struct {
 	PublicUrlRoot         string
 }
 
+func (m *MinioRepository) GetUserAvatar(ctx context.Context, userId uuid.UUID) (string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewMinioRepository(cfg *minioconfig.MinioConfig) (*MinioRepository, error) {
 	client, err := minio.New(cfg.MinioInternalEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinioRootUser, cfg.MinioRootPassword, ""),

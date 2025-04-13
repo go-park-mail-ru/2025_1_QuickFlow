@@ -14,6 +14,7 @@ import (
 var (
 	ErrPostDoesNotBelongToUser = errors.New("post does not belong to user")
 	ErrPostNotFound            = errors.New("post not found")
+	ErrUploadFile              = errors.New("upload file error")
 )
 
 type PostRepository interface {
@@ -28,6 +29,7 @@ type FileRepository interface {
 	UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error)
 	GetFileURL(ctx context.Context, filename string) (string, error)
 	DeleteFile(ctx context.Context, filename string) error
+	GetUserAvatar(ctx context.Context, userId uuid.UUID) (string, error)
 }
 
 type PostService struct {

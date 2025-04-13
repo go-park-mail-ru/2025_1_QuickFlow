@@ -45,6 +45,7 @@ type Profile struct {
 
 	Avatar     *File
 	Background *File
+	LastSeen   time.Time
 }
 
 func (p Profile) String() string {

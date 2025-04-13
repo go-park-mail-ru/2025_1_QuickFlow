@@ -1,23 +1,23 @@
 package http
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-	"strings"
+    "context"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "net/http"
+    "strings"
 
-	"github.com/google/uuid"
+    "github.com/google/uuid"
 
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
+    "quickflow/internal/usecase"
+    "quickflow/pkg/logger"
 
-	"github.com/gorilla/mux"
+    "github.com/gorilla/mux"
 
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	http2 "quickflow/utils/http"
+    "quickflow/internal/delivery/forms"
+    "quickflow/internal/models"
+    http2 "quickflow/utils/http"
 )
 
 type ProfileUseCase interface {
@@ -25,15 +25,18 @@ type ProfileUseCase interface {
 	UpdateProfile(ctx context.Context, newProfile models.Profile) error
 	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
 	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error)
+	UpdateLastSeen(ctx context.Context, userId uuid.UUID) error
 }
 
 type ProfileHandler struct {
-	profileUC ProfileUseCase
+	profileUC   ProfileUseCase
+	connService IWebSocketManager
 }
 
-func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
+func NewProfileHandler(profileUC ProfileUseCase, connService IWebSocketManager) *ProfileHandler {
 	return &ProfileHandler{
-		profileUC: profileUC,
+		profileUC:   profileUC,
+		connService: connService,
 	}
 }
 
@@ -51,7 +54,7 @@ func NewProfileHandler(profileUC ProfileUseCase) *ProfileHandler {
 // @Router /api/profile/{username} [get]
 func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	// user whose profile is requested
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	userRequested := mux.Vars(r)["username"]
 	logger.Info(ctx, fmt.Sprintf("Request profile of %s", userRequested))
 
@@ -67,8 +70,10 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully fetched", userRequested))
 
+	_, isOnline := p.connService.IsConnected(profileInfo.UserId)
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested))
+	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested, isOnline))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode profile: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
@@ -93,14 +98,14 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} forms.ErrorForm "Failed to update profile"
 // @Router /api/profile [post]
 func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	ctx := http2.SetRequestId(r.Context())
+	ctx := r.Context()
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while updating profile")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Login))
+	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Username))
 
 	var profileForm forms.ProfileForm
 	err := r.ParseMultipartForm(10 << 20) // 10 MB
@@ -174,7 +179,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profile.UserId = user.Id
 	err = p.profileUC.UpdateProfile(ctx, profile)
 	if errors.Is(err, usecase.ErrNotFound) {
-		logger.Error(ctx, fmt.Sprintf("Profile of %s not found", user.Login))
+		logger.Error(ctx, fmt.Sprintf("Profile of %s not found", user.Username))
 		http2.WriteJSONError(w, "profile not found", http.StatusNotFound)
 		return
 	} else if errors.Is(err, usecase.ErrInvalidProfileInfo) {
@@ -186,5 +191,5 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully updated", user.Login))
+	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully updated", user.Username))
 }

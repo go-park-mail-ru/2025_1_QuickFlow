@@ -2,15 +2,14 @@ package internal
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/gorilla/mux"
-
+	"net/http"
 	"quickflow/config"
 	"quickflow/config/cors"
 	minio_config "quickflow/config/minio"
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/middleware"
+	"quickflow/internal/delivery/ws"
 	"quickflow/internal/repository/minio"
 	"quickflow/internal/repository/postgres"
 	"quickflow/internal/repository/redis"
@@ -22,26 +21,38 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 		return fmt.Errorf("config is nil")
 	}
 
-	//newRepo := repository.NewInMemory()
 	newFileRepo, err := minio.NewMinioRepository(minioCfg)
 	if err != nil {
 		return fmt.Errorf("could not create minio repository: %v", err)
 	}
+
+	connManager := ws.NewWebSocketManager()
+
 	newUserRepo := postgres.NewPostgresUserRepository()
 	newPostRepo := postgres.NewPostgresPostRepository()
 	newSessionRepo := redis.NewRedisSessionRepository()
 	newProfileRepo := postgres.NewPostgresProfileRepository()
+	newMessageRepo := postgres.NewPostgresMessageRepository()
+	newChatRepo := postgres.NewPostgresChatRepository()
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo, newProfileRepo)
 	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
 	newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
+	newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
+	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
 	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
 	newFeedHandler := qfhttp.NewFeedHandler(newPostService, newProfileService)
 	newPostHandler := qfhttp.NewPostHandler(newPostService)
-	newProfileHandler := qfhttp.NewProfileHandler(newProfileService)
+	newProfileHandler := qfhttp.NewProfileHandler(newProfileService, connManager)
+	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService)
+	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
 	defer newUserRepo.Close()
 	defer newPostRepo.Close()
 	defer newSessionRepo.Close()
 	defer newProfileRepo.Close()
+	defer newMessageRepo.Close()
+	defer newChatRepo.Close()
+
+	newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager)
 
 	// routing
 	r := mux.NewRouter()
@@ -77,11 +88,18 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(newAuthService))
 	protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+
+	wsProtected := protectedGet.PathPrefix("/").Subrouter()
+	wsProtected.Use(middleware.WebSocketMiddleware(connManager))
+	wsProtected.HandleFunc("/ws", newMessageHandlerWS.HandleMessages).Methods(http.MethodGet)
 
 	apiDeleteRouter := r.PathPrefix("/").Subrouter()
 	apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
