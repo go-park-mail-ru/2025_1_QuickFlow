@@ -47,7 +47,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newProfileHandler := qfhttp.NewProfileHandler(newProfileService, connManager)
 	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService)
 	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
-	newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService)
+	newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
 
 	defer newUserRepo.Close()
 	defer newPostRepo.Close()

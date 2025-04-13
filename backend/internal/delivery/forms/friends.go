@@ -27,8 +27,9 @@ func (f *FriendsInfoOut) toFriendsInfoOutForm(info models.FriendInfo, isOnline b
 	}
 }
 
-func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo, friendsOnline []bool, hasMore bool) map[string]map[interface{}]interface{} {
-	res := make(map[string]map[interface{}]interface{})
+func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo, friendsOnline []bool, hasMore bool) map[string]map[string]interface{} {
+	res := make(map[string]map[string]interface{})
+	res["body"] = make(map[string]interface{})
 
 	var friendsInfoOut []FriendsInfoOut
 	for i, friendInfo := range friendsInfo {

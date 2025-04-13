@@ -39,7 +39,7 @@ const (
 	left join faculty f on f.id = e.faculty_id
 	left join university univ on f.university_id = univ.id
 	where u.id in (select friend_id from friends)
-	order by p.last_name, p.firstname
+	order by p.lastname, p.firstname
 	limit $2
 	offset $3
 `
@@ -79,7 +79,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 			logger.Error(ctx, newErr.Error())
 		}
 
-		return friendsInfo, false, errors.New("unable to get friends info")
+		return friendsInfo, false, fmt.Errorf("unable to get friends info: %v", err)
 	}
 
 	for rows.Next() {
