@@ -16,6 +16,8 @@ import (
 	"quickflow/pkg/logger"
 )
 
+const friendStatus = `friend`
+
 const (
 	GetFriendsInfoQuery = `
 		with friends as (
@@ -25,7 +27,7 @@ const (
 					else user1_id 
 				end as friend_id
 			from friendship
-			where (user1_id = $1 or user2_id = $1) and status = 'friend'
+			where (user1_id = $1 or user2_id = $1) and status = $4
 		)
 		select 
 			u.id, 
@@ -58,14 +60,14 @@ const (
 
 	UpdateFriendRequestQuery = `
 		update friendship
-		set status = 'friend'
-		where user1_id = $1 and user2_id = $2 and status != 'friend'
+		set status = $3
+		where user1_id = $1 and user2_id = $2 and status != $3
 	`
 
 	UpdateFriendStatusQuery = `
 	update friendship
 	set status = $3
-	where user1_id = $1 and user2_id = $2 and status = 'friend'
+	where user1_id = $1 and user2_id = $2 and status = $4
 	`
 )
 
@@ -92,7 +94,7 @@ func (p *PostgresFriendsRepository) Close() {
 func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string, limit int, offset int) ([]models.FriendInfo, bool, error) {
 	logger.Info(ctx, fmt.Sprintf("Trying to get friends info for user %s", userID))
 
-	rows, err := p.connPool.Query(ctx, GetFriendsInfoQuery, userID, limit+1, offset)
+	rows, err := p.connPool.Query(ctx, GetFriendsInfoQuery, userID, limit+1, offset, models.RelationFriend)
 	defer rows.Close()
 	friendsInfo := make([]models.FriendInfo, 0)
 
@@ -136,13 +138,14 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 
 func (p *PostgresFriendsRepository) SendFriendRequest(ctx context.Context, senderID string, receiverID string) error {
 	logger.Info(ctx, fmt.Sprintf("Trying to insert friend request to DB for sender: %s and receiver %s", senderID, receiverID))
-	var status, sender, receiver string
+	var sender, receiver string
+	var status models.UserRelation
 	if senderID > receiverID {
-		status = "followed_by"
+		status = models.RelationFollowedBy
 		receiver = senderID
 		sender = receiverID
 	} else {
-		status = "following"
+		status = models.RelationFollowing
 		receiver = receiverID
 		sender = senderID
 	}
@@ -161,7 +164,8 @@ func (p *PostgresFriendsRepository) SendFriendRequest(ctx context.Context, sende
 }
 
 func (p *PostgresFriendsRepository) IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error) {
-	var status, sender, receiver string
+	var sender, receiver string
+	var status models.UserRelation
 	if senderID > receiverID {
 		receiver = senderID
 		sender = receiverID
@@ -195,7 +199,7 @@ func (p *PostgresFriendsRepository) AcceptFriendRequest(ctx context.Context, sen
 		sender = senderID
 	}
 
-	commandTag, err := p.connPool.Exec(ctx, UpdateFriendRequestQuery, sender, receiver)
+	commandTag, err := p.connPool.Exec(ctx, UpdateFriendRequestQuery, sender, receiver, models.RelationFriend)
 	if err != nil {
 		return err
 	}
@@ -210,18 +214,19 @@ func (p *PostgresFriendsRepository) AcceptFriendRequest(ctx context.Context, sen
 
 func (p *PostgresFriendsRepository) DeleteFriend(ctx context.Context, userID string, friendID string) error {
 	logger.Info(ctx, fmt.Sprintf("Trying to remove friend: %s for user: %s ", friendID, userID))
-	var status, user1, user2 string
+	var user1, user2 string
+	var status models.UserRelation
 	if userID < friendID {
-		status = "followed_by"
+		status = models.RelationFollowedBy
 		user1 = userID
 		user2 = friendID
 	} else {
-		status = "following"
+		status = models.RelationFollowing
 		user1 = friendID
 		user2 = userID
 	}
 
-	commandTag, err := p.connPool.Exec(ctx, UpdateFriendStatusQuery, user1, user2, status)
+	commandTag, err := p.connPool.Exec(ctx, UpdateFriendStatusQuery, user1, user2, status, models.RelationFriend)
 	if err != nil {
 		return err
 	}

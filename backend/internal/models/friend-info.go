@@ -10,3 +10,11 @@ type FriendInfo struct {
 	AvatarURL  string
 	University string
 }
+
+type UserRelation string
+
+const (
+	RelationFriend     UserRelation = "friend"
+	RelationFollowing  UserRelation = "following"
+	RelationFollowedBy UserRelation = "followed_by"
+)
