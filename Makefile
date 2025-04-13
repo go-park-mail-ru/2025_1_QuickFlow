@@ -28,7 +28,7 @@ down:
 ifeq ($(ERASE),yes)
 	$(COMPOSE) -f $(COMPOSE_FILE) down -v
 else
-	$(COMPOSE) -f $(COMPOSE_FILE) down -v
+	$(COMPOSE) -f $(COMPOSE_FILE) down
 endif
 
 
