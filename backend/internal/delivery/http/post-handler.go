@@ -62,6 +62,13 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	postForm.Text = r.FormValue("text")
 	isRepostString := r.FormValue("is_repost")
 
+	if len(postForm.Text) > 1000 {
+		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", len(postForm.Text)))
+		http2.WriteJSONError(w, "Text must be between 1 and 1000 characters", http.StatusBadRequest)
+		return
+
+	}
+
 	if len(isRepostString) != 0 {
 		postForm.IsRepost, err = strconv.ParseBool(r.FormValue("is_repost"))
 		if err != nil {
