@@ -10,6 +10,8 @@ import (
 
 type FriendsRepository interface {
 	GetFriendsPublicInfo(ctx context.Context, userID string, amount int, startPos int) ([]models.FriendInfo, bool, error)
+	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
+	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
 }
 
 type FriendsService struct {
@@ -42,4 +44,21 @@ func (f *FriendsService) GetFriendsInfo(ctx context.Context, userID string, limi
 	}
 
 	return friendsIds, hasMore, nil
+}
+
+func (f *FriendsService) SendFriendRequest(ctx context.Context, senderID string, receiverID string) error {
+	if err := f.friendsRepo.SendFriendRequest(ctx, senderID, receiverID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *FriendsService) IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error) {
+	isExists, err := f.friendsRepo.IsExistsFriendRequest(ctx, senderID, receiverID)
+	if err != nil {
+		return false, err
+	}
+
+	return isExists, nil
 }

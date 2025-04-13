@@ -5,6 +5,10 @@ import (
 	"quickflow/internal/models"
 )
 
+type FriendRequest struct {
+	ReceiverID string `json:"receiver_id"`
+}
+
 type FriendsInfoOut struct {
 	ID         uuid.UUID `json:"id"`
 	Username   string    `json:"username"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"log"
 
 	"github.com/jackc/pgconn"
@@ -17,32 +18,43 @@ import (
 
 const (
 	GetFriendsInfoQuery = `
-	with friends as (
-        select 
-        	case 
-            	when user1_id = $1 then user2_id
-            	else user1_id 
-        	end as friend_id
-    	from friendship
-    	where user1_id = $1 or user2_id = $1
-    )
-	select 
-		u.id, 
-		u.username, 
-		p.firstname, 
-		p.lastname, 
-		p.profile_avatar, 
-		univ.name
-	from "user" u
-	join profile p on u.id = p.id
-	left join education e on e.profile_id = p.id
-	left join faculty f on f.id = e.faculty_id
-	left join university univ on f.university_id = univ.id
-	where u.id in (select friend_id from friends)
-	order by p.lastname, p.firstname
-	limit $2
-	offset $3
-`
+		with friends as (
+			select 
+				case 
+					when user1_id = $1 then user2_id
+					else user1_id 
+				end as friend_id
+			from friendship
+			where user1_id = $1 or user2_id = $1
+		)
+		select 
+			u.id, 
+			u.username, 
+			p.firstname, 
+			p.lastname, 
+			p.profile_avatar, 
+			univ.name
+		from "user" u
+		join profile p on u.id = p.id
+		left join education e on e.profile_id = p.id
+		left join faculty f on f.id = e.faculty_id
+		left join university univ on f.university_id = univ.id
+		where u.id in (select friend_id from friends)
+		order by p.lastname, p.firstname
+		limit $2
+		offset $3
+	`
+
+	InsertFriendRequestQuery = `
+		insert into friendship (user1_id, user2_id, status)
+		values ($1, $2, $3)
+	`
+
+	CheckFriendRequestQuery = `
+		select status
+		from friendship
+		where user1_id = $1 and user2_id = $2
+	`
 )
 
 type PostgresFriendsRepository struct {
@@ -108,4 +120,54 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 	}
 
 	return friendsInfo, hasMore, nil
+}
+
+func (p *PostgresFriendsRepository) SendFriendRequest(ctx context.Context, senderID string, receiverID string) error {
+	logger.Info(ctx, fmt.Sprintf("Trying to insert frienf request to DB for user: %s", senderID))
+	var status, sender, receiver string
+	if senderID > receiverID {
+		status = "followed_by"
+		receiver = senderID
+		sender = receiverID
+	} else {
+		status = "following"
+		receiver = receiverID
+		sender = senderID
+	}
+
+	_, err := p.connPool.Exec(ctx, InsertFriendRequestQuery, sender, receiver, status)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			newErr := fmt.Errorf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Message, pgErr.Detail, pgErr.Where)
+			logger.Error(ctx, newErr.Error())
+		}
+
+		return fmt.Errorf("unable to get friends info: %v", err)
+	}
+	return nil
+}
+
+func (p *PostgresFriendsRepository) IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error) {
+	var status, sender, receiver string
+	if senderID > receiverID {
+		receiver = senderID
+		sender = receiverID
+	} else {
+		receiver = receiverID
+		sender = senderID
+	}
+
+	err := p.connPool.QueryRow(ctx, CheckFriendRequestQuery, sender, receiver).Scan(&status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			logger.Info(ctx, fmt.Sprintf("relation between sender: %s and receiver: %s doesn't exist", senderID, receiverID))
+			return false, nil
+		}
+		logger.Error(ctx, fmt.Sprintf("unable to get friends info: %v", err))
+		return false, err
+	}
+
+	logger.Error(ctx, fmt.Sprintf("Relation between sender: %s and receiver: %s already exists", senderID, receiverID))
+	return true, nil
 }
