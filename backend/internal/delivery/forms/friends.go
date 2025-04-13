@@ -12,9 +12,10 @@ type FriendsInfoOut struct {
 	LastName   string    `json:"lastname"`
 	AvatarURL  string    `json:"avatar_url"`
 	University string    `json:"university"`
+	IsOnline   bool      `json:"is_online"`
 }
 
-func (f *FriendsInfoOut) toFriendsInfoOutForm(info models.FriendInfo) FriendsInfoOut {
+func (f *FriendsInfoOut) toFriendsInfoOutForm(info models.FriendInfo, isOnline bool) FriendsInfoOut {
 	return FriendsInfoOut{
 		ID:         info.Id,
 		Username:   info.Username,
@@ -22,18 +23,20 @@ func (f *FriendsInfoOut) toFriendsInfoOutForm(info models.FriendInfo) FriendsInf
 		LastName:   info.Lastname,
 		AvatarURL:  info.AvatarURL,
 		University: info.University,
+		IsOnline:   isOnline,
 	}
 }
 
-func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo) map[string]interface{} {
-	res := make(map[string]interface{})
+func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo, friendsOnline []bool, hasMore bool) map[string]map[interface{}]interface{} {
+	res := make(map[string]map[interface{}]interface{})
 
 	var friendsInfoOut []FriendsInfoOut
-	for _, friendInfo := range friendsInfo {
-		friendsInfoOut = append(friendsInfoOut, f.toFriendsInfoOutForm(friendInfo))
+	for i, friendInfo := range friendsInfo {
+		friendsInfoOut = append(friendsInfoOut, f.toFriendsInfoOutForm(friendInfo, friendsOnline[i]))
 	}
 
-	res["body"] = friendsInfoOut
+	res["body"]["friends"] = friendsInfoOut
+	res["body"]["has_more"] = hasMore
 
 	return res
 

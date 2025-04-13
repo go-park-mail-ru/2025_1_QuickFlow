@@ -17,6 +17,15 @@ import (
 
 const (
 	GetFriendsInfoQuery = `
+	with friends as (
+        select 
+        	case 
+            	when user1_id = $1 then user2_id
+            	else user1_id 
+        	end as friend_id
+    	from friendship
+    	where user1_id = $1 or user2_id = $1
+    )
 	select 
 		u.id, 
 		u.username, 
@@ -29,15 +38,10 @@ const (
 	left join education e on e.profile_id = p.id
 	left join faculty f on f.id = e.faculty_id
 	left join university univ on f.university_id = univ.id
-	where u.id = any (
-    	select 
-        	case 
-            	when user1_id = $1 then user2_id
-            	else user1_id 
-        	end
-    	from friendship
-    	where user1_id = $1 or user2_id = $1
-	)
+	where u.id in (select friend_id from friends)
+	order by p.last_name, p.firstname
+	limit $2
+	offset $3
 `
 )
 
@@ -60,10 +64,11 @@ func (p *PostgresFriendsRepository) Close() {
 	p.connPool.Close()
 }
 
-func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string) ([]models.FriendInfo, error) {
+// GetFriendsPublicInfo Отдает структуру с информацией по друзьям + флаг hasMore, который говорит - остались ли еще друзья + ошибку
+func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string, limit int, offset int) ([]models.FriendInfo, bool, error) {
 	logger.Info(ctx, fmt.Sprintf("Trying to get friends info for user %s", userID))
 
-	rows, err := p.connPool.Query(ctx, GetFriendsInfoQuery, userID)
+	rows, err := p.connPool.Query(ctx, GetFriendsInfoQuery, userID, limit+1, offset)
 	defer rows.Close()
 	friendsInfo := make([]models.FriendInfo, 0)
 
@@ -74,7 +79,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 			logger.Error(ctx, newErr.Error())
 		}
 
-		return friendsInfo, errors.New("unable to get friends info")
+		return friendsInfo, false, errors.New("unable to get friends info")
 	}
 
 	for rows.Next() {
@@ -89,14 +94,18 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 		)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("rows scanning error: %s", err.Error()))
-			return []models.FriendInfo{}, errors.New("unable to get friends info")
+			return []models.FriendInfo{}, false, errors.New("unable to get friends info")
 		}
 
-		friendInfo := friendInfoPostgres.ConvertToFriendInfoPostgres()
+		friendInfo := friendInfoPostgres.ConvertToFriendInfo()
 		friendsInfo = append(friendsInfo, friendInfo)
 	}
 
-	logger.Info(ctx, friendsInfo)
+	var hasMore = false
+	if len(friendsInfo) > limit {
+		hasMore = true
+		friendsInfo = friendsInfo[:limit]
+	}
 
-	return friendsInfo, nil
+	return friendsInfo, hasMore, nil
 }

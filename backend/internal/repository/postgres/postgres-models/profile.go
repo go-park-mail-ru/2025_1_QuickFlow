@@ -113,7 +113,7 @@ type FriendInfoPostgres struct {
 	University pgtype.Text
 }
 
-func (f *FriendInfoPostgres) ConvertToFriendInfoPostgres() models.FriendInfo {
+func (f *FriendInfoPostgres) ConvertToFriendInfo() models.FriendInfo {
 	return models.FriendInfo{
 		Id:         f.Id.Bytes,
 		Username:   f.Username.String,
