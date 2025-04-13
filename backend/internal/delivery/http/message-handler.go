@@ -112,14 +112,17 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
         }
     }
 
-    publicInfo, err := m.profileUseCase.GetPublicUsersInfo(ctx, senderIds)
-    if err != nil {
-        logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
-        http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
-        return
-    }
-    for _, info := range publicInfo {
-        publicInfo[info.Id] = info
+    publicInfo := make(map[uuid.UUID]models.PublicUserInfo)
+    if len(senderIds) != 0 {
+        publicInfo, err = m.profileUseCase.GetPublicUsersInfo(ctx, senderIds)
+        if err != nil {
+            logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
+            http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
+            return
+        }
+        for _, info := range publicInfo {
+            publicInfo[info.Id] = info
+        }
     }
     messagesOut := forms.ToMessagesOut(messages, publicInfo)
     w.Header().Set("Content-Type", "application/json")

@@ -99,16 +99,6 @@ func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request
 		}
 		messageForm := messageRequest.Payload
 
-		actionStruct := struct {
-			Action string `json:"action"`
-		}{}
-		err = json.Unmarshal(msg, &actionStruct)
-		if err != nil {
-			logger.Error(ctx, "Error unmarshaling action:", err)
-			writeErrorToWS(conn, fmt.Sprintf("Invalid action format: %v", err))
-			continue
-		}
-
 		messageForm.SenderId = user.Id
 		if messageForm.ChatId == uuid.Nil && messageForm.ReceiverId == uuid.Nil {
 			logger.Error(ctx, "ChatId and ReceiverId cannot be both nil")
