@@ -23,6 +23,7 @@ type IWebSocketManager interface {
 	SendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo,
 		chatParticipants []models.User) error
 	IsConnected(userId uuid.UUID) (*websocket.Conn, bool)
+	HandlePing(conn *websocket.Conn)
 }
 
 type MessageHandlerWS struct {
