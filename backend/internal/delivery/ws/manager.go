@@ -34,11 +34,10 @@ func (wm *WebSocketManager) AddConnection(userId uuid.UUID, conn *websocket.Conn
 	wm.mu.Unlock()
 }
 
-// RemoveConnection removes a user connection from the manager
-func (wm *WebSocketManager) RemoveConnection(userId uuid.UUID) {
+// RemoveAndCloseConnection removes a user connection from the manager and closes it
+func (wm *WebSocketManager) RemoveAndCloseConnection(userId uuid.UUID) {
 	wm.mu.Lock()
-	if conn, exists := wm.Connections[userId]; exists {
-		conn.Close()
+	if _, exists := wm.Connections[userId]; exists {
 		delete(wm.Connections, userId)
 	}
 	wm.mu.Unlock()

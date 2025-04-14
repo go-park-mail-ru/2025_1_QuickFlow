@@ -19,7 +19,7 @@ import (
 
 type IWebSocketManager interface {
 	AddConnection(userId uuid.UUID, conn *websocket.Conn)
-	RemoveConnection(userId uuid.UUID)
+	RemoveAndCloseConnection(userId uuid.UUID)
 	SendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo,
 		chatParticipants []models.User) error
 	IsConnected(userId uuid.UUID) (*websocket.Conn, bool)
