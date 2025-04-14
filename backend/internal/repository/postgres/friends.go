@@ -37,7 +37,7 @@ const (
 			p.firstname, 
 			p.lastname, 
 			p.profile_avatar, 
-			univ.name,
+			univ.name
 		from "user" u
 		join profile p on u.id = p.id
 		left join education e on e.profile_id = p.id
