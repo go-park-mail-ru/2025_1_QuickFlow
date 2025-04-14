@@ -78,7 +78,7 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
             chatOut.LastMessage = &msg
         }
 
-        if chat.Type == models.ChatTypePrivate {
+        if chat.Type == models.ChatTypePrivate && privateChatsOnlineStatus != nil {
             if isOnline, exists := privateChatsOnlineStatus[chat.ID]; exists {
                 chatOut.IsOnline = &isOnline
             }

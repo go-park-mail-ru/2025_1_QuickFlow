@@ -109,7 +109,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert chats to output format
-	var privateChatsOnlineStatus map[uuid.UUID]bool
+	var privateChatsOnlineStatus = make(map[uuid.UUID]bool)
 	var isOnline bool
 	for _, chat := range chats {
 		if chat.Type != models.ChatTypePrivate {
