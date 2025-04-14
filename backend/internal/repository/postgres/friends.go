@@ -266,5 +266,13 @@ func (p *PostgresFriendsRepository) GetUserRelation(ctx context.Context, user1 u
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Relation between sender: %s and receiver: %s already exists", user1, user2))
+
+	if user1.String() > user2.String() {
+		if status == models.RelationFollowedBy {
+			status = models.RelationFollowing
+		} else {
+			status = models.RelationFollowedBy
+		}
+	}
 	return status, nil
 }
