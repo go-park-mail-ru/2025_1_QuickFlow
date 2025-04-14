@@ -92,6 +92,7 @@ type PublicUserInfoPostgres struct {
 	Firstname pgtype.Text
 	Lastname  pgtype.Text
 	AvatarURL pgtype.Text
+	LastSeen  pgtype.Timestamptz
 }
 
 func (p *PublicUserInfoPostgres) ConvertToPublicUserInfo() models.PublicUserInfo {
@@ -101,6 +102,7 @@ func (p *PublicUserInfoPostgres) ConvertToPublicUserInfo() models.PublicUserInfo
 		Firstname: p.Firstname.String,
 		Lastname:  p.Lastname.String,
 		AvatarURL: p.AvatarURL.String,
+		LastSeen:  p.LastSeen.Time,
 	}
 }
 

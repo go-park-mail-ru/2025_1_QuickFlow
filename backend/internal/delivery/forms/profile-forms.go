@@ -114,6 +114,11 @@ type UniversityEducationForm struct {
 	GraduationYear    int    `json:"grad_year,omitempty"`
 }
 
+type Activity struct {
+	LastSeen string `json:"last_seen,omitempty"`
+	IsOnline bool   `json:"online,omitempty"`
+}
+
 func SchoolEducationToForm(sch *models.SchoolEducation) *SchoolEducationForm {
 	if sch == nil {
 		return nil

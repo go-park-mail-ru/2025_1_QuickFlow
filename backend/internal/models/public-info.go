@@ -1,6 +1,10 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type PublicUserInfo struct {
 	Id        uuid.UUID
@@ -8,4 +12,5 @@ type PublicUserInfo struct {
 	Firstname string
 	Lastname  string
 	AvatarURL string
+	LastSeen  time.Time
 }

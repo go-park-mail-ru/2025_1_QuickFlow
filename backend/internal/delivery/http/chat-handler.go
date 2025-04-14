@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
+	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
@@ -109,8 +111,9 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert chats to output format
-	var privateChatsOnlineStatus = make(map[uuid.UUID]bool)
+	var privateChatsOnlineStatus = make(map[uuid.UUID]forms.Activity)
 	var isOnline bool
+	var lastSeen time.Time
 	for _, chat := range chats {
 		if chat.Type != models.ChatTypePrivate {
 			continue
@@ -118,6 +121,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 
 		if chat.LastMessage.ID != uuid.Nil && chat.LastMessage.SenderID != user.Id {
 			_, isOnline = c.connService.IsConnected(chat.LastMessage.SenderID)
+			lastSeen = lastMessageSenderInfo[chat.LastMessage.SenderID].LastSeen
 		} else {
 			// Get the other participant's ID
 			otherUser, err := c.getOtherPrivateChatParticipant(ctx, chat.ID, user.Id)
@@ -126,11 +130,21 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 				http2.WriteJSONError(w, "Failed to get other participant", http.StatusInternalServerError)
 				return
 			}
-
 			_, isOnline = c.connService.IsConnected(otherUser)
+
+			otherUserInfo, err := c.profileUseCase.GetPublicUserInfo(ctx, otherUser)
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Failed to get other user info: %v", err))
+				http2.WriteJSONError(w, "Failed to get other user info", http.StatusInternalServerError)
+				return
+			}
+			lastSeen = otherUserInfo.LastSeen
 		}
 
-		privateChatsOnlineStatus[chat.ID] = isOnline
+		privateChatsOnlineStatus[chat.ID] = forms.Activity{
+			IsOnline: isOnline,
+			LastSeen: lastSeen.Format(config.TimeStampLayout),
+		}
 	}
 
 	chatsOut := forms.ToChatsOut(chats, lastMessageSenderInfo, privateChatsOnlineStatus)

@@ -78,13 +78,13 @@ const GetEducationQuery = `
 `
 
 const GetPublicUserInfoQuery = `
-	select u.id, firstname, lastname, profile_avatar, username 
+	select u.id, firstname, lastname, profile_avatar, username, last_seen
 	from profile p join "user" u on p.id = u.id
 	where u.id = $1
 `
 
 const GetPublicUsersInfoQuery = `
-	select u.id, firstname, lastname, profile_avatar, username
+	select u.id, firstname, lastname, profile_avatar, username, last_seen
 	from profile p join "user" u on p.id = u.id
 	where u.id = any($1)
 `
@@ -259,7 +259,7 @@ func (p *PostgresProfileRepository) GetPublicUserInfo(ctx context.Context, userI
 	var publicInfo pgmodels.PublicUserInfoPostgres
 	err := p.connPool.QueryRow(ctx, GetPublicUserInfoQuery, userId).Scan(
 		&publicInfo.Id, &publicInfo.Firstname, &publicInfo.Lastname,
-		&publicInfo.AvatarURL, &publicInfo.Username)
+		&publicInfo.AvatarURL, &publicInfo.Username, &publicInfo.LastSeen)
 	if err != nil {
 		return models.PublicUserInfo{}, fmt.Errorf("unable to get public user info: %w", err)
 	}
@@ -282,7 +282,7 @@ func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, user
 		var publicInfo pgmodels.PublicUserInfoPostgres
 		err := rows.Scan(
 			&publicInfo.Id, &publicInfo.Firstname, &publicInfo.Lastname,
-			&publicInfo.AvatarURL, &publicInfo.Username)
+			&publicInfo.AvatarURL, &publicInfo.Username, &publicInfo.LastSeen)
 		if err != nil {
 			return nil, fmt.Errorf("unable to scan public user info: %w", err)
 		}
