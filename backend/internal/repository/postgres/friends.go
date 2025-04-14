@@ -291,7 +291,7 @@ func (p *PostgresFriendsRepository) GetUserRelation(ctx context.Context, user1 u
 	if user1.String() > user2.String() {
 		if status == models.RelationFollowedBy {
 			status = models.RelationFollowing
-		} else {
+		} else if status == models.RelationFollowing {
 			status = models.RelationFollowedBy
 		}
 	}
