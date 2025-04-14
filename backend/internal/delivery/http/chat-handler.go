@@ -107,14 +107,33 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	for _, info := range publicInfos {
 		lastMessageSenderInfo[info.Id] = info
 	}
-	chatsOut := forms.ToChatsOut(chats, lastMessageSenderInfo)
 
-	for i, chat := range chatsOut {
-		if chat.Type == "private" && chat.LastMessage != nil {
-			_, isOnline := c.connService.IsConnected(uuid.MustParse(chat.LastMessage.Sender.ID))
-			chatsOut[i].IsOnline = &isOnline
+	// Convert chats to output format
+	var privateChatsOnlineStatus map[uuid.UUID]bool
+	var isOnline bool
+	for _, chat := range chats {
+		if chat.Type != models.ChatTypePrivate {
+			continue
 		}
+
+		if chat.LastMessage.ID != uuid.Nil && chat.LastMessage.SenderID != user.Id {
+			_, isOnline = c.connService.IsConnected(chat.LastMessage.SenderID)
+		} else {
+			// Get the other participant's ID
+			otherUser, err := c.getOtherPrivateChatParticipant(ctx, chat.ID, user.Id)
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Failed to get other participant: %v", err))
+				http2.WriteJSONError(w, "Failed to get other participant", http.StatusInternalServerError)
+				return
+			}
+
+			_, isOnline = c.connService.IsConnected(otherUser)
+		}
+
+		privateChatsOnlineStatus[chat.ID] = isOnline
 	}
+
+	chatsOut := forms.ToChatsOut(chats, lastMessageSenderInfo, privateChatsOnlineStatus)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(chatsOut)
 	if err != nil {
@@ -122,4 +141,18 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to encode chats", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (c *ChatHandler) getOtherPrivateChatParticipant(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (uuid.UUID, error) {
+	participants, err := c.chatUseCase.GetChatParticipants(ctx, chatId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get chat participants: %v", err))
+		return uuid.Nil, err
+	}
+	for _, participant := range participants {
+		if participant.Id != userId {
+			return participant.Id, nil
+		}
+	}
+	return uuid.Nil, usecase.ErrNotFound
 }
