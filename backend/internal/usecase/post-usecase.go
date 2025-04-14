@@ -10,12 +10,15 @@ import (
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
+	"quickflow/utils/validation"
 )
 
 var (
 	ErrPostDoesNotBelongToUser = errors.New("post does not belong to user")
 	ErrPostNotFound            = errors.New("post not found")
 	ErrUploadFile              = errors.New("upload file error")
+	ErrInvalidNumPosts         = errors.New("invalid number of posts")
+	ErrInvalidTimestamp        = errors.New("invalid timestamp")
 )
 
 type PostRepository interface {
@@ -25,6 +28,8 @@ type PostRepository interface {
 	DeletePost(ctx context.Context, postId uuid.UUID) error
 	BelongsTo(ctx context.Context, userId uuid.UUID, postId uuid.UUID) (bool, error)
 	GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error)
 }
 
@@ -103,7 +108,59 @@ func (p *PostService) DeletePost(ctx context.Context, user models.User, postId u
 
 // FetchFeed returns feed for user.
 func (p *PostService) FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	// validate params
+	err := validation.ValidateFeedParams(numPosts, timestamp)
+	if errors.Is(err, validation.ErrInvalidNumPosts) {
+		return []models.Post{}, ErrInvalidNumPosts
+	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
+		return []models.Post{}, ErrInvalidTimestamp
+	} else if err != nil {
+		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
+	}
+
+	// fetch posts
 	posts, err := p.postRepo.GetPostsForUId(ctx, user.Id, numPosts, timestamp)
+	if err != nil {
+		return []models.Post{}, fmt.Errorf("p.repo.GetPostsForUId: %w", err)
+	}
+
+	return posts, nil
+}
+
+// FetchRecommendations returns recommendations for user.
+func (p *PostService) FetchRecommendations(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	// validate params
+	err := validation.ValidateFeedParams(numPosts, timestamp)
+	if errors.Is(err, validation.ErrInvalidNumPosts) {
+		return []models.Post{}, ErrInvalidNumPosts
+	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
+		return []models.Post{}, ErrInvalidTimestamp
+	} else if err != nil {
+		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
+	}
+
+	// fetch posts
+	posts, err := p.postRepo.GetRecommendationsForUId(ctx, user.Id, numPosts, timestamp)
+	if err != nil {
+		return []models.Post{}, fmt.Errorf("p.repo.GetRecommendationsForUId: %w", err)
+	}
+
+	return posts, nil
+}
+
+func (p *PostService) FetchUserPosts(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	// validate params
+	err := validation.ValidateFeedParams(numPosts, timestamp)
+	if errors.Is(err, validation.ErrInvalidNumPosts) {
+		return []models.Post{}, ErrInvalidNumPosts
+	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
+		return []models.Post{}, ErrInvalidTimestamp
+	} else if err != nil {
+		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
+	}
+
+	// fetch posts
+	posts, err := p.postRepo.GetUserPosts(ctx, user.Id, numPosts, timestamp)
 	if err != nil {
 		return []models.Post{}, fmt.Errorf("p.repo.GetPostsForUId: %w", err)
 	}
