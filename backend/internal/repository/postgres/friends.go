@@ -241,7 +241,7 @@ func (p *PostgresFriendsRepository) DeleteFriend(ctx context.Context, userID str
 func (p *PostgresFriendsRepository) Unfollow(ctx context.Context, userID string, friendID string) error {
 	logger.Info(ctx, fmt.Sprintf("Trying to unfollow user: %s for user: %s ", friendID, userID))
 
-	commandTag, err := p.connPool.Exec(ctx, DeleteFollowerRelationQuery, userID, friendID, models.RelationFollowedBy, models.RelationFriend)
+	commandTag, err := p.connPool.Exec(ctx, DeleteFollowerRelationQuery, userID, friendID, models.RelationFollowedBy, models.RelationFollowing)
 	if err != nil {
 		return err
 	}
