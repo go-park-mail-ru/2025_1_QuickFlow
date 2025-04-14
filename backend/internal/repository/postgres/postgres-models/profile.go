@@ -82,7 +82,7 @@ func (p *ProfilePostgres) ConvertToProfile() models.Profile {
 		ContactInfo:         profile.ContactInfo,
 		SchoolEducation:     profile.SchoolEducation,
 		UniversityEducation: profile.UniversityEducation,
-		LastSeen:            profile.LastSeen,
+		LastSeen:            p.LastSeen.Time,
 	}
 }
 
