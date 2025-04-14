@@ -55,11 +55,20 @@ func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("User %s requested friends", user.Username))
 
-	limit, offset := r.URL.Query().Get("count"), r.URL.Query().Get("offset")
+	limit := r.URL.Query().Get("count")
+	offset := r.URL.Query().Get("offset")
+	userID := r.URL.Query().Get("user_id")
 
-	friendsInfo, hasMore, friendsCount, err := f.friendsUseCase.GetFriendsInfo(ctx, user.Id.String(), limit, offset)
+	targetUserID := userID
+	if targetUserID == "" {
+		targetUserID = user.Id.String()
+	}
+
+	logger.Info(ctx, fmt.Sprintf("User %s requested friends", targetUserID))
+
+	friendsInfo, hasMore, friendsCount, err := f.friendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset)
+
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get list of friends for user %s: %s", user.Username, err.Error()))
 		http2.WriteJSONError(w, "Failed to get friends", http.StatusInternalServerError)
