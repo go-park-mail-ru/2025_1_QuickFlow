@@ -16,7 +16,7 @@ import (
 )
 
 type FriendsUseCase interface {
-	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, bool, error)
+	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, bool, int, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	Unfollow(ctx context.Context, userID string, friendID string) error
@@ -59,7 +59,7 @@ func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := r.URL.Query().Get("count"), r.URL.Query().Get("offset")
 
-	friendsInfo, hasMore, err := f.friendsUseCase.GetFriendsInfo(ctx, user.Id.String(), limit, offset)
+	friendsInfo, hasMore, friendsCount, err := f.friendsUseCase.GetFriendsInfo(ctx, user.Id.String(), limit, offset)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get list of friends for user %s: %s", user.Username, err.Error()))
 		http2.WriteJSONError(w, "Failed to get friends", http.StatusInternalServerError)
@@ -76,7 +76,7 @@ func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	var friendsInfoOut forms.FriendsInfoOut
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(friendsInfoOut.ToJson(friendsInfo, friendsOnline, hasMore))
+	err = json.NewEncoder(w).Encode(friendsInfoOut.ToJson(friendsInfo, friendsOnline, hasMore, friendsCount))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to encode friends info to json: %s", err))
 		http2.WriteJSONError(w, "Unable to encode friends info to json", http.StatusInternalServerError)
