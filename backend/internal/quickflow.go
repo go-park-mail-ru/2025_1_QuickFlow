@@ -2,10 +2,10 @@ package internal
 
 import (
 	"fmt"
-	"github.com/microcosm-cc/bluemonday"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/microcosm-cc/bluemonday"
 
 	"quickflow/config"
 	"quickflow/config/cors"

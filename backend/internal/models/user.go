@@ -1,9 +1,11 @@
 package models
 
 import (
-	"github.com/google/uuid"
-	"quickflow/utils"
 	"time"
+
+	"github.com/google/uuid"
+
+	"quickflow/utils"
 )
 
 type Sex int
