@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/microcosm-cc/bluemonday"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -30,6 +31,8 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 
 	connManager := ws.NewWebSocketManager()
 
+	sanitizerPolicy := bluemonday.UGCPolicy()
+
 	newUserRepo := postgres.NewPostgresUserRepository()
 	newPostRepo := postgres.NewPostgresPostRepository()
 	newSessionRepo := redis.NewRedisSessionRepository()
@@ -44,11 +47,11 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
 	newFriendsService := usecase.NewFriendsService(newFriendsRepo)
 	newSearchService := usecase.NewSearchService(newUserRepo)
-	newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
+	newAuthHandler := qfhttp.NewAuthHandler(newAuthService, sanitizerPolicy)
 	newFeedHandler := qfhttp.NewFeedHandler(newAuthService, newPostService, newProfileService, newFriendsService)
-	newPostHandler := qfhttp.NewPostHandler(newPostService, newProfileService)
-	newProfileHandler := qfhttp.NewProfileHandler(newProfileService, newFriendsService, newAuthService, newChatService, connManager)
-	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService)
+	newPostHandler := qfhttp.NewPostHandler(newPostService, newProfileService, sanitizerPolicy)
+	newProfileHandler := qfhttp.NewProfileHandler(newProfileService, newFriendsService, newAuthService, newChatService, connManager, sanitizerPolicy)
+	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService, sanitizerPolicy)
 	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
 	newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
 	newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
@@ -61,7 +64,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	defer newChatRepo.Close()
 	defer newFriendsRepo.Close()
 
-	newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager)
+	newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager, sanitizerPolicy)
 
 	// routing
 	r := mux.NewRouter()

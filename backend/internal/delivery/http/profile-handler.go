@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/microcosm-cc/bluemonday"
 	"net/http"
+	"quickflow/pkg/sanitizer"
 	"strings"
 
 	"github.com/google/uuid"
@@ -34,15 +36,17 @@ type ProfileHandler struct {
 	authUseCase    AuthUseCase
 	chatUseCase    ChatUseCase
 	connService    IWebSocketManager
+	policy         *bluemonday.Policy
 }
 
-func NewProfileHandler(profileUC ProfileUseCase, friendUseCase FriendsUseCase, authUseCase AuthUseCase, chatUseCase ChatUseCase, connService IWebSocketManager) *ProfileHandler {
+func NewProfileHandler(profileUC ProfileUseCase, friendUseCase FriendsUseCase, authUseCase AuthUseCase, chatUseCase ChatUseCase, connService IWebSocketManager, policy *bluemonday.Policy) *ProfileHandler {
 	return &ProfileHandler{
 		profileUC:      profileUC,
 		connService:    connService,
 		friendsUseCase: friendUseCase,
 		authUseCase:    authUseCase,
 		chatUseCase:    chatUseCase,
+		policy:         policy,
 	}
 }
 
@@ -184,6 +188,8 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		recievedValidInfo = true
 	}
 
+	sanitizer.SanitizeProfileInfo(&profileInfo, p.policy)
+
 	// getting additional info
 	var contactInfo forms.ContactInfo
 	err = json.NewDecoder(strings.NewReader(r.FormValue("contact_info"))).Decode(&contactInfo)
@@ -192,6 +198,8 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		recievedValidInfo = true
 	}
 
+	sanitizer.SanitizeContactInfo(&contactInfo, p.policy)
+
 	var schoolEducation forms.SchoolEducationForm
 	err = json.NewDecoder(strings.NewReader(r.FormValue("school"))).Decode(&schoolEducation)
 	if err == nil {
@@ -199,12 +207,16 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		recievedValidInfo = true
 	}
 
+	sanitizer.SanitizeSchoolInfo(&schoolEducation, p.policy)
+
 	var universityEducation forms.UniversityEducationForm
 	err = json.NewDecoder(strings.NewReader(r.FormValue("university"))).Decode(&universityEducation)
 	if err == nil {
 		profileForm.UniversityEducation = &universityEducation
 		recievedValidInfo = true
 	}
+
+	sanitizer.SanitizeUniversityInfo(&universityEducation, p.policy)
 
 	if !recievedValidInfo {
 		logger.Error(ctx, "No valid data provided")
