@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/microcosm-cc/bluemonday"
 
 	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
+	"quickflow/pkg/sanitizer"
 	http2 "quickflow/utils/http"
 	"quickflow/utils/validation"
 )
@@ -27,11 +29,13 @@ type AuthUseCase interface {
 
 type AuthHandler struct {
 	authUseCase AuthUseCase
+	policy      *bluemonday.Policy
 }
 
-func NewAuthHandler(authUseCase AuthUseCase) *AuthHandler {
+func NewAuthHandler(authUseCase AuthUseCase, policy *bluemonday.Policy) *AuthHandler {
 	return &AuthHandler{
 		authUseCase: authUseCase,
+		policy:      policy,
 	}
 }
 
@@ -45,7 +49,11 @@ func NewAuthHandler(authUseCase AuthUseCase) *AuthHandler {
 func (a *AuthHandler) Greet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Hello World")
+	err := json.NewEncoder(w).Encode("Hello World")
+	if err != nil {
+		http.Error(w, "failed to parse Hello world", http.StatusBadRequest)
+		return
+	}
 }
 
 // SignUp создает нового пользователя
@@ -71,6 +79,8 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+
+	sanitizer.SanitizeSignUpData(&form, a.policy)
 
 	// converting transport form to domain model
 	user := models.User{
@@ -157,6 +167,8 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+
+	sanitizer.SanitizeLoginData(&form, a.policy)
 
 	// converting transport form to domain model
 	loginData := models.LoginData{

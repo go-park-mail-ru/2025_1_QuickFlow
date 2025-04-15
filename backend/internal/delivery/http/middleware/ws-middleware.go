@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"context"
-	"github.com/gorilla/websocket"
 	"net/http"
+
+	"github.com/gorilla/websocket"
+
 	http2 "quickflow/internal/delivery/http"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
@@ -44,12 +46,14 @@ func WebSocketMiddleware(connManager http2.IWebSocketManager) func(next http.Han
 			r = r.WithContext(ctx)
 
 			connManager.AddConnection(user.Id, conn)
-			defer connManager.RemoveConnection(user.Id)
+
+			// Обрабатываем ping/pong сообщения
+			connManager.HandlePing(conn)
 
 			// Передаем управление следующему обработчику
 			defer func() {
 				logger.Info(context.Background(), "[MIDDLEWARE] Closing WebSocket connection")
-				conn.Close() // Закрываем соединение после завершения запроса
+				connManager.RemoveAndCloseConnection(user.Id)
 			}()
 			next.ServeHTTP(w, r)
 		})

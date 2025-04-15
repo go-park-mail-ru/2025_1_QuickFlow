@@ -16,18 +16,51 @@ import (
 	"quickflow/pkg/logger"
 )
 
+const getPostsQuery = `
+	select p.id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	from post p
+	where p.id = $1
+`
 const getPhotosQuery = `
 	select file_url
 	from post_file
 	where post_id = $1
 `
 
-const getOlderPostsLimitQuery = `
+const getRecommendationsForUserOlder = `
 	select id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
 	from post 
 	where created_at < $1 
 	order by created_at desc
-	limit $2
+	limit $2;
+`
+
+const getUserPostsOlder = `
+	select id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	from post
+	where creator_id = $1 and created_at < $2
+	order by created_at desc
+	limit $3;
+`
+
+const getPostsForUserOlder = `
+	with followed_by_user as (
+		select user1_id as id
+		from friendship
+		where user2_id = $1 and (status = $4 or status = $5) -- friends or followed_by
+        union
+		select user2_id as id
+		from friendship
+		where user1_id = $1 and (status = $4 or status = $6) -- friends or following
+		union
+		select $1 as id
+	)
+	select p.id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	from post p
+	join followed_by_user fbu on p.creator_id = fbu.id
+	where created_at < $2
+	order by created_at desc
+	limit $3;
 `
 
 const insertPostQuery = `
@@ -105,9 +138,130 @@ func (p *PostgresPostRepository) BelongsTo(ctx context.Context, userId uuid.UUID
 	return id == userId, nil
 }
 
-// GetPostsForUId returns posts for user.
+func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error) {
+	row := p.connPool.QueryRow(ctx, getPostsQuery, postId)
+	var postPostgres pgmodels.PostPostgres
+	err := row.Scan(
+		&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+		&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
+		&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get post %v from database: %s", postId, err.Error()))
+		return models.Post{}, fmt.Errorf("unable to get post from database: %w", err)
+	}
+
+	pics, err := p.connPool.Query(ctx, getPhotosQuery, postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postId, err.Error()))
+		return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
+	}
+
+	for pics.Next() {
+		var pic pgtype.Text
+		err = pics.Scan(&pic)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+			return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
+		}
+
+		postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pic)
+	}
+	pics.Close()
+
+	return postPostgres.ToPost(), nil
+}
+
+func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	rows, err := p.connPool.Query(ctx, getUserPostsOlder, id, timestamp, numPosts)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
+			id, numPosts, timestamp, err.Error()))
+		return nil, fmt.Errorf("unable to get posts from database: %w", err)
+	}
+	defer rows.Close()
+
+	var result []models.Post
+	for rows.Next() {
+		var postPostgres pgmodels.PostPostgres
+		err = rows.Scan(
+			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+			&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
+			&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan post %v from database: %s", postPostgres.Id, err.Error()))
+			return nil, fmt.Errorf("unable to get posts from database: %w", err)
+		}
+
+		pics, err := p.connPool.Query(ctx, getPhotosQuery, postPostgres.Id)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postPostgres.Id, err.Error()))
+			return nil, fmt.Errorf("unable to get posts from database: %w", err)
+		}
+
+		for pics.Next() {
+			var pic pgtype.Text
+			err = pics.Scan(&pic)
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+				return nil, fmt.Errorf("unable to get posts from database: %w", err)
+			}
+
+			postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pic)
+		}
+		pics.Close()
+		result = append(result, postPostgres.ToPost())
+	}
+
+	return result, nil
+}
+
+func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	rows, err := p.connPool.Query(ctx, getRecommendationsForUserOlder, timestamp, numPosts)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
+			uid, numPosts, timestamp, err.Error()))
+		return nil, fmt.Errorf("unable to get posts from database: %w", err)
+	}
+	defer rows.Close()
+
+	var result []models.Post
+	for rows.Next() {
+		var postPostgres pgmodels.PostPostgres
+		err = rows.Scan(
+			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+			&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
+			&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan post %v from database: %s", postPostgres.Id, err.Error()))
+			return nil, fmt.Errorf("unable to get posts from database: %w", err)
+		}
+
+		pics, err := p.connPool.Query(ctx, getPhotosQuery, postPostgres.Id)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postPostgres.Id, err.Error()))
+			return nil, fmt.Errorf("unable to get posts from database: %w", err)
+		}
+
+		for pics.Next() {
+			var pic pgtype.Text
+			err = pics.Scan(&pic)
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+				return nil, fmt.Errorf("unable to get posts from database: %w", err)
+			}
+
+			postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pic)
+		}
+		pics.Close()
+		result = append(result, postPostgres.ToPost())
+	}
+
+	return result, nil
+}
+
 func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-	rows, err := p.connPool.Query(ctx, getOlderPostsLimitQuery, timestamp, numPosts)
+	rows, err := p.connPool.Query(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
+		models.RelationFriend, models.RelationFollowedBy, models.RelationFollowing)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			uid, numPosts, timestamp, err.Error()))

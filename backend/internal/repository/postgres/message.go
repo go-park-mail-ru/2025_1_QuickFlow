@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +24,7 @@ const (
         SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read
         FROM message
         WHERE chat_id = $1 AND created_at < $2
-        ORDER BY created_at
+        ORDER BY created_at desc 
         LIMIT $3
     `
 
@@ -110,7 +111,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 		}
 		files.Close()
 
-		messages = append(messages, message)
+		messages = slices.Insert(messages, 0, message)
 	}
 	logger.Info(ctx, fmt.Sprintf("Fetched %d messages for chat %s", len(messages), chatId))
 

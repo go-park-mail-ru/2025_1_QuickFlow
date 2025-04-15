@@ -63,7 +63,7 @@ func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut
 		IsRead:         message.IsRead,
 		AttachmentURLs: message.AttachmentURLs,
 
-		Sender: PublicUserInfoToOut(info),
+		Sender: PublicUserInfoToOut(info, ""),
 		ChatId: message.ChatID,
 	}
 }
@@ -79,7 +79,7 @@ func ToMessagesOut(messages []models.Message, usersInfo map[uuid.UUID]models.Pub
 			IsRead:         message.IsRead,
 			AttachmentURLs: message.AttachmentURLs,
 
-			Sender: PublicUserInfoToOut(usersInfo[message.SenderID]),
+			Sender: PublicUserInfoToOut(usersInfo[message.SenderID], ""),
 			ChatId: message.ChatID,
 		})
 	}

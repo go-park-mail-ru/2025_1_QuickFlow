@@ -1,29 +1,37 @@
 package http
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/microcosm-cc/bluemonday"
 
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
+	"quickflow/pkg/sanitizer"
 	http2 "quickflow/utils/http"
 )
 
 type PostHandler struct {
-	postUseCase PostUseCase
+	postUseCase    PostUseCase
+	profileUseCase ProfileUseCase
+	policy         *bluemonday.Policy
 }
 
 // NewPostHandler creates new post handler.
-func NewPostHandler(postUseCase PostUseCase) *PostHandler {
+func NewPostHandler(postUseCase PostUseCase, profileUseCase ProfileUseCase, policy *bluemonday.Policy) *PostHandler {
 	return &PostHandler{
-		postUseCase: postUseCase,
+		postUseCase:    postUseCase,
+		profileUseCase: profileUseCase,
+		policy:         policy,
 	}
 }
 
@@ -62,6 +70,16 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	postForm.Text = r.FormValue("text")
 	isRepostString := r.FormValue("is_repost")
 
+	sanitizer.SanitizePost(&postForm, p.policy)
+
+	// TODO make clean
+	if utf8.RuneCountInString(postForm.Text) > 4096 {
+		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", len(postForm.Text)))
+		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
+		return
+
+	}
+
 	if len(isRepostString) != 0 {
 		postForm.IsRepost, err = strconv.ParseBool(r.FormValue("is_repost"))
 		if err != nil {
@@ -81,13 +99,31 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 
 	post := postForm.ToPostModel(user.Id)
 
-	err = p.postUseCase.AddPost(ctx, post)
+	post, err = p.postUseCase.AddPost(ctx, post)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to add post: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to add post", http.StatusInternalServerError)
 		return
 	}
 	logger.Info(ctx, "Successfully added post")
+
+	var postOut forms.PostOut
+	postOut.FromPost(post)
+	publicUserInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get public user info: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get public user info", http.StatusInternalServerError)
+		return
+	}
+	postOut.Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode post: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to encode post", http.StatusInternalServerError)
+		return
+	}
 }
 
 // DeletePost удаляет пост
@@ -184,6 +220,17 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 
 	var updatePostForm forms.UpdatePostForm
 	updatePostForm.Text = r.FormValue("text")
+
+	sanitizer.SanitizeUpdatePost(&updatePostForm, p.policy)
+
+	// TODO make clean
+	if utf8.RuneCountInString(updatePostForm.Text) > 4096 {
+		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", len(updatePostForm.Text)))
+		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
+		return
+
+	}
+
 	updatePostForm.Images, err = http2.GetFiles(r, "pics")
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get files: %s", err.Error()))
@@ -197,7 +244,7 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to parse update post", http.StatusBadRequest)
 		return
 	}
-	err = p.postUseCase.UpdatePost(ctx, updatePost, user.Id)
+	post, err := p.postUseCase.UpdatePost(ctx, updatePost, user.Id)
 	if errors.Is(err, usecase.ErrPostDoesNotBelongToUser) {
 		logger.Error(ctx, fmt.Sprintf("Post %s does not belong to user %s", postIdString, user.Username))
 		http2.WriteJSONError(w, "Post does not belong to user", http.StatusForbidden)
@@ -209,6 +256,24 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to update post: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to update post", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Successfully updated post %s", postIdString))
+	var postOut forms.PostOut
+	postOut.FromPost(post)
+	publicUserInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get public user info: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get public user info", http.StatusInternalServerError)
+		return
+	}
+	postOut.Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode post: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to encode post", http.StatusInternalServerError)
 		return
 	}
 }

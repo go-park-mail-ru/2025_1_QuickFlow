@@ -10,19 +10,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/microcosm-cc/bluemonday"
 
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
+	"quickflow/pkg/sanitizer"
 	http2 "quickflow/utils/http"
+	"quickflow/utils/validation"
 )
 
 type IWebSocketManager interface {
 	AddConnection(userId uuid.UUID, conn *websocket.Conn)
-	RemoveConnection(userId uuid.UUID)
+	RemoveAndCloseConnection(userId uuid.UUID)
 	SendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo,
 		chatParticipants []models.User) error
 	IsConnected(userId uuid.UUID) (*websocket.Conn, bool)
+	HandlePing(conn *websocket.Conn)
 }
 
 type MessageHandlerWS struct {
@@ -30,14 +34,16 @@ type MessageHandlerWS struct {
 	ChatUseCase      ChatUseCase
 	profileUseCase   ProfileUseCase
 	WebSocketManager IWebSocketManager
+	policy           *bluemonday.Policy
 }
 
-func NewMessageHandlerWS(messageUseCase MessageUseCase, chatUseCase ChatUseCase, profileUseCase ProfileUseCase, webSocketManager IWebSocketManager) *MessageHandlerWS {
+func NewMessageHandlerWS(messageUseCase MessageUseCase, chatUseCase ChatUseCase, profileUseCase ProfileUseCase, webSocketManager IWebSocketManager, policy *bluemonday.Policy) *MessageHandlerWS {
 	return &MessageHandlerWS{
 		MessageUseCase:   messageUseCase,
 		ChatUseCase:      chatUseCase,
 		profileUseCase:   profileUseCase,
 		WebSocketManager: webSocketManager,
+		policy:           policy,
 	}
 }
 
@@ -52,7 +58,7 @@ func NewMessageHandlerWS(messageUseCase MessageUseCase, chatUseCase ChatUseCase,
 // @Failure 400 {object} forms.ErrorForm "Invalid data"
 // @Failure 500 {object} forms.ErrorForm "Server error"
 // @Router /api/ws [get]
-func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request) {
+func (m *MessageHandlerWS) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 	// extracting user from context
 	user, ok := ctx.Value("user").(models.User)
@@ -68,7 +74,11 @@ func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request
 	}
 
 	defer func() {
-		m.profileUseCase.UpdateLastSeen(ctx, user.Id)
+		err := m.profileUseCase.UpdateLastSeen(ctx, user.Id)
+		if err != nil {
+			http2.WriteJSONError(w, "Failed to update last seen", http.StatusBadRequest)
+			return
+		}
 	}()
 
 	for {
@@ -99,13 +109,21 @@ func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request
 		}
 		messageForm := messageRequest.Payload
 
+		sanitizer.SanitizeMessage(&messageForm, m.policy)
+
 		messageForm.SenderId = user.Id
 		if messageForm.ChatId == uuid.Nil && messageForm.ReceiverId == uuid.Nil {
 			logger.Error(ctx, "ChatId and ReceiverId cannot be both nil")
 			writeErrorToWS(conn, "ChatId and ReceiverId cannot be both nil")
 			continue
 		}
+
 		message := messageForm.ToMessageModel()
+		if err = validation.ValidateMessage(message); err != nil {
+			logger.Error(ctx, "Invalid message:", err)
+			writeErrorToWS(conn, fmt.Sprintf("Invalid message: %v", err))
+			continue
+		}
 
 		message.ChatID, err = m.MessageUseCase.SaveMessage(ctx, message)
 		if err != nil {

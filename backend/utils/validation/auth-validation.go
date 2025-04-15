@@ -4,14 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"quickflow/utils"
 	"strings"
 	"unicode"
+
+	"quickflow/utils"
 )
 
 const (
 	randSpecialSymbols = "_/!@#$%^&*(),.?\":{}|<>"
-	acceptableLogin    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._123456789"
+	acceptableLogin    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789"
 )
 
 func validateLogin(login string) bool {

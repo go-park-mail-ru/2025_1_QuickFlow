@@ -43,7 +43,7 @@ func (s *SearchHandler) SearchSimilar(w http.ResponseWriter, r *http.Request) {
 
 	var publicUsersInfoOut []forms.PublicUserInfoOut
 	for _, user := range users {
-		publicUsersInfoOut = append(publicUsersInfoOut, forms.PublicUserInfoToOut(user))
+		publicUsersInfoOut = append(publicUsersInfoOut, forms.PublicUserInfoToOut(user, ""))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

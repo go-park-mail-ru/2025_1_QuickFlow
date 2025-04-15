@@ -26,6 +26,13 @@ type ChatOut struct {
 	Type        string      `json:"type"`
 	LastMessage *MessageOut `json:"last_message,omitempty"`
 	IsOnline    *bool       `json:"online,omitempty"`
+	LastSeen    string      `json:"last_seen,omitempty"`
+	Username    string      `json:"username,omitempty"`
+}
+
+type PrivateChatInfo struct {
+	Username string   `json:"username,omitempty"`
+	Activity Activity `json:"activity,omitempty"`
 }
 
 func (g *GetChatsForm) GetParams(values url.Values) error {
@@ -53,7 +60,7 @@ func (g *GetChatsForm) GetParams(values url.Values) error {
 	return nil
 }
 
-func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.PublicUserInfo) []ChatOut {
+func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.PublicUserInfo, privateChatsOnlineStatus map[uuid.UUID]PrivateChatInfo) []ChatOut {
 	var chatsOut []ChatOut
 	var chatType string
 	for _, chat := range chats {
@@ -76,6 +83,16 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 		if chat.LastMessage.ID != uuid.Nil {
 			msg := ToMessageOut(chat.LastMessage, lastMessageSenderInfo[chat.LastMessage.SenderID])
 			chatOut.LastMessage = &msg
+		}
+
+		if chat.Type == models.ChatTypePrivate && privateChatsOnlineStatus != nil {
+			if profileInfo, exists := privateChatsOnlineStatus[chat.ID]; exists {
+				chatOut.IsOnline = &profileInfo.Activity.IsOnline
+				if !profileInfo.Activity.IsOnline {
+					chatOut.LastSeen = profileInfo.Activity.LastSeen
+				}
+				chatOut.Username = profileInfo.Username
+			}
 		}
 		chatsOut = append(chatsOut, chatOut)
 	}

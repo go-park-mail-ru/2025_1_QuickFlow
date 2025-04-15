@@ -62,21 +62,23 @@ func (f *FeedForm) GetParams(values url.Values) error {
 }
 
 type PublicUserInfoOut struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	AvatarURL string `json:"avatar_url,omitempty"`
-	FirstName string `json:"firstname"`
-	LastName  string `json:"lastname"`
-	IsOnline  *bool  `json:"online,omitempty"`
+	ID        string              `json:"id"`
+	Username  string              `json:"username"`
+	AvatarURL string              `json:"avatar_url,omitempty"`
+	FirstName string              `json:"firstname"`
+	LastName  string              `json:"lastname"`
+	IsOnline  *bool               `json:"online,omitempty"`
+	Relation  models.UserRelation `json:"relation"`
 }
 
-func PublicUserInfoToOut(info models.PublicUserInfo) PublicUserInfoOut {
+func PublicUserInfoToOut(info models.PublicUserInfo, relation models.UserRelation) PublicUserInfoOut {
 	return PublicUserInfoOut{
 		ID:        info.Id.String(),
 		Username:  info.Username,
 		FirstName: info.Firstname,
 		LastName:  info.Lastname,
 		AvatarURL: info.AvatarURL,
+		Relation:  relation,
 	}
 }
 

@@ -7,9 +7,8 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"quickflow/config/postgres"
@@ -76,6 +75,12 @@ const (
 		delete from friendship
 		where ((user1_id = $1 and user2_id = $2) or (user1_id = $2 and user2_id = $1)) and status in ($3, $4)
 	`
+
+	GetFriendsCountQuery = `
+	select count(*) 
+	from friendship 
+	where (user1_id = $1 or user2_id = $1) and status = $2
+	`
 )
 
 type PostgresFriendsRepository struct {
@@ -98,7 +103,7 @@ func (p *PostgresFriendsRepository) Close() {
 }
 
 // GetFriendsPublicInfo Отдает структуру с информацией по друзьям + флаг hasMore, который говорит - остались ли еще друзья + ошибку
-func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string, limit int, offset int) ([]models.FriendInfo, bool, error) {
+func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string, limit int, offset int) ([]models.FriendInfo, bool, int, error) {
 	logger.Info(ctx, fmt.Sprintf("Trying to get friends info for user %s", userID))
 
 	rows, err := p.connPool.Query(ctx, GetFriendsInfoQuery, userID, limit+1, offset, models.RelationFriend)
@@ -112,7 +117,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 			logger.Error(ctx, newErr.Error())
 		}
 
-		return friendsInfo, false, fmt.Errorf("unable to get friends info: %v", err)
+		return friendsInfo, false, 0, fmt.Errorf("unable to get friends info: %v", err)
 	}
 
 	for rows.Next() {
@@ -127,7 +132,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 		)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("rows scanning error: %s", err.Error()))
-			return []models.FriendInfo{}, false, errors.New("unable to get friends info")
+			return []models.FriendInfo{}, false, 0, errors.New("unable to get friends info")
 		}
 
 		friendInfo := friendInfoPostgres.ConvertToFriendInfo()
@@ -140,7 +145,22 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 		friendsInfo = friendsInfo[:limit]
 	}
 
-	return friendsInfo, hasMore, nil
+	logger.Info(ctx, fmt.Sprintf("Trying to get total amount of friends for user: %s", userID))
+
+	var friendsCount int
+	err = p.connPool.QueryRow(ctx, GetFriendsCountQuery, userID, models.RelationFriend).Scan(&friendsCount)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			logger.Info(ctx, fmt.Sprintf("user: %s has no friends", userID))
+			return []models.FriendInfo{}, false, 0, nil
+		}
+		logger.Error(ctx, fmt.Sprintf("unable to get friends count: %v", err))
+		return []models.FriendInfo{}, false, 0, errors.New("unable to get friends info")
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Amount of friends for user: %s is %d", userID, friendsCount))
+
+	return friendsInfo, hasMore, friendsCount, nil
 }
 
 func (p *PostgresFriendsRepository) SendFriendRequest(ctx context.Context, senderID string, receiverID string) error {
@@ -241,7 +261,7 @@ func (p *PostgresFriendsRepository) DeleteFriend(ctx context.Context, userID str
 func (p *PostgresFriendsRepository) Unfollow(ctx context.Context, userID string, friendID string) error {
 	logger.Info(ctx, fmt.Sprintf("Trying to unfollow user: %s for user: %s ", friendID, userID))
 
-	commandTag, err := p.connPool.Exec(ctx, DeleteFollowerRelationQuery, userID, friendID, models.RelationFollowedBy, models.RelationFriend)
+	commandTag, err := p.connPool.Exec(ctx, DeleteFollowerRelationQuery, userID, friendID, models.RelationFollowedBy, models.RelationFollowing)
 	if err != nil {
 		return err
 	}
@@ -266,5 +286,13 @@ func (p *PostgresFriendsRepository) GetUserRelation(ctx context.Context, user1 u
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Relation between sender: %s and receiver: %s already exists", user1, user2))
+
+	if user1.String() > user2.String() {
+		if status == models.RelationFollowedBy {
+			status = models.RelationFollowing
+		} else if status == models.RelationFollowing {
+			status = models.RelationFollowedBy
+		}
+	}
 	return status, nil
 }
