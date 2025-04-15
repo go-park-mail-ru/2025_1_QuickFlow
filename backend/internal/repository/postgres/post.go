@@ -16,6 +16,11 @@ import (
 	"quickflow/pkg/logger"
 )
 
+const getPostsQuery = `
+	select p.id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	from post p
+	where p.id = $1
+`
 const getPhotosQuery = `
 	select file_url
 	from post_file
@@ -131,6 +136,39 @@ func (p *PostgresPostRepository) BelongsTo(ctx context.Context, userId uuid.UUID
 	}
 
 	return id == userId, nil
+}
+
+func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error) {
+	row := p.connPool.QueryRow(ctx, getPostsQuery, postId)
+	var postPostgres pgmodels.PostPostgres
+	err := row.Scan(
+		&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+		&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
+		&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get post %v from database: %s", postId, err.Error()))
+		return models.Post{}, fmt.Errorf("unable to get post from database: %w", err)
+	}
+
+	pics, err := p.connPool.Query(ctx, getPhotosQuery, postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postId, err.Error()))
+		return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
+	}
+
+	for pics.Next() {
+		var pic pgtype.Text
+		err = pics.Scan(&pic)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+			return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
+		}
+
+		postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pic)
+	}
+	pics.Close()
+
+	return postPostgres.ToPost(), nil
 }
 
 func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {

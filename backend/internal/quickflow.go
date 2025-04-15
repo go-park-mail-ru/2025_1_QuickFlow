@@ -46,7 +46,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     newSearchService := usecase.NewSearchService(newUserRepo)
     newAuthHandler := qfhttp.NewAuthHandler(newAuthService)
     newFeedHandler := qfhttp.NewFeedHandler(newAuthService, newPostService, newProfileService, newFriendsService)
-    newPostHandler := qfhttp.NewPostHandler(newPostService)
+    newPostHandler := qfhttp.NewPostHandler(newPostService, newProfileService)
     newProfileHandler := qfhttp.NewProfileHandler(newProfileService, newFriendsService, newAuthService, newChatService, connManager)
     newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService)
     newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)

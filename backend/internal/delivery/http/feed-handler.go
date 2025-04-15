@@ -24,9 +24,9 @@ type PostUseCase interface {
 	FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
 	FetchRecommendations(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
 	FetchUserPosts(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
-	AddPost(ctx context.Context, post models.Post) error
+	AddPost(ctx context.Context, post models.Post) (models.Post, error)
 	DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error
-	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) error
+	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (models.Post, error)
 }
 
 type FeedHandler struct {
@@ -111,7 +111,6 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	// Fetching authors
 	publicAuthorsInfo, err := f.profileUseCase.GetPublicUsersInfo(ctx, authors)
 	for i := range postsOut {
-		postsOut[i].Creator = forms.PublicUserInfoToOut(publicAuthorsInfo[authors[i]])
 		rel, err := f.friendUseCase.GetUserRelation(ctx, user.Id, authors[i])
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
@@ -119,7 +118,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		postsOut[i].Creator.Relation = rel
+		postsOut[i].Creator = forms.PublicUserInfoToOut(publicAuthorsInfo[authors[i]], rel)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -196,8 +195,6 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 
 	publicAuthorsInfo, err := f.profileUseCase.GetPublicUsersInfo(ctx, authors)
 	for i := range postsOut {
-		postsOut[i].Creator = forms.PublicUserInfoToOut(publicAuthorsInfo[authors[i]])
-
 		rel, err := f.friendUseCase.GetUserRelation(ctx, user.Id, authors[i])
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
@@ -205,7 +202,7 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		postsOut[i].Creator.Relation = rel
+		postsOut[i].Creator = forms.PublicUserInfoToOut(publicAuthorsInfo[authors[i]], rel)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -303,9 +300,7 @@ func (f *FeedHandler) FetchUserPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range postsOut {
-		postsOut[i].Creator = forms.PublicUserInfoToOut(publicUserInfo)
-		rel := models.RelationSelf
-		postsOut[i].Creator.Relation = rel
+		postsOut[i].Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

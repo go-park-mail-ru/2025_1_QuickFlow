@@ -71,7 +71,7 @@ type PublicUserInfoOut struct {
 	Relation  models.UserRelation `json:"relation"`
 }
 
-func PublicUserInfoToOut(info models.PublicUserInfo) PublicUserInfoOut {
+func PublicUserInfoToOut(info models.PublicUserInfo, relation models.UserRelation) PublicUserInfoOut {
 	return PublicUserInfoOut{
 		ID:        info.Id.String(),
 		Username:  info.Username,
