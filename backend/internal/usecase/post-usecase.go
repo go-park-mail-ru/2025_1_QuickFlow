@@ -80,7 +80,7 @@ func (p *PostService) DeletePost(ctx context.Context, user models.User, postId u
     if err != nil {
         return ErrPostNotFound
     }
-    if !belongsTo && (user.Username != "Nikita" || user.Username != "rvasutenko") {
+    if !belongsTo && user.Username != "Nikita" && user.Username != "rvasutenko" {
         return ErrPostDoesNotBelongToUser
     }
 
