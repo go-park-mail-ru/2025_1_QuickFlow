@@ -15,6 +15,7 @@ import (
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
 	http2 "quickflow/utils/http"
+	"quickflow/utils/validation"
 )
 
 type IWebSocketManager interface {
@@ -106,7 +107,13 @@ func (m *MessageHandlerWS) HandleMessages(_ http.ResponseWriter, r *http.Request
 			writeErrorToWS(conn, "ChatId and ReceiverId cannot be both nil")
 			continue
 		}
+
 		message := messageForm.ToMessageModel()
+		if err = validation.ValidateMessage(message); err != nil {
+			logger.Error(ctx, "Invalid message:", err)
+			writeErrorToWS(conn, fmt.Sprintf("Invalid message: %v", err))
+			continue
+		}
 
 		message.ChatID, err = m.MessageUseCase.SaveMessage(ctx, message)
 		if err != nil {
