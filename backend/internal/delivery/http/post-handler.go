@@ -72,7 +72,6 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 
 	sanitizer.SanitizePost(&postForm, p.policy)
 
-	// TODO make clean
 	if utf8.RuneCountInString(postForm.Text) > 4096 {
 		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", len(postForm.Text)))
 		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
