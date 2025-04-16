@@ -194,7 +194,7 @@ func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Re
 	message := messageForm.ToMessageModel()
 	_, err = m.messageUseCase.SaveMessage(ctx, message)
 	if err != nil {
-		logger.Error(ctx, "Failed to save message: %v", message)
+		logger.Error(ctx, fmt.Sprintf("Failed to save message: %v", message))
 		http2.WriteJSONError(w, "Failed to save message", http.StatusInternalServerError)
 		return
 	}

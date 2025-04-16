@@ -1,4 +1,4 @@
-package http
+package http_test
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/mocks"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
@@ -28,7 +29,7 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 	mockProfileUC := mocks.NewMockProfileUseCase(ctrl)
 	mockWS := mocks.NewMockIWebSocketManager(ctrl)
 
-	handler := NewChatHandler(mockChatUC, mockProfileUC, mockWS)
+	handler := http2.NewChatHandler(mockChatUC, mockProfileUC, mockWS)
 
 	type testCase struct {
 		name               string
@@ -188,7 +189,6 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 		},
 	}
 
-	// Запускаем тесты
 	for _, tc := range testTable {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.mockBehavior()

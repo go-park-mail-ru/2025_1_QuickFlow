@@ -1,4 +1,4 @@
-package http
+package http_test
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/mocks"
 	"quickflow/internal/models"
 )
@@ -24,7 +25,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUC := mocks.NewMockAuthUseCase(ctrl)
-	handler := NewAuthHandler(mockUC, bluemonday.UGCPolicy())
+	handler := http2.NewAuthHandler(mockUC, bluemonday.UGCPolicy())
 
 	type testCase struct {
 		name               string
@@ -116,7 +117,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUC := mocks.NewMockAuthUseCase(ctrl)
-	handler := NewAuthHandler(mockUC, bluemonday.UGCPolicy())
+	handler := http2.NewAuthHandler(mockUC, bluemonday.UGCPolicy())
 
 	type testCase struct {
 		name               string
@@ -187,7 +188,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockUC := mocks.NewMockAuthUseCase(ctrl)
-	handler := NewAuthHandler(mockUC, bluemonday.UGCPolicy())
+	handler := http2.NewAuthHandler(mockUC, bluemonday.UGCPolicy())
 
 	sessionID := uuid.New().String()
 
