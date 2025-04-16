@@ -2,18 +2,15 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"slices"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
-
-	"quickflow/config/postgres"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 	"quickflow/pkg/logger"
@@ -57,16 +54,13 @@ const (
 )
 
 type MessageRepository struct {
-	connPool *pgxpool.Pool
+	connPool *sql.DB
 }
 
-func NewPostgresMessageRepository() *MessageRepository {
-	connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
-	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v", err)
+func NewPostgresMessageRepository(connPool *sql.DB) *MessageRepository {
+	return &MessageRepository{
+		connPool: connPool,
 	}
-
-	return &MessageRepository{connPool: connPool}
 }
 
 // Close закрывает пул соединений
@@ -76,7 +70,8 @@ func (m *MessageRepository) Close() {
 
 func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID,
 	numMessages int, timestamp time.Time) ([]models.Message, error) {
-	rows, err := m.connPool.Query(ctx, getMessagesForChatOlderQuery, chatId, timestamp, numMessages)
+	rows, err := m.connPool.QueryContext(ctx, getMessagesForChatOlderQuery, pgtype.UUID{Bytes: chatId, Valid: true},
+		pgtype.Timestamptz{Time: timestamp, Valid: true}, numMessages)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +88,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 		}
 
 		message := messagePostgres.ToMessage()
-		files, err := m.connPool.Query(ctx, getFilesQuery, messagePostgres.ID)
+		files, err := m.connPool.QueryContext(ctx, getFilesQuery, messagePostgres.ID)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			logger.Error(ctx, fmt.Sprintf("Unable to get files for message %v: %v", messagePostgres.ID, err))
 			return nil, err
@@ -120,7 +115,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 
 func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Message) error {
 	messagePostgres := pgmodels.FromMessage(message)
-	_, err := m.connPool.Exec(ctx, saveMessageQuery,
+	_, err := m.connPool.ExecContext(ctx, saveMessageQuery,
 		messagePostgres.ID, messagePostgres.ChatID, messagePostgres.SenderID,
 		messagePostgres.Text, messagePostgres.CreatedAt, messagePostgres.UpdatedAt,
 		messagePostgres.IsRead)
@@ -129,15 +124,15 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 		return fmt.Errorf("unable to save message to database: %w", err)
 	}
 	for _, fileURL := range messagePostgres.AttachmentsURLs {
-		_, err = m.connPool.Exec(ctx, "INSERT INTO message_file (message_id, file_url) VALUES ($1, $2)",
+		_, err = m.connPool.ExecContext(ctx, "INSERT INTO message_file (message_id, file_url) VALUES ($1, $2)",
 			messagePostgres.ID, fileURL)
 		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Unable to save file URL %s for message %v to database: %s", fileURL, messagePostgres.ID, err.Error()))
+			logger.Error(ctx, fmt.Sprintf("Unable to save file URL %v for message %v to database: %s", fileURL, messagePostgres.ID, err.Error()))
 			return fmt.Errorf("unable to save file URL to database: %w", err)
 		}
 	}
 
-	_, err = m.connPool.Exec(ctx, `update chat set updated_at = $1 where id = $2`,
+	_, err = m.connPool.ExecContext(ctx, `update chat set updated_at = $1 where id = $2`,
 		messagePostgres.UpdatedAt, messagePostgres.ChatID)
 	if err != nil {
 		logger.Error(ctx, "Unable to update chat updated_at: ", err)
@@ -147,7 +142,7 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 }
 
 func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {
-	_, err := m.connPool.Exec(ctx, "DELETE FROM message WHERE id = $1", messageId)
+	_, err := m.connPool.ExecContext(ctx, "DELETE FROM message WHERE id = $1", messageId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to delete message %v from database: %s", messageId, err.Error()))
 		return fmt.Errorf("unable to delete message from database: %w", err)
@@ -155,7 +150,7 @@ func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UU
 	return nil
 }
 func (m *MessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) error {
-	_, err := m.connPool.Exec(ctx, markReadQuery, messageId)
+	_, err := m.connPool.ExecContext(ctx, markReadQuery, pgtype.UUID{Bytes: messageId, Valid: true})
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to mark message %v as read: %s", messageId, err.Error()))
 		return fmt.Errorf("unable to mark message as read: %w", err)
@@ -165,7 +160,7 @@ func (m *MessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) e
 
 func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error) {
 	var messagePostgres pgmodels.MessagePostgres
-	err := m.connPool.QueryRow(ctx, getLastChatMessage, chatId).Scan(
+	err := m.connPool.QueryRowContext(ctx, getLastChatMessage, pgtype.UUID{Bytes: chatId, Valid: true}).Scan(
 		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
 		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt,
 		&messagePostgres.IsRead)

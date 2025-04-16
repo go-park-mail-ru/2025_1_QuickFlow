@@ -234,22 +234,6 @@ func (mr *MockFileRepositoryMockRecorder) GetFileURL(ctx, filename interface{}) 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileURL", reflect.TypeOf((*MockFileRepository)(nil).GetFileURL), ctx, filename)
 }
-
-// GetUserAvatar mocks base method.
-func (m *MockFileRepository) GetUserAvatar(ctx context.Context, userId uuid.UUID) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserAvatar", ctx, userId)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserAvatar indicates an expected call of GetUserAvatar.
-func (mr *MockFileRepositoryMockRecorder) GetUserAvatar(ctx, userId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserAvatar", reflect.TypeOf((*MockFileRepository)(nil).GetUserAvatar), ctx, userId)
-}
-
 // UploadFile mocks base method.
 func (m *MockFileRepository) UploadFile(ctx context.Context, file *models.File) (string, error) {
 	m.ctrl.T.Helper()

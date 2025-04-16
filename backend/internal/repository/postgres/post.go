@@ -2,15 +2,13 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 
-	"quickflow/config/postgres"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 	"quickflow/pkg/logger"
@@ -74,16 +72,13 @@ const insertPhotoQuery = `
 `
 
 type PostgresPostRepository struct {
-	connPool *pgxpool.Pool
+	connPool *sql.DB
 }
 
-func NewPostgresPostRepository() *PostgresPostRepository {
-	connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
-	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v", err)
+func NewPostgresPostRepository(connPool *sql.DB) *PostgresPostRepository {
+	return &PostgresPostRepository{
+		connPool: connPool,
 	}
-
-	return &PostgresPostRepository{connPool: connPool}
 }
 
 // Close закрывает пул соединений
@@ -94,7 +89,7 @@ func (p *PostgresPostRepository) Close() {
 // AddPost adds post to the repository.
 func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) error {
 	postPostgres := pgmodels.ConvertPostToPostgres(post)
-	_, err := p.connPool.Exec(ctx, insertPostQuery,
+	_, err := p.connPool.ExecContext(ctx, insertPostQuery,
 		postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
 		postPostgres.CreatedAt, postPostgres.UpdatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
 		postPostgres.CommentCount, postPostgres.IsRepost)
@@ -104,7 +99,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 	}
 
 	for _, picture := range postPostgres.ImagesURLs {
-		_, err = p.connPool.Exec(ctx, insertPhotoQuery,
+		_, err = p.connPool.ExecContext(ctx, insertPhotoQuery,
 			postPostgres.Id, picture)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to save post pictures %v for post %v to database: %s",
@@ -118,7 +113,7 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 
 // DeletePost removes post from the repository.
 func (p *PostgresPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
-	_, err := p.connPool.Exec(ctx, "delete from post cascade where id = $1", pgtype.UUID{Bytes: postId, Valid: true})
+	_, err := p.connPool.ExecContext(ctx, "delete from post cascade where id = $1", pgtype.UUID{Bytes: postId, Valid: true})
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to delete post %v from database: %s", postId, err.Error()))
 		return fmt.Errorf("unable to delete post from database: %w", err)
@@ -129,7 +124,7 @@ func (p *PostgresPostRepository) DeletePost(ctx context.Context, postId uuid.UUI
 
 func (p *PostgresPostRepository) BelongsTo(ctx context.Context, userId uuid.UUID, postId uuid.UUID) (bool, error) {
 	var id uuid.UUID
-	err := p.connPool.QueryRow(ctx, "select creator_id from post where id = $1", pgtype.UUID{Bytes: postId, Valid: true}).Scan(&id)
+	err := p.connPool.QueryRowContext(ctx, "select creator_id from post where id = $1", pgtype.UUID{Bytes: postId, Valid: true}).Scan(&id)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get post %v from database: %s", postId, err.Error()))
 		return false, fmt.Errorf("unable to get post from database: %w", err)
@@ -139,7 +134,7 @@ func (p *PostgresPostRepository) BelongsTo(ctx context.Context, userId uuid.UUID
 }
 
 func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error) {
-	row := p.connPool.QueryRow(ctx, getPostsQuery, postId)
+	row := p.connPool.QueryRowContext(ctx, getPostsQuery, postId)
 	var postPostgres pgmodels.PostPostgres
 	err := row.Scan(
 		&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
@@ -150,7 +145,7 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 		return models.Post{}, fmt.Errorf("unable to get post from database: %w", err)
 	}
 
-	pics, err := p.connPool.Query(ctx, getPhotosQuery, postId)
+	pics, err := p.connPool.QueryContext(ctx, getPhotosQuery, postId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postId, err.Error()))
 		return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
@@ -172,7 +167,7 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 }
 
 func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-	rows, err := p.connPool.Query(ctx, getUserPostsOlder, id, timestamp, numPosts)
+	rows, err := p.connPool.QueryContext(ctx, getUserPostsOlder, id, timestamp, numPosts)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			id, numPosts, timestamp, err.Error()))
@@ -192,7 +187,7 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
 		}
 
-		pics, err := p.connPool.Query(ctx, getPhotosQuery, postPostgres.Id)
+		pics, err := p.connPool.QueryContext(ctx, getPhotosQuery, postPostgres.Id)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postPostgres.Id, err.Error()))
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
@@ -216,7 +211,7 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 }
 
 func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-	rows, err := p.connPool.Query(ctx, getRecommendationsForUserOlder, timestamp, numPosts)
+	rows, err := p.connPool.QueryContext(ctx, getRecommendationsForUserOlder, timestamp, numPosts)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			uid, numPosts, timestamp, err.Error()))
@@ -236,7 +231,7 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
 		}
 
-		pics, err := p.connPool.Query(ctx, getPhotosQuery, postPostgres.Id)
+		pics, err := p.connPool.QueryContext(ctx, getPhotosQuery, postPostgres.Id)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postPostgres.Id, err.Error()))
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
@@ -260,7 +255,7 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 }
 
 func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
-	rows, err := p.connPool.Query(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
+	rows, err := p.connPool.QueryContext(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
 		models.RelationFriend, models.RelationFollowedBy, models.RelationFollowing)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
@@ -281,7 +276,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
 		}
 
-		pics, err := p.connPool.Query(ctx, getPhotosQuery, postPostgres.Id)
+		pics, err := p.connPool.QueryContext(ctx, getPhotosQuery, postPostgres.Id)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postPostgres.Id, err.Error()))
 			return nil, fmt.Errorf("unable to get posts from database: %w", err)
@@ -305,7 +300,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 }
 
 func (p *PostgresPostRepository) UpdatePostText(ctx context.Context, postId uuid.UUID, text string) error {
-	_, err := p.connPool.Exec(ctx, "update post set text = $1, updated_at = $2 where id = $3", text, time.Now(), postId)
+	_, err := p.connPool.ExecContext(ctx, "update post set text = $1, updated_at = $2 where id = $3", text, time.Now(), postId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to update post %v in database: %s", postId, err.Error()))
 		return fmt.Errorf("unable to update post in database: %w", err)
@@ -315,14 +310,14 @@ func (p *PostgresPostRepository) UpdatePostText(ctx context.Context, postId uuid
 }
 
 func (p *PostgresPostRepository) UpdatePostFiles(ctx context.Context, postId uuid.UUID, fileURLs []string) error {
-	_, err := p.connPool.Exec(ctx, "delete from post_file where post_id = $1", postId)
+	_, err := p.connPool.ExecContext(ctx, "delete from post_file where post_id = $1", postId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to delete post pictures %v from database: %s", postId, err.Error()))
 		return fmt.Errorf("unable to delete post pictures from database: %w", err)
 	}
 
 	for _, fileURL := range fileURLs {
-		_, err = p.connPool.Exec(ctx, "insert into post_file (post_id, file_url) values ($1, $2)", postId, fileURL)
+		_, err = p.connPool.ExecContext(ctx, "insert into post_file (post_id, file_url) values ($1, $2)", postId, fileURL)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to insert post picture %v into database: %s", fileURL, err.Error()))
 			return fmt.Errorf("unable to insert post picture into database: %w", err)
@@ -333,7 +328,7 @@ func (p *PostgresPostRepository) UpdatePostFiles(ctx context.Context, postId uui
 }
 
 func (p *PostgresPostRepository) GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error) {
-	rows, err := p.connPool.Query(ctx, getPhotosQuery, postId)
+	rows, err := p.connPool.QueryContext(ctx, getPhotosQuery, postId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postId, err.Error()))
 		return nil, fmt.Errorf("unable to get post pictures from database: %w", err)

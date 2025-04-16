@@ -1,15 +1,18 @@
 package internal
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
 
 	"quickflow/config"
 	"quickflow/config/cors"
 	minio_config "quickflow/config/minio"
+	postgres2 "quickflow/config/postgres"
 	qfhttp "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/middleware"
 	"quickflow/internal/delivery/ws"
@@ -29,17 +32,23 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 		return fmt.Errorf("could not create minio repository: %v", err)
 	}
 
+	db, err := sql.Open("pgx", postgres2.NewPostgresConfig().GetURL())
+	if err != nil {
+		return fmt.Errorf("could not open database connection: %v", err)
+	}
+	defer db.Close()
+
 	connManager := ws.NewWebSocketManager()
 
 	sanitizerPolicy := bluemonday.UGCPolicy()
 
-	newUserRepo := postgres.NewPostgresUserRepository()
-	newPostRepo := postgres.NewPostgresPostRepository()
+	newUserRepo := postgres.NewPostgresUserRepository(db)
+	newPostRepo := postgres.NewPostgresPostRepository(db)
 	newSessionRepo := redis.NewRedisSessionRepository()
-	newProfileRepo := postgres.NewPostgresProfileRepository()
-	newMessageRepo := postgres.NewPostgresMessageRepository()
-	newChatRepo := postgres.NewPostgresChatRepository()
-	newFriendsRepo := postgres.NewPostgresFriendsRepository()
+	newProfileRepo := postgres.NewPostgresProfileRepository(db)
+	newMessageRepo := postgres.NewPostgresMessageRepository(db)
+	newChatRepo := postgres.NewPostgresChatRepository(db)
+	newFriendsRepo := postgres.NewPostgresFriendsRepository(db)
 	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo, newProfileRepo)
 	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
 	newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
@@ -55,14 +64,6 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
 	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
 	newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
 	newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
-
-	defer newUserRepo.Close()
-	defer newPostRepo.Close()
-	defer newSessionRepo.Close()
-	defer newProfileRepo.Close()
-	defer newMessageRepo.Close()
-	defer newChatRepo.Close()
-	defer newFriendsRepo.Close()
 
 	newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager, sanitizerPolicy)
 

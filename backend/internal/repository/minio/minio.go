@@ -11,7 +11,7 @@ import (
 
 	minioconfig "quickflow/config/minio"
 	"quickflow/internal/models"
-	thread_safe_slice "quickflow/pkg/thread-safe-slice"
+	threadsafeslice "quickflow/pkg/thread-safe-slice"
 )
 
 type MinioRepository struct {
@@ -20,11 +20,6 @@ type MinioRepository struct {
 	AttachmentsBucketName string
 	ProfileBucketName     string
 	PublicUrlRoot         string
-}
-
-func (m *MinioRepository) GetUserAvatar(ctx context.Context, userId uuid.UUID) (string, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func NewMinioRepository(cfg *minioconfig.MinioConfig) (*MinioRepository, error) {
@@ -76,7 +71,7 @@ func (m *MinioRepository) UploadFile(ctx context.Context, file *models.File) (st
 
 // UploadManyFiles uploads multiple files and returns a map of public URLs.
 func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
-	urls := thread_safe_slice.NewThreadSafeSlice[string]()
+	urls := threadsafeslice.NewThreadSafeSlice[string]()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
