@@ -6,13 +6,12 @@ package mocks
 
 import (
 	context "context"
+	models "quickflow/internal/models"
 	reflect "reflect"
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
-
-	models "quickflow/internal/models"
 )
 
 // MockPostRepository is a mock of PostRepository interface.
@@ -52,6 +51,21 @@ func (mr *MockPostRepositoryMockRecorder) AddPost(ctx, post interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPost", reflect.TypeOf((*MockPostRepository)(nil).AddPost), ctx, post)
 }
 
+// BelongsTo mocks base method.
+func (m *MockPostRepository) BelongsTo(ctx context.Context, userId, postId uuid.UUID) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BelongsTo", ctx, userId, postId)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BelongsTo indicates an expected call of BelongsTo.
+func (mr *MockPostRepositoryMockRecorder) BelongsTo(ctx, userId, postId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BelongsTo", reflect.TypeOf((*MockPostRepository)(nil).BelongsTo), ctx, userId, postId)
+}
+
 // DeletePost mocks base method.
 func (m *MockPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) error {
 	m.ctrl.T.Helper()
@@ -64,6 +78,36 @@ func (m *MockPostRepository) DeletePost(ctx context.Context, postId uuid.UUID) e
 func (mr *MockPostRepositoryMockRecorder) DeletePost(ctx, postId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePost", reflect.TypeOf((*MockPostRepository)(nil).DeletePost), ctx, postId)
+}
+
+// GetPost mocks base method.
+func (m *MockPostRepository) GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPost", ctx, postId)
+	ret0, _ := ret[0].(models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPost indicates an expected call of GetPost.
+func (mr *MockPostRepositoryMockRecorder) GetPost(ctx, postId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPost", reflect.TypeOf((*MockPostRepository)(nil).GetPost), ctx, postId)
+}
+
+// GetPostFiles mocks base method.
+func (m *MockPostRepository) GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPostFiles", ctx, postId)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPostFiles indicates an expected call of GetPostFiles.
+func (mr *MockPostRepositoryMockRecorder) GetPostFiles(ctx, postId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostFiles", reflect.TypeOf((*MockPostRepository)(nil).GetPostFiles), ctx, postId)
 }
 
 // GetPostsForUId mocks base method.
@@ -79,4 +123,159 @@ func (m *MockPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, 
 func (mr *MockPostRepositoryMockRecorder) GetPostsForUId(ctx, uid, numPosts, timestamp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostsForUId", reflect.TypeOf((*MockPostRepository)(nil).GetPostsForUId), ctx, uid, numPosts, timestamp)
+}
+
+// GetRecommendationsForUId mocks base method.
+func (m *MockPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRecommendationsForUId", ctx, uid, numPosts, timestamp)
+	ret0, _ := ret[0].([]models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRecommendationsForUId indicates an expected call of GetRecommendationsForUId.
+func (mr *MockPostRepositoryMockRecorder) GetRecommendationsForUId(ctx, uid, numPosts, timestamp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecommendationsForUId", reflect.TypeOf((*MockPostRepository)(nil).GetRecommendationsForUId), ctx, uid, numPosts, timestamp)
+}
+
+// GetUserPosts mocks base method.
+func (m *MockPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserPosts", ctx, id, numPosts, timestamp)
+	ret0, _ := ret[0].([]models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserPosts indicates an expected call of GetUserPosts.
+func (mr *MockPostRepositoryMockRecorder) GetUserPosts(ctx, id, numPosts, timestamp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserPosts", reflect.TypeOf((*MockPostRepository)(nil).GetUserPosts), ctx, id, numPosts, timestamp)
+}
+
+// UpdatePostFiles mocks base method.
+func (m *MockPostRepository) UpdatePostFiles(ctx context.Context, postId uuid.UUID, fileURLs []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePostFiles", ctx, postId, fileURLs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePostFiles indicates an expected call of UpdatePostFiles.
+func (mr *MockPostRepositoryMockRecorder) UpdatePostFiles(ctx, postId, fileURLs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePostFiles", reflect.TypeOf((*MockPostRepository)(nil).UpdatePostFiles), ctx, postId, fileURLs)
+}
+
+// UpdatePostText mocks base method.
+func (m *MockPostRepository) UpdatePostText(ctx context.Context, postId uuid.UUID, text string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePostText", ctx, postId, text)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePostText indicates an expected call of UpdatePostText.
+func (mr *MockPostRepositoryMockRecorder) UpdatePostText(ctx, postId, text interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePostText", reflect.TypeOf((*MockPostRepository)(nil).UpdatePostText), ctx, postId, text)
+}
+
+// MockFileRepository is a mock of FileRepository interface.
+type MockFileRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockFileRepositoryMockRecorder
+}
+
+// MockFileRepositoryMockRecorder is the mock recorder for MockFileRepository.
+type MockFileRepositoryMockRecorder struct {
+	mock *MockFileRepository
+}
+
+// NewMockFileRepository creates a new mock instance.
+func NewMockFileRepository(ctrl *gomock.Controller) *MockFileRepository {
+	mock := &MockFileRepository{ctrl: ctrl}
+	mock.recorder = &MockFileRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockFileRepository) EXPECT() *MockFileRepositoryMockRecorder {
+	return m.recorder
+}
+
+// DeleteFile mocks base method.
+func (m *MockFileRepository) DeleteFile(ctx context.Context, filename string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteFile", ctx, filename)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteFile indicates an expected call of DeleteFile.
+func (mr *MockFileRepositoryMockRecorder) DeleteFile(ctx, filename interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFile", reflect.TypeOf((*MockFileRepository)(nil).DeleteFile), ctx, filename)
+}
+
+// GetFileURL mocks base method.
+func (m *MockFileRepository) GetFileURL(ctx context.Context, filename string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFileURL", ctx, filename)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFileURL indicates an expected call of GetFileURL.
+func (mr *MockFileRepositoryMockRecorder) GetFileURL(ctx, filename interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileURL", reflect.TypeOf((*MockFileRepository)(nil).GetFileURL), ctx, filename)
+}
+
+// GetUserAvatar mocks base method.
+func (m *MockFileRepository) GetUserAvatar(ctx context.Context, userId uuid.UUID) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserAvatar", ctx, userId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserAvatar indicates an expected call of GetUserAvatar.
+func (mr *MockFileRepositoryMockRecorder) GetUserAvatar(ctx, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserAvatar", reflect.TypeOf((*MockFileRepository)(nil).GetUserAvatar), ctx, userId)
+}
+
+// UploadFile mocks base method.
+func (m *MockFileRepository) UploadFile(ctx context.Context, file *models.File) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadFile", ctx, file)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadFile indicates an expected call of UploadFile.
+func (mr *MockFileRepositoryMockRecorder) UploadFile(ctx, file interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockFileRepository)(nil).UploadFile), ctx, file)
+}
+
+// UploadManyFiles mocks base method.
+func (m *MockFileRepository) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadManyFiles", ctx, files)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UploadManyFiles indicates an expected call of UploadManyFiles.
+func (mr *MockFileRepositoryMockRecorder) UploadManyFiles(ctx, files interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadManyFiles", reflect.TypeOf((*MockFileRepository)(nil).UploadManyFiles), ctx, files)
 }

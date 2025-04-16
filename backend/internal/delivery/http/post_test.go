@@ -90,7 +90,9 @@ func TestFeedHandler_AddPost_TableDriven(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			mockPostUseCase := mocks.NewMockPostUseCase(ctrl)
-			handler := NewFeedHandler(mockPostUseCase, mockAuthUseCase)
+			mockProfileUseCase := mocks.NewMockProfileUseCase(ctrl)
+			mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
+			handler := NewFeedHandler(mockAuthUseCase, mockPostUseCase, mockProfileUseCase, mockFriendsUseCase)
 
 			mockPostUseCase.EXPECT().AddPost(gomock.Any(), gomock.Any()).Return(tt.mockError).AnyTimes()
 

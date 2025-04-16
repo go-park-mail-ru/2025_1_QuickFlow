@@ -36,10 +36,25 @@ func (m *MockAuthUseCase) EXPECT() *MockAuthUseCaseMockRecorder {
 	return m.recorder
 }
 
-// CreateUser mocks base method.
-func (m *MockAuthUseCase) CreateUser(ctx context.Context, user models.User) (uuid.UUID, models.Session, error) {
+// AuthUser mocks base method.
+func (m *MockAuthUseCase) AuthUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUser", ctx, user)
+	ret := m.ctrl.Call(m, "AuthUser", ctx, authData)
+	ret0, _ := ret[0].(models.Session)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AuthUser indicates an expected call of AuthUser.
+func (mr *MockAuthUseCaseMockRecorder) AuthUser(ctx, authData interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthUser", reflect.TypeOf((*MockAuthUseCase)(nil).AuthUser), ctx, authData)
+}
+
+// CreateUser mocks base method.
+func (m *MockAuthUseCase) CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUser", ctx, user, profile)
 	ret0, _ := ret[0].(uuid.UUID)
 	ret1, _ := ret[1].(models.Session)
 	ret2, _ := ret[2].(error)
@@ -47,9 +62,9 @@ func (m *MockAuthUseCase) CreateUser(ctx context.Context, user models.User) (uui
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockAuthUseCaseMockRecorder) CreateUser(ctx, user interface{}) *gomock.Call {
+func (mr *MockAuthUseCaseMockRecorder) CreateUser(ctx, user, profile interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockAuthUseCase)(nil).CreateUser), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockAuthUseCase)(nil).CreateUser), ctx, user, profile)
 }
 
 // DeleteUserSession mocks base method.
@@ -66,19 +81,19 @@ func (mr *MockAuthUseCaseMockRecorder) DeleteUserSession(ctx, session interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserSession", reflect.TypeOf((*MockAuthUseCase)(nil).DeleteUserSession), ctx, session)
 }
 
-// GetUser mocks base method.
-func (m *MockAuthUseCase) GetUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
+// GetUserByUsername mocks base method.
+func (m *MockAuthUseCase) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUser", ctx, authData)
-	ret0, _ := ret[0].(models.Session)
+	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
+	ret0, _ := ret[0].(models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUser indicates an expected call of GetUser.
-func (mr *MockAuthUseCaseMockRecorder) GetUser(ctx, authData interface{}) *gomock.Call {
+// GetUserByUsername indicates an expected call of GetUserByUsername.
+func (mr *MockAuthUseCaseMockRecorder) GetUserByUsername(ctx, username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockAuthUseCase)(nil).GetUser), ctx, authData)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockAuthUseCase)(nil).GetUserByUsername), ctx, username)
 }
 
 // LookupUserSession mocks base method.

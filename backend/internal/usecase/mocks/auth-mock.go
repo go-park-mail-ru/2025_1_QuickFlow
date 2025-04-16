@@ -6,12 +6,11 @@ package mocks
 
 import (
 	context "context"
+	models "quickflow/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	uuid "github.com/google/uuid"
-
-	models "quickflow/internal/models"
 )
 
 // MockUserRepository is a mock of UserRepository interface.
@@ -67,6 +66,21 @@ func (mr *MockUserRepositoryMockRecorder) GetUserByUId(ctx, uid interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUId", reflect.TypeOf((*MockUserRepository)(nil).GetUserByUId), ctx, uid)
 }
 
+// GetUserByUsername mocks base method.
+func (m *MockUserRepository) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
+	ret0, _ := ret[0].(models.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByUsername indicates an expected call of GetUserByUsername.
+func (mr *MockUserRepositoryMockRecorder) GetUserByUsername(ctx, username interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepository)(nil).GetUserByUsername), ctx, username)
+}
+
 // IsExists mocks base method.
 func (m *MockUserRepository) IsExists(ctx context.Context, login string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -95,6 +109,21 @@ func (m *MockUserRepository) SaveUser(ctx context.Context, user models.User) (uu
 func (mr *MockUserRepositoryMockRecorder) SaveUser(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveUser", reflect.TypeOf((*MockUserRepository)(nil).SaveUser), ctx, user)
+}
+
+// SearchSimilar mocks base method.
+func (m *MockUserRepository) SearchSimilar(ctx context.Context, toSearch string, postsCount uint) ([]models.PublicUserInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchSimilar", ctx, toSearch, postsCount)
+	ret0, _ := ret[0].([]models.PublicUserInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SearchSimilar indicates an expected call of SearchSimilar.
+func (mr *MockUserRepositoryMockRecorder) SearchSimilar(ctx, toSearch, postsCount interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchSimilar", reflect.TypeOf((*MockUserRepository)(nil).SearchSimilar), ctx, toSearch, postsCount)
 }
 
 // MockSessionRepository is a mock of SessionRepository interface.
