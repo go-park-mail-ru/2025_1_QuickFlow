@@ -3,13 +3,15 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
+
 	"quickflow/internal/models"
-	"testing"
-	"time"
 )
 
 func TestSaveProfile(t *testing.T) {
@@ -102,10 +104,16 @@ func TestGetProfile(t *testing.T) {
 			name:   "Successfully get profile",
 			userId: uuid_,
 			mock: func(mock sqlmock.Sqlmock) {
+				// Мокаем запрос для получения профиля
 				mock.ExpectQuery(`select id, bio, profile_avatar`).WithArgs(sqlmock.AnyArg()).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "bio", "profile_avatar", "profile_background", "firstname", "lastname", "sex", "birth_date", "school_id", "contact_info_id", "last_seen"}).
 						AddRow(uuid_, "Test bio", "http://avatar.url", "http://background.url", "John", "Doe", models.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 							pgtype.UUID{Valid: false}, pgtype.UUID{Valid: false}, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)))
+
+				// Добавляем мок для запроса получения образования
+				mock.ExpectQuery(`select u.name, u.city, f.name, e.graduation_year`).WithArgs(sqlmock.AnyArg()).
+					WillReturnRows(sqlmock.NewRows([]string{"name", "city", "faculty", "graduation_year"}).
+						AddRow("University Name", "City", "Faculty Name", 2021))
 			},
 			want: models.Profile{
 				UserId: uuid_,
@@ -118,6 +126,13 @@ func TestGetProfile(t *testing.T) {
 					Sex:           models.MALE,
 					DateOfBirth:   time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
+				UniversityEducation: &models.UniversityEducation{
+					University:     "University Name",
+					City:           "City",
+					Faculty:        "Faculty Name",
+					GraduationYear: 2021,
+				},
+				LastSeen: time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
 			wantErr: false,
 		},
@@ -208,7 +223,6 @@ func TestUpdateProfileTextInfo(t *testing.T) {
 				mock.ExpectExec(`update profile set bio`).WithArgs(
 					sqlmock.AnyArg(), "Updated bio", "Updated John", "Updated Doe", models.MALE, time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
 				).WillReturnError(fmt.Errorf("update failed"))
-				mock.ExpectRollback()
 			},
 			wantErr: true,
 		},
