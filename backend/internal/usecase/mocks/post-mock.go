@@ -234,7 +234,6 @@ func (mr *MockFileRepositoryMockRecorder) GetFileURL(ctx, filename interface{}) 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFileURL", reflect.TypeOf((*MockFileRepository)(nil).GetFileURL), ctx, filename)
 }
-
 // UploadFile mocks base method.
 func (m *MockFileRepository) UploadFile(ctx context.Context, file *models.File) (string, error) {
 	m.ctrl.T.Helper()

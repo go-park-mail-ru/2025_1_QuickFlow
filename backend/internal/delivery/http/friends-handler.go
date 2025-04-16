@@ -26,14 +26,14 @@ type FriendsUseCase interface {
 }
 
 type FriendsHandler struct {
-	friendsUseCase FriendsUseCase
-	connService    IWebSocketManager
+	FriendsUseCase FriendsUseCase
+	ConnService    IWebSocketManager
 }
 
 func NewFriendsHandler(friendsUseCase FriendsUseCase, connService IWebSocketManager) *FriendsHandler {
 	return &FriendsHandler{
-		friendsUseCase: friendsUseCase,
-		connService:    connService,
+		FriendsUseCase: friendsUseCase,
+		ConnService:    connService,
 	}
 }
 
@@ -67,7 +67,7 @@ func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info(ctx, fmt.Sprintf("User %s requested friends", targetUserID))
 
-	friendsInfo, hasMore, friendsCount, err := f.friendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset)
+	friendsInfo, hasMore, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset)
 
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get list of friends for user %s: %s", user.Username, err.Error()))
@@ -78,7 +78,7 @@ func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 
 	var friendsOnline []bool
 	for _, friend := range friendsInfo {
-		_, isOnline := f.connService.IsConnected(friend.Id)
+		_, isOnline := f.ConnService.IsConnected(friend.Id)
 		friendsOnline = append(friendsOnline, isOnline)
 	}
 
@@ -128,7 +128,7 @@ func (f *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 	logger.Info(ctx, "Successfully parsed request body")
 	logger.Info(ctx, fmt.Sprintf("Trying to check relation between sender %s and receiver %s", user.Username, req.ReceiverID))
 
-	isExists, err := f.friendsUseCase.IsExistsFriendRequest(ctx, user.Id.String(), req.ReceiverID)
+	isExists, err := f.FriendsUseCase.IsExistsFriendRequest(ctx, user.Id.String(), req.ReceiverID)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to check relation between sender: %s and receiver: %s. Error: %s", user.Username, req.ReceiverID, err.Error()))
 		http2.WriteJSONError(w, "Failed to check relation", http.StatusInternalServerError)
@@ -142,7 +142,7 @@ func (f *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 
 	logger.Info(ctx, fmt.Sprintf("User %s trying to add friend %s ", user.Username, req.ReceiverID))
 
-	if err = f.friendsUseCase.SendFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
+	if err = f.FriendsUseCase.SendFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to send friend request: %s", err))
 		http2.WriteJSONError(w, "Failed to send friend request", http.StatusInternalServerError)
 		return
@@ -174,7 +174,7 @@ func (f *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 	logger.Info(ctx, "Successfully parsed request body")
 	logger.Info(ctx, fmt.Sprintf("User %s trying to accept friend %s ", user.Username, req.ReceiverID))
 
-	if err = f.friendsUseCase.AcceptFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
+	if err = f.FriendsUseCase.AcceptFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
 		http2.WriteJSONError(w, "Failed to accept friend request", http.StatusInternalServerError)
 		return
 	}
@@ -205,7 +205,7 @@ func (f *FriendsHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, "Successfully parsed request body")
 	logger.Info(ctx, fmt.Sprintf("User %s trying to delete friend %s ", user.Username, req.FriendID))
 
-	if err = f.friendsUseCase.DeleteFriend(ctx, user.Id.String(), req.FriendID); err != nil {
+	if err = f.FriendsUseCase.DeleteFriend(ctx, user.Id.String(), req.FriendID); err != nil {
 		http2.WriteJSONError(w, "Failed to accept friend request", http.StatusInternalServerError)
 		return
 	}
@@ -236,7 +236,7 @@ func (f *FriendsHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, "Successfully parsed request body")
 	logger.Info(ctx, fmt.Sprintf("User: %s trying to unfollow userЖ %s ", user.Username, req.FriendID))
 
-	if err = f.friendsUseCase.Unfollow(ctx, user.Id.String(), req.FriendID); err != nil {
+	if err = f.FriendsUseCase.Unfollow(ctx, user.Id.String(), req.FriendID); err != nil {
 		http2.WriteJSONError(w, "Failed to unfollow user", http.StatusInternalServerError)
 		return
 	}

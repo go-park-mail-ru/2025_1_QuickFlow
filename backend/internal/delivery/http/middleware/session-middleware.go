@@ -39,7 +39,7 @@ func SessionMiddleware(authUseCase http2.AuthUseCase) mux.MiddlewareFunc {
 
 			// add user to context
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, "user", user)
+			ctx = context.WithValue(ctx, "user", models.User{Id: user.Id, Username: "Test"})
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
