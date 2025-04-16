@@ -2,20 +2,16 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-	"log"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
-
-	"quickflow/config/postgres"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 	"quickflow/internal/usecase"
+	"time"
 )
 
 const InsertProfileQuery = `
@@ -95,17 +91,14 @@ const updateLastSeenQuery = `
 `
 
 type PostgresProfileRepository struct {
-	connPool *pgxpool.Pool
+	connPool *sql.DB
 }
 
 // NewPostgresProfileRepository создает новый экземпляр репозитория.
-func NewPostgresProfileRepository() *PostgresProfileRepository {
-	connPool, err := pgxpool.New(context.Background(), postgres.NewPostgresConfig().GetURL())
-	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v", err)
+func NewPostgresProfileRepository(db *sql.DB) *PostgresProfileRepository {
+	return &PostgresProfileRepository{
+		connPool: db,
 	}
-
-	return &PostgresProfileRepository{connPool: connPool}
 }
 
 // Close закрывает пул соединений
@@ -115,7 +108,7 @@ func (p *PostgresProfileRepository) Close() {
 
 // SaveProfile сохраняет профиль пользователя в базе данных.
 func (p *PostgresProfileRepository) SaveProfile(ctx context.Context, profile models.Profile) error {
-	_, err := p.connPool.Exec(ctx, InsertProfileQuery, profile.UserId, profile.BasicInfo.Bio,
+	_, err := p.connPool.ExecContext(ctx, InsertProfileQuery, profile.UserId, profile.BasicInfo.Bio,
 		profile.BasicInfo.AvatarUrl, profile.BasicInfo.BackgroundUrl,
 		profile.BasicInfo.Name, profile.BasicInfo.Surname, profile.BasicInfo.Sex,
 		profile.BasicInfo.DateOfBirth)
@@ -130,7 +123,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 	var schoolId, contactInfoId pgtype.Int4
 
 	var profile pgmodels.ProfilePostgres
-	err := p.connPool.QueryRow(ctx, GetProfileQuery, userId).Scan(&profile.Id, &profile.Bio, &profile.AvatarUrl,
+	err := p.connPool.QueryRowContext(ctx, GetProfileQuery, userId).Scan(&profile.Id, &profile.Bio, &profile.AvatarUrl,
 		&profile.BackgroundUrl, &profile.Name, &profile.Surname, &profile.Sex, &profile.DateOfBirth, &schoolId,
 		&contactInfoId, &profile.LastSeen)
 	if err != nil {
@@ -139,14 +132,14 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 
 	if schoolId.Valid {
 		profile.SchoolEducation = &pgmodels.SchoolEducation{}
-		err := p.connPool.QueryRow(ctx, GetSchoolQuery, schoolId).Scan(&profile.SchoolEducation.City, &profile.SchoolEducation.School)
+		err := p.connPool.QueryRowContext(ctx, GetSchoolQuery, schoolId).Scan(&profile.SchoolEducation.City, &profile.SchoolEducation.School)
 		if err != nil {
 			return models.Profile{}, fmt.Errorf("unable to get school: %w", err)
 		}
 	}
 
 	profile.UniversityEducation = &pgmodels.UniversityEducation{}
-	err = p.connPool.QueryRow(ctx, GetEducationQuery, userId).Scan(
+	err = p.connPool.QueryRowContext(ctx, GetEducationQuery, userId).Scan(
 		&profile.UniversityEducation.University,
 		&profile.UniversityEducation.City,
 		&profile.UniversityEducation.Faculty,
@@ -160,7 +153,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 
 	if contactInfoId.Valid {
 		profile.ContactInfo = &pgmodels.ContactInfoPostgres{}
-		err := p.connPool.QueryRow(ctx, GetContactInfoQuery, contactInfoId).Scan(&profile.ContactInfo.City, &profile.ContactInfo.Email,
+		err := p.connPool.QueryRowContext(ctx, GetContactInfoQuery, contactInfoId).Scan(&profile.ContactInfo.City, &profile.ContactInfo.Email,
 			&profile.ContactInfo.Phone)
 		if err != nil {
 			return models.Profile{}, fmt.Errorf("unable to get contact info: %w", err)
@@ -172,27 +165,27 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 
 // UpdateProfileTextInfo обновляет текстовую информацию профиля в базе данных.
 func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, newProfile models.Profile) error {
-	tx, err := p.connPool.Begin(ctx)
+	tx, err := p.connPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
 		if err != nil {
-			tx.Rollback(ctx)
+			tx.Rollback()
 		} else {
-			tx.Commit(ctx)
+			tx.Commit()
 		}
 	}()
 
 	// Обновляем основной профиль
 	if newProfile.BasicInfo != nil {
-		commandTag, err := tx.Exec(ctx, UpdateProfileQuery, newProfile.UserId, newProfile.BasicInfo.Bio,
+		commandTag, err := tx.ExecContext(ctx, UpdateProfileQuery, newProfile.UserId, newProfile.BasicInfo.Bio,
 			newProfile.BasicInfo.Name, newProfile.BasicInfo.Surname, newProfile.BasicInfo.Sex,
 			newProfile.BasicInfo.DateOfBirth)
 		if err != nil {
 			return fmt.Errorf("unable to update profile: %w", err)
 		}
-		if commandTag.RowsAffected() == 0 {
+		if rows, err := commandTag.RowsAffected(); rows == 0 || err != nil {
 			return usecase.ErrNotFound
 		}
 	}
@@ -224,7 +217,7 @@ func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, n
 
 	// Обновляем ссылки на внешние ключи в профиле
 	if newProfile.SchoolEducation != nil || newProfile.UniversityEducation != nil || newProfile.ContactInfo != nil {
-		_, err = tx.Exec(ctx, `
+		_, err = tx.ExecContext(ctx, `
 			UPDATE profile 
 			SET contact_info_id = $2, school_id = $3
 			WHERE id = $1;
@@ -239,7 +232,7 @@ func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, n
 
 // UpdateProfileAvatar обновляет аватар профиля в базе данных.
 func (p *PostgresProfileRepository) UpdateProfileAvatar(ctx context.Context, id uuid.UUID, url string) error {
-	_, err := p.connPool.Query(ctx, `update profile set profile_avatar = $1 where id = $2`, url, id)
+	_, err := p.connPool.QueryContext(ctx, `update profile set profile_avatar = $1 where id = $2`, url, id)
 	if err != nil {
 		return fmt.Errorf("unable to update profile avatar: %w", err)
 	}
@@ -248,7 +241,7 @@ func (p *PostgresProfileRepository) UpdateProfileAvatar(ctx context.Context, id 
 
 // UpdateProfileCover обновляет обложку профиля в базе данных.
 func (p *PostgresProfileRepository) UpdateProfileCover(ctx context.Context, id uuid.UUID, url string) error {
-	_, err := p.connPool.Query(ctx, `update profile set profile_background = $1 where id = $2`, url, id)
+	_, err := p.connPool.QueryContext(ctx, `update profile set profile_background = $1 where id = $2`, url, id)
 	if err != nil {
 		return fmt.Errorf("unable to update profile background: %w", err)
 	}
@@ -257,7 +250,7 @@ func (p *PostgresProfileRepository) UpdateProfileCover(ctx context.Context, id u
 
 func (p *PostgresProfileRepository) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
 	var publicInfo pgmodels.PublicUserInfoPostgres
-	err := p.connPool.QueryRow(ctx, GetPublicUserInfoQuery, userId).Scan(
+	err := p.connPool.QueryRowContext(ctx, GetPublicUserInfoQuery, userId).Scan(
 		&publicInfo.Id, &publicInfo.Firstname, &publicInfo.Lastname,
 		&publicInfo.AvatarURL, &publicInfo.Username, &publicInfo.LastSeen)
 	if err != nil {
@@ -271,7 +264,7 @@ func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, user
 		return nil, nil
 	}
 
-	rows, err := p.connPool.Query(ctx, GetPublicUsersInfoQuery, userIds)
+	rows, err := p.connPool.QueryContext(ctx, GetPublicUsersInfoQuery, userIds)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get public user info: %w", err)
 	}
@@ -293,29 +286,29 @@ func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, user
 }
 
 func (p *PostgresProfileRepository) UpdateLastSeen(ctx context.Context, userId uuid.UUID) error {
-	_, err := p.connPool.Exec(ctx, updateLastSeenQuery, userId, time.Now())
+	_, err := p.connPool.ExecContext(ctx, updateLastSeenQuery, userId, time.Now())
 	if err != nil {
 		return fmt.Errorf("u.connPool.Exec: %w", err)
 	}
 	return nil
 }
 
-func updateContactInfo(ctx context.Context, tx pgx.Tx, contactInfo models.ContactInfo) (pgtype.Int4, error) {
+func updateContactInfo(ctx context.Context, tx *sql.Tx, contactInfo models.ContactInfo) (pgtype.Int4, error) {
 	var contactInfoID pgtype.Int4
 
-	err := tx.QueryRow(ctx, `SELECT id FROM contact_info WHERE phone_number = $1 AND email = $2`,
+	err := tx.QueryRowContext(ctx, `SELECT id FROM contact_info WHERE phone_number = $1 AND email = $2`,
 		contactInfo.Phone, contactInfo.Email).Scan(&contactInfoID)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Вставляем новую запись
-		err = tx.QueryRow(ctx, `
+		err = tx.QueryRowContext(ctx, `
 			INSERT INTO contact_info (city, phone_number, email)
 			VALUES ($1, $2, $3)
 			RETURNING id;
 		`, contactInfo.City, contactInfo.Phone, contactInfo.Email).Scan(&contactInfoID)
 	} else if err == nil {
 		// Обновляем существующую запись
-		_, err = tx.Exec(ctx, `
+		_, err = tx.ExecContext(ctx, `
 			UPDATE contact_info 
 			SET city = $1 
 			WHERE id = $2;
@@ -328,13 +321,13 @@ func updateContactInfo(ctx context.Context, tx pgx.Tx, contactInfo models.Contac
 	return contactInfoID, nil
 }
 
-func updateSchoolInfo(ctx context.Context, tx pgx.Tx, education models.SchoolEducation) (pgtype.Int4, error) {
+func updateSchoolInfo(ctx context.Context, tx *sql.Tx, education models.SchoolEducation) (pgtype.Int4, error) {
 	var schoolID pgtype.Int4
-	err := tx.QueryRow(ctx, `SELECT id FROM school WHERE city = $1 AND name = $2`,
+	err := tx.QueryRowContext(ctx, `SELECT id FROM school WHERE city = $1 AND name = $2`,
 		education.City, education.School).Scan(&schoolID)
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		err = tx.QueryRow(ctx, `
+		err = tx.QueryRowContext(ctx, `
 				INSERT INTO school (city, name)
 				VALUES ($1, $2)
 				RETURNING id;
@@ -346,10 +339,10 @@ func updateSchoolInfo(ctx context.Context, tx pgx.Tx, education models.SchoolEdu
 	return schoolID, nil
 }
 
-func updateUniversityInfo(ctx context.Context, tx pgx.Tx, profileId uuid.UUID, education models.UniversityEducation) error {
+func updateUniversityInfo(ctx context.Context, tx *sql.Tx, profileId uuid.UUID, education models.UniversityEducation) error {
 	var universityID, facultyID pgtype.Int4
 
-	err := tx.QueryRow(ctx, InsertOrGetUniversityQuery,
+	err := tx.QueryRowContext(ctx, InsertOrGetUniversityQuery,
 		education.University,
 		education.City,
 	).Scan(&universityID)
@@ -357,12 +350,12 @@ func updateUniversityInfo(ctx context.Context, tx pgx.Tx, profileId uuid.UUID, e
 		return fmt.Errorf("unable to insert/get university: %w", err)
 	}
 
-	err = tx.QueryRow(ctx, InsertOrGetFacultyQuery, universityID, education.Faculty).Scan(&facultyID)
+	err = tx.QueryRowContext(ctx, InsertOrGetFacultyQuery, universityID, education.Faculty).Scan(&facultyID)
 	if err != nil {
 		return fmt.Errorf("unable to insert/get faculty: %w", err)
 	}
 
-	_, err = tx.Exec(ctx, InsertOrUpdateEducationQuery,
+	_, err = tx.ExecContext(ctx, InsertOrUpdateEducationQuery,
 		profileId, facultyID, education.GraduationYear,
 	)
 	if err != nil {

@@ -39,7 +39,8 @@ type ProfileHandler struct {
 	policy         *bluemonday.Policy
 }
 
-func NewProfileHandler(profileUC ProfileUseCase, friendUseCase FriendsUseCase, authUseCase AuthUseCase, chatUseCase ChatUseCase, connService IWebSocketManager, policy *bluemonday.Policy) *ProfileHandler {
+func NewProfileHandler(profileUC ProfileUseCase, friendUseCase FriendsUseCase, authUseCase AuthUseCase,
+	chatUseCase ChatUseCase, connService IWebSocketManager, policy *bluemonday.Policy) *ProfileHandler {
 	return &ProfileHandler{
 		profileUC:      profileUC,
 		connService:    connService,
