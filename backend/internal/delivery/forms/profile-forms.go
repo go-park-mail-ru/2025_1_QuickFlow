@@ -56,7 +56,13 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 		}
 	}
 
+	id, err := uuid.Parse(f.Id)
+	if err != nil {
+		return models.Profile{}, errors.New("invalid user id")
+	}
+
 	return models.Profile{
+		UserId:     id,
 		BasicInfo:  basicInfo,
 		Avatar:     f.Avatar,
 		Background: f.Background,
