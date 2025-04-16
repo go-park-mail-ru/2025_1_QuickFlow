@@ -106,6 +106,7 @@ func (p *PostOut) FromPost(post models.Post) {
 	p.Pics = urls
 	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
 	p.UpdatedAt = post.UpdatedAt.Format(config.TimeStampLayout)
+	p.Creator.ID = post.CreatorId.String()
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount

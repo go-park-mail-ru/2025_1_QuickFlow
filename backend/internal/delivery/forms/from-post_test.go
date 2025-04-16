@@ -21,7 +21,7 @@ func TestPostOut_FromPost(t *testing.T) {
 				Id:           uuid.New(),
 				CreatorId:    uuid.New(),
 				Desc:         "Test Post Description",
-				Images:       []string{"pic1.jpg", "pic2.jpg"},
+				ImagesURL:    []string{"pic1.jpg", "pic2.jpg"},
 				CreatedAt:    time.Date(2025, 3, 11, 15, 30, 0, 0, time.UTC),
 				LikeCount:    10,
 				RepostCount:  5,
@@ -30,7 +30,7 @@ func TestPostOut_FromPost(t *testing.T) {
 			expected: PostOut{
 				Desc:         "Test Post Description",
 				Pics:         []string{"pic1.jpg", "pic2.jpg"},
-				CreatedAt:    "2025-03-11 15:30:00", // Сформатированная дата
+				CreatedAt:    "2025-03-11T15:30:00Z", // Сформатированная дата
 				LikeCount:    10,
 				RepostCount:  5,
 				CommentCount: 3,
@@ -48,8 +48,8 @@ func TestPostOut_FromPost(t *testing.T) {
 			if postOut.Id != tt.post.Id.String() {
 				t.Errorf("FromPost() Id = %v, want %v", postOut.Id, tt.post.Id.String())
 			}
-			if postOut.CreatorId != tt.post.CreatorId.String() {
-				t.Errorf("FromPost() CreatorId = %v, want %v", postOut.CreatorId, tt.post.CreatorId.String())
+			if postOut.Creator.ID != tt.post.CreatorId.String() {
+				t.Errorf("FromPost() CreatorId = %v, want %v", postOut.Creator.ID, tt.post.CreatorId.String())
 			}
 
 			// Проверка остальных полей
