@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -199,5 +200,91 @@ func TestCheckPassword(t *testing.T) {
 	for _, test := range tests {
 		actual := CheckPassword(test.inputPass, test.inputHash, test.inputSalt)
 		require.Equal(t, test.expected, actual, test.name)
+	}
+}
+
+func TestValidateUser(t *testing.T) {
+	tests := []struct {
+		name     string
+		login    string
+		password string
+		wantErr  error
+	}{
+		{
+			name:     "valid user",
+			login:    "validUser123",
+			password: "ValidPass123!",
+			wantErr:  nil,
+		},
+		{
+			name:     "invalid login",
+			login:    " invalidUser",
+			password: "ValidPass123!",
+			wantErr:  errors.New("invalid login"),
+		},
+		{
+			name:     "invalid password",
+			login:    "validUser123",
+			password: "short",
+			wantErr:  errors.New("invalid password"),
+		},
+		{
+			name:     "both invalid",
+			login:    "",
+			password: "123",
+			wantErr:  errors.New("invalid login"), // первая ошибка, которую вернёт switch
+		},
+	}
+
+	for _, tt := range tests {
+		err := ValidateUser(tt.login, tt.password)
+		if tt.wantErr != nil {
+			require.EqualError(t, err, tt.wantErr.Error(), tt.name)
+		} else {
+			require.NoError(t, err, tt.name)
+		}
+	}
+}
+
+func TestValidateProfile(t *testing.T) {
+	tests := []struct {
+		name      string
+		firstName string
+		lastName  string
+		wantErr   error
+	}{
+		{
+			name:      "valid profile",
+			firstName: "John",
+			lastName:  "Doe",
+			wantErr:   nil,
+		},
+		{
+			name:      "invalid first name",
+			firstName: "",
+			lastName:  "Doe",
+			wantErr:   errors.New("invalid first name"),
+		},
+		{
+			name:      "invalid last name",
+			firstName: "John",
+			lastName:  "123Doe",
+			wantErr:   errors.New("invalid last name"),
+		},
+		{
+			name:      "both invalid",
+			firstName: "!",
+			lastName:  "",
+			wantErr:   errors.New("invalid first name"),
+		},
+	}
+
+	for _, tt := range tests {
+		err := ValidateProfile(tt.firstName, tt.lastName)
+		if tt.wantErr != nil {
+			require.EqualError(t, err, tt.wantErr.Error(), tt.name)
+		} else {
+			require.NoError(t, err, tt.name)
+		}
 	}
 }
