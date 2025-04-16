@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 	"quickflow/pkg/logger"
@@ -89,7 +89,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 
 		message := messagePostgres.ToMessage()
 		files, err := m.connPool.QueryContext(ctx, getFilesQuery, messagePostgres.ID)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			logger.Error(ctx, fmt.Sprintf("Unable to get files for message %v: %v", messagePostgres.ID, err))
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.
 		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
 		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt,
 		&messagePostgres.IsRead)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		logger.Error(ctx, "Unable to get last message from database: ", err)

@@ -1,146 +1,149 @@
 package internal
 
 import (
-	"database/sql"
-	"fmt"
-	"net/http"
+    "database/sql"
+    "fmt"
+    "net/http"
 
-	"github.com/gorilla/mux"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/microcosm-cc/bluemonday"
+    "github.com/gorilla/mux"
+    _ "github.com/jackc/pgx/v5/stdlib"
+    "github.com/microcosm-cc/bluemonday"
 
-	"quickflow/config"
-	"quickflow/config/cors"
-	minio_config "quickflow/config/minio"
-	postgres2 "quickflow/config/postgres"
-	qfhttp "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/middleware"
-	"quickflow/internal/delivery/ws"
-	"quickflow/internal/repository/minio"
-	"quickflow/internal/repository/postgres"
-	"quickflow/internal/repository/redis"
-	"quickflow/internal/usecase"
+    "quickflow/config"
+    "quickflow/config/cors"
+    minio_config "quickflow/config/minio"
+    postgres2 "quickflow/config/postgres"
+    qfhttp "quickflow/internal/delivery/http"
+    "quickflow/internal/delivery/http/middleware"
+    "quickflow/internal/delivery/ws"
+    "quickflow/internal/repository/minio"
+    "quickflow/internal/repository/postgres"
+    "quickflow/internal/repository/redis"
+    "quickflow/internal/usecase"
 )
 
 func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.MinioConfig) error {
-	if cfg == nil {
-		return fmt.Errorf("config is nil")
-	}
+    if cfg == nil {
+        return fmt.Errorf("config is nil")
+    }
 
-	newFileRepo, err := minio.NewMinioRepository(minioCfg)
-	if err != nil {
-		return fmt.Errorf("could not create minio repository: %v", err)
-	}
+    newFileRepo, err := minio.NewMinioRepository(minioCfg)
+    if err != nil {
+        return fmt.Errorf("could not create minio repository: %v", err)
+    }
 
-	db, err := sql.Open("pgx", postgres2.NewPostgresConfig().GetURL())
-	if err != nil {
-		return fmt.Errorf("could not open database connection: %v", err)
-	}
-	defer db.Close()
+    db, err := sql.Open("pgx", postgres2.NewPostgresConfig().GetURL())
+    if err != nil {
+        return fmt.Errorf("could not open database connection: %v", err)
+    }
+    defer db.Close()
 
-	connManager := ws.NewWebSocketManager()
+    connManager := ws.NewWebSocketManager()
 
-	sanitizerPolicy := bluemonday.UGCPolicy()
+    sanitizerPolicy := bluemonday.UGCPolicy()
 
-	newUserRepo := postgres.NewPostgresUserRepository(db)
-	newPostRepo := postgres.NewPostgresPostRepository(db)
-	newSessionRepo := redis.NewRedisSessionRepository()
-	newProfileRepo := postgres.NewPostgresProfileRepository(db)
-	newMessageRepo := postgres.NewPostgresMessageRepository(db)
-	newChatRepo := postgres.NewPostgresChatRepository(db)
-	newFriendsRepo := postgres.NewPostgresFriendsRepository(db)
-	newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo, newProfileRepo)
-	newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
-	newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
-	newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
-	newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
-	newFriendsService := usecase.NewFriendsService(newFriendsRepo)
-	newSearchService := usecase.NewSearchService(newUserRepo)
-	newAuthHandler := qfhttp.NewAuthHandler(newAuthService, sanitizerPolicy)
-	newFeedHandler := qfhttp.NewFeedHandler(newAuthService, newPostService, newProfileService, newFriendsService)
-	newPostHandler := qfhttp.NewPostHandler(newPostService, newProfileService, sanitizerPolicy)
-	newProfileHandler := qfhttp.NewProfileHandler(newProfileService, newFriendsService, newAuthService, newChatService, connManager, sanitizerPolicy)
-	newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService, sanitizerPolicy)
-	newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
-	newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
-	newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
+    newUserRepo := postgres.NewPostgresUserRepository(db)
+    newPostRepo := postgres.NewPostgresPostRepository(db)
+    newSessionRepo := redis.NewRedisSessionRepository()
+    newProfileRepo := postgres.NewPostgresProfileRepository(db)
+    newMessageRepo := postgres.NewPostgresMessageRepository(db)
+    newChatRepo := postgres.NewPostgresChatRepository(db)
+    newFriendsRepo := postgres.NewPostgresFriendsRepository(db)
 
-	newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager, sanitizerPolicy)
+    newAuthService := usecase.NewAuthService(newUserRepo, newSessionRepo, newProfileRepo)
+    newPostService := usecase.NewPostService(newPostRepo, newFileRepo)
+    newProfileService := usecase.NewProfileService(newProfileRepo, newUserRepo, newFileRepo)
+    newMessageService := usecase.NewMessageUseCase(newMessageRepo, newFileRepo, newChatRepo)
+    newChatService := usecase.NewChatUseCase(newChatRepo, newFileRepo, newProfileRepo, newMessageRepo)
+    newFriendsService := usecase.NewFriendsService(newFriendsRepo)
+    newSearchService := usecase.NewSearchService(newUserRepo)
 
-	// routing
-	r := mux.NewRouter()
-	r.Use(middleware.RecoveryMiddleware)
-	r.Use(middleware.CORSMiddleware(*corsCfg))
-	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
+    newAuthHandler := qfhttp.NewAuthHandler(newAuthService, sanitizerPolicy)
+    newFeedHandler := qfhttp.NewFeedHandler(newAuthService, newPostService, newProfileService, newFriendsService)
+    newPostHandler := qfhttp.NewPostHandler(newPostService, newProfileService, sanitizerPolicy)
+    newProfileHandler := qfhttp.NewProfileHandler(newProfileService, newFriendsService, newAuthService, newChatService, connManager, sanitizerPolicy)
+    newMessageHandler := qfhttp.NewMessageHandler(newMessageService, newAuthService, newProfileService, sanitizerPolicy)
+    newChatHandler := qfhttp.NewChatHandler(newChatService, newProfileService, connManager)
+    newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
+    newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
 
-	r.PathPrefix("/api/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-	}).Methods(http.MethodOptions)
+    newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager, sanitizerPolicy)
 
-	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
-	r.HandleFunc("/profiles/{username}", newProfileHandler.GetProfile).Methods(http.MethodGet)
+    // routing
+    r := mux.NewRouter()
+    r.Use(middleware.RecoveryMiddleware)
+    r.Use(middleware.CORSMiddleware(*corsCfg))
+    r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+    })
 
-	apiPostRouter := r.PathPrefix("/").Subrouter()
-	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
+    r.PathPrefix("/api/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusNoContent)
+            return
+        }
+    }).Methods(http.MethodOptions)
 
-	apiGetRouter := r.PathPrefix("/").Subrouter()
-	apiGetRouter.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
+    r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
+    r.HandleFunc("/profiles/{username}", newProfileHandler.GetProfile).Methods(http.MethodGet)
 
-	// validating that the content type is application/json for every route but /hello
+    apiPostRouter := r.PathPrefix("/").Subrouter()
+    apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
 
-	apiPostRouter.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
-	apiPostRouter.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
-	apiPostRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
+    apiGetRouter := r.PathPrefix("/").Subrouter()
+    apiGetRouter.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
 
-	// Subrouter for protected routes
-	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
-	protectedPost.Use(middleware.SessionMiddleware(newAuthService))
-	protectedPost.Use(middleware.CSRFMiddleware)
-	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
-	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
-	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
+    // validating that the content type is application/json for every route but /hello
 
-	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
-	protectedGet.Use(middleware.SessionMiddleware(newAuthService))
-	protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/recommendations", newFeedHandler.GetRecommendations).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
-	protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
+    // TODO
+    apiPostRouter.HandleFunc("/signup", newAuthHandler.SignUp).Methods(http.MethodPost)
+    apiPostRouter.HandleFunc("/login", newAuthHandler.Login).Methods(http.MethodPost)
+    apiPostRouter.HandleFunc("/logout", newAuthHandler.Logout).Methods(http.MethodPost)
 
-	wsProtected := protectedGet.PathPrefix("/").Subrouter()
-	wsProtected.Use(middleware.WebSocketMiddleware(connManager))
-	wsProtected.HandleFunc("/ws", newMessageHandlerWS.HandleMessages).Methods(http.MethodGet)
+    // Subrouter for protected routes
+    protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
+    protectedPost.Use(middleware.SessionMiddleware(newAuthService))
+    protectedPost.Use(middleware.CSRFMiddleware)
+    protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
+    protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
+    protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
+    protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
+    protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
+    protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 
-	apiDeleteRouter := r.PathPrefix("/").Subrouter()
-	apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
-	apiDeleteRouter.Use(middleware.CSRFMiddleware)
-	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
-	apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
-	apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
+    protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
+    protectedGet.Use(middleware.SessionMiddleware(newAuthService))
+    protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
+    protectedGet.HandleFunc("/recommendations", newFeedHandler.GetRecommendations).Methods(http.MethodGet)
+    protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
+    protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
+    protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
+    protectedGet.HandleFunc("/csrf", qfhttp.GetCSRF).Methods(http.MethodGet)
+    protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
 
-	server := http.Server{
-		Addr:         cfg.Addr,
-		Handler:      r,
-		ReadTimeout:  cfg.ReadTimeout,
-		WriteTimeout: cfg.WriteTimeout,
-	}
+    wsProtected := protectedGet.PathPrefix("/").Subrouter()
+    wsProtected.Use(middleware.WebSocketMiddleware(connManager))
+    wsProtected.HandleFunc("/ws", newMessageHandlerWS.HandleMessages).Methods(http.MethodGet)
 
-	fmt.Printf("starting server at %s\n", cfg.Addr)
-	err = server.ListenAndServe()
-	if err != nil {
-		return fmt.Errorf("internal.Run: %w", err)
-	}
+    apiDeleteRouter := r.PathPrefix("/").Subrouter()
+    apiDeleteRouter.Use(middleware.SessionMiddleware(newAuthService))
+    apiDeleteRouter.Use(middleware.CSRFMiddleware)
+    apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
+    apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
+    apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
 
-	return nil
+    server := http.Server{
+        Addr:         cfg.Addr,
+        Handler:      r,
+        ReadTimeout:  cfg.ReadTimeout,
+        WriteTimeout: cfg.WriteTimeout,
+    }
+
+    fmt.Printf("starting server at %s\n", cfg.Addr)
+    err = server.ListenAndServe()
+    if err != nil {
+        return fmt.Errorf("internal.Run: %w", err)
+    }
+
+    return nil
 }

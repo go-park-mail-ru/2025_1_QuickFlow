@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
@@ -128,7 +127,7 @@ func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
 	var user pgmodels.UserPostgres
 	err := u.connPool.QueryRowContext(ctx, getUserByUsername, username).Scan(&user.Id, &user.Username, &user.Password, &user.Salt)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return models.User{}, usecase.ErrNotFound
 	} else if err != nil {
 		return models.User{}, err

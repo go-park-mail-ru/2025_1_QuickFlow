@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v5"
 
 	"quickflow/internal/models"
 	postgresModels "quickflow/internal/repository/postgres/postgres-models"
@@ -140,7 +139,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 	var friendsCount int
 	err = p.connPool.QueryRowContext(ctx, GetFriendsCountQuery, userID, models.RelationFriend).Scan(&friendsCount)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			logger.Info(ctx, fmt.Sprintf("user: %s has no friends", userID))
 			return []models.FriendInfo{}, false, 0, nil
 		}
@@ -185,7 +184,7 @@ func (p *PostgresFriendsRepository) IsExistsFriendRequest(ctx context.Context, s
 
 	err := p.connPool.QueryRowContext(ctx, CheckFriendRequestQuery, senderID, receiverID).Scan(&status)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			logger.Info(ctx, fmt.Sprintf("relation between sender: %s and receiver: %s doesn't exist or Incorrect IDs were given", senderID, receiverID))
 			return false, nil
 		}
@@ -268,7 +267,7 @@ func (p *PostgresFriendsRepository) GetUserRelation(ctx context.Context, user1 u
 	var status models.UserRelation
 	err := p.connPool.QueryRowContext(ctx, CheckFriendRequestQuery, user1, user2).Scan(&status)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return models.RelationStranger, nil
 		}
 		logger.Error(ctx, fmt.Sprintf("unable to get friends info: %v", err))

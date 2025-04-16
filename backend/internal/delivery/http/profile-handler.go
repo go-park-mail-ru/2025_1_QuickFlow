@@ -172,14 +172,19 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("Loaded avatar: %v size: %v", profileForm.Avatar.Name, profileForm.Avatar.Size))
+	if profileForm.Avatar != nil {
+		logger.Info(ctx, fmt.Sprintf("Loaded avatar: %v size: %v", profileForm.Avatar.Name, profileForm.Avatar.Size))
+	}
+
 	profileForm.Background, err = http2.GetFile(r, "cover")
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get cover: %s", err.Error()))
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("Loaded cover: %v size: %v", profileForm.Background.Name, profileForm.Background.Size))
+	if profileForm.Background != nil {
+		logger.Info(ctx, fmt.Sprintf("Loaded cover: %v size: %v", profileForm.Background.Name, profileForm.Background.Size))
+	}
 
 	var recievedValidInfo = profileForm.Avatar != nil || profileForm.Background != nil
 	// parsing main profile info
