@@ -69,7 +69,7 @@ func (mr *MockMessageUseCaseMockRecorder) GetMessagesForChat(ctx, chatId, userId
 // MarkRead mocks base method.
 func (m *MockMessageUseCase) MarkRead(ctx context.Context, messageId uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkRead", ctx, messageId)
+	ret := m.ctrl.Call(m, "UpdateLastMessageRead", ctx, messageId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -77,7 +77,7 @@ func (m *MockMessageUseCase) MarkRead(ctx context.Context, messageId uuid.UUID) 
 // MarkRead indicates an expected call of MarkRead.
 func (mr *MockMessageUseCaseMockRecorder) MarkRead(ctx, messageId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkRead", reflect.TypeOf((*MockMessageUseCase)(nil).MarkRead), ctx, messageId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLastMessageRead", reflect.TypeOf((*MockMessageUseCase)(nil).MarkRead), ctx, messageId)
 }
 
 // SaveMessage mocks base method.

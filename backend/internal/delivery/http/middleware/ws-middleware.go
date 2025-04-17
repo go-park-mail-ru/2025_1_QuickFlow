@@ -7,13 +7,14 @@ import (
 	"github.com/gorilla/websocket"
 
 	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/ws"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
 	httpUtils "quickflow/utils/http"
 )
 
 // WebSocketMiddleware устанавливает ws соединение с клиентом и обрабатывает сессии.
-func WebSocketMiddleware(connManager http2.IWebSocketManager) func(next http.Handler) http.Handler {
+func WebSocketMiddleware(connManager http2.IWebSocketConnectionManager, handler ws.PingHandler) func(next http.Handler) http.Handler {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -48,7 +49,7 @@ func WebSocketMiddleware(connManager http2.IWebSocketManager) func(next http.Han
 			connManager.AddConnection(user.Id, conn)
 
 			// Обрабатываем ping/pong сообщения
-			connManager.HandlePing(conn)
+			handler.Handle(ctx, conn)
 
 			// Передаем управление следующему обработчику
 			defer func() {

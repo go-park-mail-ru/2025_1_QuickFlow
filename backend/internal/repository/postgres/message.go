@@ -13,12 +13,13 @@ import (
 
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
 )
 
 const (
 	getMessagesForChatOlderQuery = `
-        SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read
+        SELECT id, chat_id, sender_id, text, created_at, updated_at
         FROM message
         WHERE chat_id = $1 AND created_at < $2
         ORDER BY created_at desc 
@@ -31,13 +32,19 @@ const (
         WHERE message_id = $1
 `
 	saveMessageQuery = `
-        INSERT INTO message (id, chat_id, sender_id, text, created_at, updated_at, is_read)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO message (id, chat_id, sender_id, text, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
 `
 	markReadQuery = `
-        UPDATE message
-        SET is_read = true
-        WHERE id = $1
+        update chat_user
+        set last_read_msg_id = $3
+        where chat_id = $1 and user_id = $2;
+        
+`
+	getLastReadMessageQuery = `
+		select id, chat_id, sender_id, text, created_at, updated_at
+		from message m join chat_user cu on m.id = cu.last_read_msg_id
+		where cu.chat_id = $1 and cu.user_id = $2;
 `
 
 	getLastChatMessage = `
@@ -45,7 +52,7 @@ const (
         select * from message m 
         where m.chat_id = $1
     )
-    select c.id, c.chat_id, c.sender_id, c.text, c.created_at, c.updated_at, c.is_read
+    select c.id, c.chat_id, c.sender_id, c.text, c.created_at, c.updated_at
     from (select * from otv) c
     where c.created_at = (
         select max(created_at) 
@@ -81,7 +88,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 	for rows.Next() {
 		var messagePostgres pgmodels.MessagePostgres
 		if err := rows.Scan(&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
-			&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt, &messagePostgres.IsRead); err != nil {
+			&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt); err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan message from database for chat %v, numMessages %v, timestamp %v: %v",
 				chatId, numMessages, timestamp, err))
 			return nil, err
@@ -117,8 +124,7 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 	messagePostgres := pgmodels.FromMessage(message)
 	_, err := m.connPool.ExecContext(ctx, saveMessageQuery,
 		messagePostgres.ID, messagePostgres.ChatID, messagePostgres.SenderID,
-		messagePostgres.Text, messagePostgres.CreatedAt, messagePostgres.UpdatedAt,
-		messagePostgres.IsRead)
+		messagePostgres.Text, messagePostgres.CreatedAt, messagePostgres.UpdatedAt)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to save message %v to database: %s", messagePostgres.ID, err.Error()))
 		return fmt.Errorf("unable to save message to database: %w", err)
@@ -149,21 +155,39 @@ func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UU
 	}
 	return nil
 }
-func (m *MessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) error {
-	_, err := m.connPool.ExecContext(ctx, markReadQuery, pgtype.UUID{Bytes: messageId, Valid: true})
-	if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Unable to mark message %v as read: %s", messageId, err.Error()))
-		return fmt.Errorf("unable to mark message as read: %w", err)
+func (m *MessageRepository) UpdateLastMessageRead(ctx context.Context, messageId uuid.UUID, chatId uuid.UUID, userId uuid.UUID) error {
+	_, err := m.connPool.ExecContext(ctx, markReadQuery, messageId, chatId, userId)
+	if errors.Is(err, sql.ErrNoRows) {
+		logger.Error(ctx, fmt.Sprintf("Unable to find chat %v with user %v: %s", chatId, userId, err.Error()))
+		return usecase.ErrNotFound
+	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to update last read message %v for chat %v with user %v: %s", messageId, chatId, userId, err.Error()))
+		return fmt.Errorf("unable to update last read message in database: %w", err)
 	}
 	return nil
+}
+
+func (m *MessageRepository) GetLastMessageRead(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*models.Message, error) {
+	var messagePostgres pgmodels.MessagePostgres
+	err := m.connPool.QueryRowContext(ctx, getLastReadMessageQuery, pgtype.UUID{Bytes: chatId, Valid: true}, pgtype.UUID{Bytes: userId, Valid: true}).Scan(
+		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
+		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		logger.Error(ctx, "Unable to get last read message from database: ", err)
+		return nil, fmt.Errorf("unable to get last read message from database: %w", err)
+	}
+
+	message := messagePostgres.ToMessage()
+	return &message, nil
 }
 
 func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error) {
 	var messagePostgres pgmodels.MessagePostgres
 	err := m.connPool.QueryRowContext(ctx, getLastChatMessage, pgtype.UUID{Bytes: chatId, Valid: true}).Scan(
 		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
-		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt,
-		&messagePostgres.IsRead)
+		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -173,4 +197,20 @@ func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.
 
 	message := messagePostgres.ToMessage()
 	return &message, nil
+}
+
+func (m *MessageRepository) GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error) {
+	var messagePostgres pgmodels.MessagePostgres
+	err := m.connPool.QueryRowContext(ctx, "SELECT id, chat_id, sender_id, text, created_at, updated_at FROM message WHERE id = $1", messageId).Scan(
+		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
+		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return models.Message{}, usecase.ErrNotFound
+	} else if err != nil {
+		logger.Error(ctx, "Unable to get message from database: ", err)
+		return models.Message{}, fmt.Errorf("unable to get message from database: %w", err)
+	}
+
+	message := messagePostgres.ToMessage()
+	return message, nil
 }

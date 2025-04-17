@@ -11,7 +11,6 @@ type Message struct {
 	Text           string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
-	IsRead         bool
 	Attachments    []*File
 	AttachmentURLs []string
 

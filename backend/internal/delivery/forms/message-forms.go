@@ -47,7 +47,6 @@ type MessageOut struct {
 	Text           string    `json:"text"`
 	CreatedAt      string    `json:"created_at"`
 	UpdatedAt      string    `json:"updated_at"`
-	IsRead         bool      `json:"is_read"`
 	AttachmentURLs []string  `json:"attachment_urls"`
 
 	Sender PublicUserInfoOut `json:"sender"`
@@ -60,7 +59,6 @@ func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut
 		Text:           message.Text,
 		CreatedAt:      message.CreatedAt.Format(config.TimeStampLayout),
 		UpdatedAt:      message.UpdatedAt.Format(config.TimeStampLayout),
-		IsRead:         message.IsRead,
 		AttachmentURLs: message.AttachmentURLs,
 
 		Sender: PublicUserInfoToOut(info, ""),
@@ -76,7 +74,6 @@ func ToMessagesOut(messages []models.Message, usersInfo map[uuid.UUID]models.Pub
 			Text:           message.Text,
 			CreatedAt:      message.CreatedAt.Format(config.TimeStampLayout),
 			UpdatedAt:      message.UpdatedAt.Format(config.TimeStampLayout),
-			IsRead:         message.IsRead,
 			AttachmentURLs: message.AttachmentURLs,
 
 			Sender: PublicUserInfoToOut(usersInfo[message.SenderID], ""),
@@ -105,9 +102,4 @@ func (f *MessageForm) ToMessageModel() models.Message {
 		SenderID:       f.SenderId,
 		ChatID:         f.ChatId,
 	}
-}
-
-type MessageRequest struct {
-	Type    string      `json:"type"`
-	Payload MessageForm `json:"payload"`
 }

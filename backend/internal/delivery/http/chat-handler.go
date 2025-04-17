@@ -32,10 +32,10 @@ type ChatUseCase interface {
 type ChatHandler struct {
 	chatUseCase    ChatUseCase
 	profileUseCase ProfileUseCase
-	connService    IWebSocketManager
+	connService    IWebSocketConnectionManager
 }
 
-func NewChatHandler(chatUseCase ChatUseCase, profileUseCase ProfileUseCase, connService IWebSocketManager) *ChatHandler {
+func NewChatHandler(chatUseCase ChatUseCase, profileUseCase ProfileUseCase, connService IWebSocketConnectionManager) *ChatHandler {
 	return &ChatHandler{
 		chatUseCase:    chatUseCase,
 		profileUseCase: profileUseCase,

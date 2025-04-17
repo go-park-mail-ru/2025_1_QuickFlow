@@ -13,37 +13,40 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 
 	"quickflow/internal/delivery/forms"
+	forms2 "quickflow/internal/delivery/ws/forms"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
-	"quickflow/pkg/sanitizer"
 	http2 "quickflow/utils/http"
-	"quickflow/utils/validation"
 )
 
-type IWebSocketManager interface {
+type CommandHandler func(ctx context.Context, user models.User, payload json.RawMessage) error
+
+// IWebSocketConnectionManager интерфейс для управления соединениями
+type IWebSocketConnectionManager interface {
 	AddConnection(userId uuid.UUID, conn *websocket.Conn)
 	RemoveAndCloseConnection(userId uuid.UUID)
-	SendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo,
-		chatParticipants []models.User) error
 	IsConnected(userId uuid.UUID) (*websocket.Conn, bool)
-	HandlePing(conn *websocket.Conn)
 }
 
+type IWebSocketRouter interface {
+	RegisterHandler(command string, handler CommandHandler)
+	Route(ctx context.Context, command string, user models.User, payload json.RawMessage) error
+}
+
+// MessageHandlerWS Обработчик сообщений
 type MessageHandlerWS struct {
-	MessageUseCase   MessageUseCase
-	ChatUseCase      ChatUseCase
 	profileUseCase   ProfileUseCase
-	WebSocketManager IWebSocketManager
+	WebSocketManager IWebSocketConnectionManager
+	WebSocketRouter  IWebSocketRouter
 	policy           *bluemonday.Policy
 }
 
-func NewMessageHandlerWS(messageUseCase MessageUseCase, chatUseCase ChatUseCase, profileUseCase ProfileUseCase, webSocketManager IWebSocketManager, policy *bluemonday.Policy) *MessageHandlerWS {
+func NewMessageHandlerWS(profileUseCase ProfileUseCase, webSocketManager IWebSocketConnectionManager, webSocketRouter IWebSocketRouter, policy *bluemonday.Policy) *MessageHandlerWS {
 	return &MessageHandlerWS{
-		MessageUseCase:   messageUseCase,
-		ChatUseCase:      chatUseCase,
 		profileUseCase:   profileUseCase,
 		WebSocketManager: webSocketManager,
 		policy:           policy,
+		WebSocketRouter:  webSocketRouter,
 	}
 }
 
@@ -60,7 +63,7 @@ func NewMessageHandlerWS(messageUseCase MessageUseCase, chatUseCase ChatUseCase,
 // @Router /api/ws [get]
 func (m *MessageHandlerWS) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
-	// extracting user from context
+	// Извлекаем пользователя из контекста
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while handling messages")
@@ -73,16 +76,16 @@ func (m *MessageHandlerWS) HandleMessages(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Завершаем работу по обновлению времени последнего посещения
 	defer func() {
-		err := m.profileUseCase.UpdateLastSeen(ctx, user.Id)
-		if err != nil {
+		if err := m.profileUseCase.UpdateLastSeen(ctx, user.Id); err != nil {
 			http2.WriteJSONError(w, "Failed to update last seen", http.StatusBadRequest)
 			return
 		}
 	}()
 
 	for {
-		var messageRequest forms.MessageRequest
+		var messageRequest forms2.MessageRequest
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			var closeErr *websocket.CloseError
@@ -95,61 +98,20 @@ func (m *MessageHandlerWS) HandleMessages(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		conn, exists := m.WebSocketManager.IsConnected(user.Id)
-		if !exists {
-			logger.Error(ctx, fmt.Sprintf("User %v not connected", user))
-			return
-		}
-
+		// Десериализуем сообщение
 		err = json.Unmarshal(msg, &messageRequest)
 		if err != nil {
 			logger.Error(ctx, "Error unmarshaling message:", err)
 			writeErrorToWS(conn, fmt.Sprintf("Invalid message format: %v", err))
 			continue
 		}
-		messageForm := messageRequest.Payload
 
-		sanitizer.SanitizeMessage(&messageForm, m.policy)
-
-		messageForm.SenderId = user.Id
-		if messageForm.ChatId == uuid.Nil && messageForm.ReceiverId == uuid.Nil {
-			logger.Error(ctx, "ChatId and ReceiverId cannot be both nil")
-			writeErrorToWS(conn, "ChatId and ReceiverId cannot be both nil")
-			continue
-		}
-
-		message := messageForm.ToMessageModel()
-		if err = validation.ValidateMessage(message); err != nil {
-			logger.Error(ctx, "Invalid message:", err)
-			writeErrorToWS(conn, fmt.Sprintf("Invalid message: %v", err))
-			continue
-		}
-
-		message.ChatID, err = m.MessageUseCase.SaveMessage(ctx, message)
+		// Маршрутизируем команду через WebSocketRouter
+		command := messageRequest.Type // предполагается, что в запросе будет команда, например, "message" или "ping"
+		err = m.WebSocketRouter.Route(ctx, command, user, messageRequest.Payload)
 		if err != nil {
-			log.Println("Failed to save message:", err)
-			writeErrorToWS(conn, fmt.Sprintf("Failed to save message: %v", err))
-			continue
-		}
-
-		// retrieving info to send message to all chat users
-		publicSenderInfo, err := m.profileUseCase.GetPublicUserInfo(ctx, user.Id)
-		if err != nil {
-			log.Println("Failed to get public sender info:", err)
-			writeErrorToWS(conn, fmt.Sprintf("Failed to get public sender info: %v", err))
-			continue
-		}
-		chatParticipants, err := m.ChatUseCase.GetChatParticipants(ctx, message.ChatID)
-		if err != nil {
-			log.Println("Failed to get chat participants:", err)
-			writeErrorToWS(conn, fmt.Sprintf("Failed to get chat participants: %v", err))
-			continue
-		}
-		err = m.WebSocketManager.SendMessageToChat(ctx, message, publicSenderInfo, chatParticipants)
-		if err != nil {
-			log.Println("Failed to send message to chat:", err)
-			writeErrorToWS(conn, fmt.Sprintf("Failed to send message to chat: %v", err))
-			continue
+			logger.Error(ctx, fmt.Sprintf("Error handling message: %v", err))
+			writeErrorToWS(conn, fmt.Sprintf("Failed to process message: %v", err))
 		}
 	}
 }

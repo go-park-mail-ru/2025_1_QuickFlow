@@ -27,10 +27,10 @@ type FriendsUseCase interface {
 
 type FriendsHandler struct {
 	FriendsUseCase FriendsUseCase
-	ConnService    IWebSocketManager
+	ConnService    IWebSocketConnectionManager
 }
 
-func NewFriendsHandler(friendsUseCase FriendsUseCase, connService IWebSocketManager) *FriendsHandler {
+func NewFriendsHandler(friendsUseCase FriendsUseCase, connService IWebSocketConnectionManager) *FriendsHandler {
 	return &FriendsHandler{
 		FriendsUseCase: friendsUseCase,
 		ConnService:    connService,

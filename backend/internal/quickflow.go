@@ -38,7 +38,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     }
     defer db.Close()
 
-    connManager := ws.NewWebSocketManager()
+    connManager := ws.NewWSConnectionManager()
 
     sanitizerPolicy := bluemonday.UGCPolicy()
 
@@ -67,7 +67,15 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
     newSearchHandler := qfhttp.NewSearchHandler(newSearchService)
 
-    newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newMessageService, newChatService, newProfileService, connManager, sanitizerPolicy)
+    wsRouter := ws.NewWebSocketRouter()
+    wsMessageHander := ws.NewMessageHandlerWS(connManager, newMessageService, newProfileService, newChatService)
+    pingHandler := ws.NewPingHandlerWS()
+
+    // register handlers
+    wsRouter.RegisterHandler("message", wsMessageHander.Handle)
+    wsRouter.RegisterHandler("message_read", wsMessageHander.MarkMessageRead)
+
+    newMessageHandlerWS := qfhttp.NewMessageHandlerWS(newProfileService, connManager, wsRouter, sanitizerPolicy)
 
     // routing
     r := mux.NewRouter()
@@ -122,7 +130,7 @@ func Run(cfg *config.Config, corsCfg *cors.CORSConfig, minioCfg *minio_config.Mi
     protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
 
     wsProtected := protectedGet.PathPrefix("/").Subrouter()
-    wsProtected.Use(middleware.WebSocketMiddleware(connManager))
+    wsProtected.Use(middleware.WebSocketMiddleware(connManager, pingHandler))
     wsProtected.HandleFunc("/ws", newMessageHandlerWS.HandleMessages).Methods(http.MethodGet)
 
     apiDeleteRouter := r.PathPrefix("/").Subrouter()

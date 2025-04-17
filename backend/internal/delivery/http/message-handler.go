@@ -21,10 +21,12 @@ import (
 )
 
 type MessageUseCase interface {
+	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
 	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
 	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
-	MarkRead(ctx context.Context, messageId uuid.UUID) error
+	UpdateLastMessageRead(ctx context.Context, messageId uuid.UUID, chatId uuid.UUID, userId uuid.UUID) error
+	GetLastMessageRead(ctx context.Context, chatId, userId uuid.UUID) (*models.Message, error)
 }
 
 type MessageHandler struct {

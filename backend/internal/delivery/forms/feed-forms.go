@@ -68,7 +68,7 @@ type PublicUserInfoOut struct {
 	FirstName string              `json:"firstname"`
 	LastName  string              `json:"lastname"`
 	IsOnline  *bool               `json:"online,omitempty"`
-	Relation  models.UserRelation `json:"relation"`
+	Relation  models.UserRelation `json:"relation,omitempty"`
 }
 
 func PublicUserInfoToOut(info models.PublicUserInfo, relation models.UserRelation) PublicUserInfoOut {

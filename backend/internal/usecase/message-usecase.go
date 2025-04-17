@@ -18,6 +18,7 @@ var (
 )
 
 type MessageRepository interface {
+	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
 	GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
 	GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error)
 
@@ -25,7 +26,8 @@ type MessageRepository interface {
 
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 
-	MarkRead(ctx context.Context, messageId uuid.UUID) error
+	GetLastMessageRead(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*models.Message, error)
+	UpdateLastMessageRead(ctx context.Context, messageId uuid.UUID, chatId uuid.UUID, userId uuid.UUID) error
 }
 
 type MessageUseCase struct {
@@ -140,16 +142,59 @@ func (m *MessageUseCase) DeleteMessage(ctx context.Context, messageId uuid.UUID)
 	return nil
 }
 
-func (m *MessageUseCase) MarkRead(ctx context.Context, messageId uuid.UUID) error {
+func (m *MessageUseCase) UpdateLastMessageRead(ctx context.Context, messageId, chatId, userId uuid.UUID) error {
 	// validate
 	if messageId == uuid.Nil {
 		return fmt.Errorf("messageId is empty")
 	}
 
-	err := m.messageRepo.MarkRead(ctx, messageId)
+	// check if user is participant
+	isParticipant, err := m.chatRepo.IsParticipant(ctx, chatId, userId)
 	if err != nil {
-		return fmt.Errorf("m.messageRepo.MarkRead: %w", err)
+		return fmt.Errorf("m.chatRepo.IsParticipant: %w", err)
+	}
+	if !isParticipant {
+		return ErrNotParticipant
 	}
 
+	err = m.messageRepo.UpdateLastMessageRead(ctx, messageId, chatId, userId)
+	if err != nil {
+		return fmt.Errorf("m.messageRepo.UpdateLastMessageRead: %w", err)
+	}
 	return nil
+}
+
+func (m *MessageUseCase) GetLastMessageRead(ctx context.Context, chatId, userId uuid.UUID) (*models.Message, error) {
+	// validate
+	if chatId == uuid.Nil {
+		return nil, fmt.Errorf("chatId is empty")
+	}
+
+	// check if user is participant
+	isParticipant, err := m.chatRepo.IsParticipant(ctx, chatId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("m.chatRepo.IsParticipant: %w", err)
+	}
+	if !isParticipant {
+		return nil, ErrNotParticipant
+	}
+
+	message, err := m.messageRepo.GetLastMessageRead(ctx, chatId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("m.messageRepo.GetLastMessageRead: %w", err)
+	}
+	return message, nil
+}
+
+func (m *MessageUseCase) GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error) {
+	// validate
+	if messageId == uuid.Nil {
+		return models.Message{}, fmt.Errorf("messageId is empty")
+	}
+
+	message, err := m.messageRepo.GetMessageById(ctx, messageId)
+	if err != nil {
+		return models.Message{}, fmt.Errorf("m.messageRepo.GetMessageById: %w", err)
+	}
+	return message, nil
 }

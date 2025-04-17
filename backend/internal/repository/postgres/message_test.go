@@ -35,7 +35,7 @@ func TestMessageRepository(t *testing.T) {
 						pgMsg.Text,
 						pgMsg.CreatedAt,
 						pgMsg.UpdatedAt,
-						pgMsg.IsRead,
+						pgMsg.ReadAt,
 					).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -51,7 +51,7 @@ func TestMessageRepository(t *testing.T) {
 			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
 				pgMsg := postgresmodels.FromMessage(msg)
 				mock.ExpectExec(`(?i)INSERT INTO message`).
-					WithArgs(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.IsRead).
+					WithArgs(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.ReadAt).
 					WillReturnError(errors.New("db error"))
 			},
 			wantErr: true,
@@ -85,7 +85,7 @@ func TestMessageRepository(t *testing.T) {
 					WithArgs(pgMsg.ChatID, sqlmock.AnyArg(), 10). // timestamp как anyArg
 					WillReturnRows(sqlmock.NewRows([]string{
 						"id", "chat_id", "sender_id", "text", "created_at", "updated_at", "is_read",
-					}).AddRow(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.IsRead))
+					}).AddRow(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.ReadAt))
 
 				mock.ExpectQuery(`(?i)SELECT file_url`).
 					WithArgs(pgMsg.ID). // Ищем файлы по ID сообщения
@@ -136,7 +136,7 @@ func TestMessageRepository(t *testing.T) {
 					WithArgs(msg.ChatID).
 					WillReturnRows(sqlmock.NewRows([]string{
 						"id", "chat_id", "sender_id", "text", "created_at", "updated_at", "is_read",
-					}).AddRow(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.IsRead))
+					}).AddRow(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.ReadAt))
 			},
 			wantErr: false,
 		},
@@ -169,7 +169,7 @@ func TestMessageRepository(t *testing.T) {
 			case "success save message", "db error on save message":
 				err = repo.SaveMessage(ctx, tt.message)
 			case "success mark message as read", "db error on mark message as read":
-				err = repo.MarkRead(ctx, tt.message.ID)
+				err = repo.UpdateLastMessageRead(ctx, tt.message.ID)
 			case "success get messages for chat", "db error on get messages for chat":
 				_, err = repo.GetMessagesForChatOlder(ctx, tt.message.ChatID, 10, time.Now())
 			case "success get last chat message", "db error on get last chat message":

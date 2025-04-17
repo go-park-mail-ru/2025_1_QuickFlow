@@ -81,10 +81,10 @@ func (mr *MockMessageRepositoryMockRecorder) GetMessagesForChatOlder(ctx, chatId
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMessagesForChatOlder", reflect.TypeOf((*MockMessageRepository)(nil).GetMessagesForChatOlder), ctx, chatId, numMessages, timestamp)
 }
 
-// MarkRead mocks base method.
-func (m *MockMessageRepository) MarkRead(ctx context.Context, messageId uuid.UUID) error {
+// UpdateLastMessageRead mocks base method.
+func (m *MockMessageRepository) UpdateLastReadMessage(ctx context.Context, messageId uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkRead", ctx, messageId)
+	ret := m.ctrl.Call(m, "UpdateLastMessageRead", ctx, messageId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -92,7 +92,7 @@ func (m *MockMessageRepository) MarkRead(ctx context.Context, messageId uuid.UUI
 // MarkRead indicates an expected call of MarkRead.
 func (mr *MockMessageRepositoryMockRecorder) MarkRead(ctx, messageId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkRead", reflect.TypeOf((*MockMessageRepository)(nil).MarkRead), ctx, messageId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLastMessageRead", reflect.TypeOf((*MockMessageRepository)(nil).UpdateLastReadMessage), ctx, messageId)
 }
 
 // SaveMessage mocks base method.
