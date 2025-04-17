@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"quickflow/internal/models"
 	pgmodels "quickflow/internal/repository/postgres/postgres-models"
 	"quickflow/internal/usecase"
@@ -112,7 +111,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
 	var chatPostgres pgmodels.ChatPostgres
 	err := c.ConnPool.QueryRowContext(ctx, getChatQuery, chatId).Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		logger.Error(ctx, fmt.Sprintf("Chat with id %s not found", chatId))
 		return models.Chat{}, usecase.ErrNotFound
 	} else if err != nil {
@@ -130,7 +129,7 @@ func (c *ChatRepository) GetPrivateChat(ctx context.Context, sender, receiver uu
 	err := c.ConnPool.QueryRowContext(ctx, getPrivateChatQuery, models.ChatTypePrivate, sender, receiver).
 		Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL,
 			&chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		logger.Error(ctx, fmt.Sprintf("Private chat between %s and %s not found", sender, receiver))
 		return models.Chat{}, usecase.ErrNotFound
 	} else if err != nil {
