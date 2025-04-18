@@ -72,7 +72,7 @@ func validatePassword(password string) bool {
 
 func validateCreds(str string) bool {
 	runeName := []rune(str)
-	if len(str) < 2 || len(str) > 25 {
+	if len(runeName) < 2 || len(runeName) > 25 {
 		return false
 	}
 
