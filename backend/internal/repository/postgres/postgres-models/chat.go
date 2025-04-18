@@ -27,7 +27,8 @@ func (c *ChatPostgres) ToChat() *models.Chat {
 		UpdatedAt: c.UpdatedAt.Time,
 	}
 	if c.LastRead.Valid {
-		chat.LastRead = &c.LastRead.Time
+		tm := c.LastRead.Time
+		chat.LastRead = &tm
 	}
 	return chat
 }
