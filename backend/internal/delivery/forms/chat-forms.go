@@ -21,17 +21,18 @@ type GetChatsForm struct {
 }
 
 type ChatOut struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name,omitempty"`
-	CreatedAt   string      `json:"created_at"`
-	UpdatedAt   string      `json:"updated_at"`
-	AvatarURL   string      `json:"avatar_url,omitempty"`
-	Type        string      `json:"type"`
-	LastMessage *MessageOut `json:"last_message,omitempty"`
-	IsOnline    *bool       `json:"online,omitempty"`
-	LastSeen    string      `json:"last_seen,omitempty"`
-	Username    string      `json:"username,omitempty"`
-	LastReadTs  string      `json:"last_read,omitempty"`
+	ID              string      `json:"id"`
+	Name            string      `json:"name,omitempty"`
+	CreatedAt       string      `json:"created_at"`
+	UpdatedAt       string      `json:"updated_at"`
+	AvatarURL       string      `json:"avatar_url,omitempty"`
+	Type            string      `json:"type"`
+	LastMessage     *MessageOut `json:"last_message,omitempty"`
+	IsOnline        *bool       `json:"online,omitempty"`
+	LastSeen        string      `json:"last_seen,omitempty"`
+	Username        string      `json:"username,omitempty"`
+	LastReadByOther string      `json:"last_read_by_other,omitempty"`
+	LastReadByMe    string      `json:"last_read_by_me,omitempty"`
 }
 
 type PrivateChatInfo struct {
@@ -84,9 +85,13 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 			AvatarURL: chat.AvatarURL,
 			Type:      chatType,
 		}
-		if chat.LastRead != nil {
-			logger.Info(context.Background(), fmt.Sprintf("Last read for user %v is %v", chatOut.Name, chat.LastRead))
-			chatOut.LastReadTs = chat.LastRead.Format(config.TimeStampLayout)
+		if chat.LastReadByOther != nil {
+			logger.Info(context.Background(), fmt.Sprintf("Last read by other for user %v is %v", chatOut.Name, chat.LastReadByOther))
+			chatOut.LastReadByOther = chat.LastReadByOther.Format(config.TimeStampLayout)
+		}
+		if chat.LastReadByMe != nil {
+			logger.Info(context.Background(), fmt.Sprintf("Last read by me for user %v is %v", chatOut.Name, chat.LastReadByMe))
+			chatOut.LastReadByMe = chat.LastReadByMe.Format(config.TimeStampLayout)
 		}
 		if chat.LastMessage.ID != uuid.Nil {
 			msg := ToMessageOut(chat.LastMessage, lastMessageSenderInfo[chat.LastMessage.SenderID])

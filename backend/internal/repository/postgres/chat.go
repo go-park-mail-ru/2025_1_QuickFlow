@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -21,7 +22,7 @@ const (
         RETURNING id
 `
 	getUserChatsQuery = `
-        SELECT c.id, c.name, c.avatar_url, c.type, c.created_at, c.updated_at
+        SELECT c.id, c.name, c.avatar_url, c.type, c.created_at, c.updated_at, cu.last_read
         FROM chat c
         join chat_user cu on c.id = cu.chat_id
         WHERE cu.user_id = $1
@@ -102,7 +103,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	var chatPostgres pgmodels.ChatPostgres
 
 	for rows.Next() {
-		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
+		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt, &chatPostgres.LastReadByMe)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan chat from database for user %v: %s", userId, err.Error()))
 			return nil, err
@@ -122,13 +123,13 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 					logger.Error(ctx, fmt.Sprintf("Unable to get last read message from database: %s", err.Error()))
 					return nil, err
 				}
-				if lastRead.Valid && (!chatPostgres.LastRead.Valid || lastRead.Time.After(chatPostgres.LastRead.Time)) {
-					chatPostgres.LastRead = lastRead
+				if lastRead.Valid && (!chatPostgres.LastReadByOther.Valid || lastRead.Time.After(chatPostgres.LastReadByOther.Time)) {
+					chatPostgres.LastReadByOther = lastRead
 				}
 			}
 
 		}
-		logger.Info(ctx, fmt.Sprintf("chat name %v last read %v", chatPostgres.Name, chatPostgres.LastRead))
+		logger.Info(ctx, fmt.Sprintf("chat name %v last read %v", chatPostgres.Name, chatPostgres.LastReadByOther))
 		chats = append(chats, *chatPostgres.ToChat())
 	}
 
@@ -168,11 +169,13 @@ func (c *ChatRepository) GetPrivateChat(ctx context.Context, requester, companio
 	}
 
 	// get last read ts
-	err = c.ConnPool.QueryRowContext(ctx, getLastReadMessageQuery, chatPostgres.Id, companion).Scan(&chatPostgres.LastRead)
+	err = c.ConnPool.QueryRowContext(ctx, getLastReadMessageQuery, chatPostgres.Id, companion).Scan(&chatPostgres.LastReadByMe)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get last read message from database: %s", err.Error()))
 		return models.Chat{}, err
 	}
+
+	// TODO LAST READ BY OTHER
 
 	logger.Info(ctx, fmt.Sprintf("Fetched private chat between %s and %s", requester, companion))
 	return *chatPostgres.ToChat(), nil
