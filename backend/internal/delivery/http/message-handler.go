@@ -196,7 +196,7 @@ func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if utf8.RuneCountInString(messageForm.Text) >= 4000 {
+	if utf8.RuneCountInString(messageForm.Text) > 4000 {
 		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(messageForm.Text)))
 		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
 		return
