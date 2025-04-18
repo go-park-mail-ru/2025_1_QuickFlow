@@ -105,6 +105,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 			logger.Error(ctx, fmt.Sprintf("Unable to scan chat from database for user %v: %s", userId, err.Error()))
 			return nil, err
 		}
+		logger.Info(ctx, fmt.Sprintf("chat name %v last read %v", chatPostgres.Name, chatPostgres.LastRead))
 		chats = append(chats, *chatPostgres.ToChat())
 	}
 
