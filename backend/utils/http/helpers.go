@@ -36,7 +36,7 @@ func SetRequestId(ctx context.Context) context.Context {
 func GetFiles(r *http.Request, key string) ([]*models.File, error) {
 	var files []*models.File
 	// TODO clean code
-	if len(r.MultipartForm.File) > 10 {
+	if len(r.MultipartForm.File[key]) > 10 {
 		return nil, TooManyFilesErr
 	}
 	for _, fileHeaders := range r.MultipartForm.File[key] {
