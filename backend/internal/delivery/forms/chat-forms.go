@@ -1,7 +1,9 @@
 package forms
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -10,6 +12,7 @@ import (
 
 	"quickflow/config"
 	"quickflow/internal/models"
+	"quickflow/pkg/logger"
 )
 
 type GetChatsForm struct {
@@ -82,6 +85,7 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 			Type:      chatType,
 		}
 		if chat.LastRead != nil {
+			logger.Info(context.Background(), fmt.Sprintf("Last read for user %v is %v", chatOut.Name, chat.LastRead))
 			chatOut.LastReadTs = chat.LastRead.Format(config.TimeStampLayout)
 		}
 		if chat.LastMessage.ID != uuid.Nil {
