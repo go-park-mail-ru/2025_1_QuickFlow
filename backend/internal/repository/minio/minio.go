@@ -74,14 +74,15 @@ func (m *MinioRepository) UploadFile(ctx context.Context, file *models.File) (st
 
 // UploadManyFiles uploads multiple files and returns a map of public URLs.
 func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
-	urls := threadsafeslice.NewThreadSafeSlice[string]()
+	urls := threadsafeslice.NewThreadSafeSliceN[string](len(files))
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	wg, ctx := errgroup.WithContext(ctx)
 
-	for _, file := range files {
+	for i, file := range files {
+		i := i
 		file := file // https://golang.org/doc/faq#closures_and_goroutines
 		uuID := uuid.New()
 		fileName := uuID.String() + file.Ext
@@ -95,7 +96,10 @@ func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []*models.F
 			}
 
 			publicURL := fmt.Sprintf("%s/%s/%s", m.PublicUrlRoot, m.PostsBucketName, fileName)
-			urls.Add(publicURL)
+			err = urls.SetByIdx(i, publicURL)
+			if err != nil {
+				return fmt.Errorf("could not upload file: %v, err: %v", file.Name, err)
+			}
 			return nil
 		})
 	}

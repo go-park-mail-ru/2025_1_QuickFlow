@@ -58,7 +58,7 @@ func createMultipartRequest(t *testing.T, fieldName string, files map[string]str
 
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	require.NoError(t, req.ParseMultipartForm(10<<20))
+	require.NoError(t, req.ParseMultipartForm(15<<20))
 
 	return req
 }

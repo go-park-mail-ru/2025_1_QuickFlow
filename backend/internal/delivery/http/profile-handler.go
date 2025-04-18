@@ -157,7 +157,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Username))
 
 	var profileForm forms.ProfileForm
-	err := r.ParseMultipartForm(10 << 20) // 10 MB
+	err := r.ParseMultipartForm(15 << 20) // 10 MB
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)

@@ -23,6 +23,7 @@ const getPhotosQuery = `
 	select file_url
 	from post_file
 	where post_id = $1
+	order by added_at;
 `
 
 const getRecommendationsForUserOlder = `

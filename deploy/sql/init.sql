@@ -82,7 +82,8 @@ create table if not exists comment(
 create table if not exists post_file(
                                         id int generated always as identity primary key,
                                         post_id uuid references post(id) on delete cascade,
-                                        file_url text not null
+                                        file_url text not null,
+                                        added_at timestamptz not null default now()
 );
 
 create table if not exists repost(

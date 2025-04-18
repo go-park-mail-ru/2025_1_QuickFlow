@@ -58,7 +58,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info(ctx, fmt.Sprintf("User %s requested to add post", user.Username))
 
-	err := r.ParseMultipartForm(10 << 20) // 10 MB
+	err := r.ParseMultipartForm(15 << 20) // 10 MB
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
@@ -213,7 +213,7 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = r.ParseMultipartForm(10 << 20) // 10 MB
+	err = r.ParseMultipartForm(15 << 20) // 10 MB
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
