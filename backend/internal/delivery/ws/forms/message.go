@@ -2,7 +2,6 @@ package forms
 
 import (
 	"encoding/json"
-
 	"github.com/google/uuid"
 )
 
@@ -19,5 +18,6 @@ type MarkReadPayload struct {
 type NotifyMessageRead struct {
 	ChatId    uuid.UUID `json:"chat_id"`
 	MessageId uuid.UUID `json:"message_id"`
+	Timestamp string    `json:"ts"`
 	SenderId  uuid.UUID `json:"sender_id"`
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"quickflow/config"
 	"sync"
 	"time"
 
@@ -177,6 +178,7 @@ func (m *MessageHandlerWS) MarkMessageRead(ctx context.Context, user models.User
 	// send message to message author
 	messageReadForm := forms2.NotifyMessageRead{
 		MessageId: payload.MessageId,
+		Timestamp: msg.CreatedAt.Format(config.TimeStampLayout),
 		ChatId:    payload.ChatId,
 		SenderId:  user.Id,
 	}
