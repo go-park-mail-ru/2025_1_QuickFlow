@@ -194,6 +194,15 @@ func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, n
 		}
 	}
 
+	// Обновляем username, если он был изменен
+	if newProfile.Username != "" {
+		_, err = tx.ExecContext(ctx, `update "user" set username = $1 where id = $2`, newProfile.Username, newProfile.UserId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("unable to update username: %v", err))
+			return fmt.Errorf("unable to update username: %w", err)
+		}
+	}
+
 	var contactInfoID, schoolID pgtype.Int4
 	// обновляем ContactInfo
 	if newProfile.ContactInfo != nil {

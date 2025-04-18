@@ -63,6 +63,7 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 
 	return models.Profile{
 		//UserId:     id,
+		Username:   f.ProfileInfo.Username,
 		BasicInfo:  basicInfo,
 		Avatar:     f.Avatar,
 		Background: f.Background,

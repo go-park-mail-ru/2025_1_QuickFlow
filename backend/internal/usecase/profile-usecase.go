@@ -76,6 +76,17 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Pr
 		}
 	}
 
+	// check if user with this username already exists
+	if newProfile.Username != "" {
+		user, err := p.userRepo.GetUserByUsername(ctx, newProfile.Username)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return fmt.Errorf("p.userRepo.GetUserByUsername: %w", err)
+		}
+		if err == nil && user.Id != uuid.Nil && user.Id != newProfile.UserId {
+			return ErrAlreadyExists
+		}
+	}
+
 	err := p.profileRepo.UpdateProfileTextInfo(ctx, newProfile)
 	if err != nil {
 		return fmt.Errorf("p.profileRepo.UpdateProfileTextInfo: %w", err)

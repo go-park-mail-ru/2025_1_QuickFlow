@@ -36,7 +36,8 @@ type BasicInfo struct {
 }
 
 type Profile struct {
-	UserId uuid.UUID
+	UserId   uuid.UUID
+	Username string
 
 	BasicInfo           *BasicInfo
 	ContactInfo         *ContactInfo
