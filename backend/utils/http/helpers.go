@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -15,6 +16,8 @@ import (
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
 )
+
+var TooManyFilesErr = errors.New("too many files")
 
 // WriteJSONError sends JSON error response.
 func WriteJSONError(w http.ResponseWriter, message string, statusCode int) {
@@ -32,6 +35,10 @@ func SetRequestId(ctx context.Context) context.Context {
 // GetFiles retrieves files from multipart form by key.
 func GetFiles(r *http.Request, key string) ([]*models.File, error) {
 	var files []*models.File
+	// TODO clean code
+	if len(r.MultipartForm.File) > 10 {
+		return nil, TooManyFilesErr
+	}
 	for _, fileHeaders := range r.MultipartForm.File[key] {
 		mimeType, err := detectMimeType(fileHeaders)
 		if err != nil {

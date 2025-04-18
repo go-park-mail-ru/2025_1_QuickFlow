@@ -89,7 +89,11 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postForm.Images, err = http2.GetFiles(r, "pics")
-	if err != nil {
+	if errors.Is(err, http2.TooManyFilesErr) {
+		logger.Error(ctx, fmt.Sprintf("Too many pics requested: %s", err.Error()))
+		http2.WriteJSONError(w, "Too many pics requested", http.StatusBadRequest)
+		return
+	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get files: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to get files", http.StatusBadRequest)
 		return
@@ -231,7 +235,11 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatePostForm.Images, err = http2.GetFiles(r, "pics")
-	if err != nil {
+	if errors.Is(err, http2.TooManyFilesErr) {
+		logger.Error(ctx, fmt.Sprintf("Too many pics requested: %s", err.Error()))
+		http2.WriteJSONError(w, "Too many pics requested", http.StatusBadRequest)
+		return
+	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get files: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to get files", http.StatusBadRequest)
 		return
