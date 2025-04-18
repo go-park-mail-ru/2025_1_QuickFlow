@@ -164,21 +164,23 @@ func (m *MessageHandlerWS) MarkMessageRead(ctx context.Context, user models.User
 		return fmt.Errorf("messageId or chatId is empty")
 	}
 
-	err := m.MessageUseCase.UpdateLastMessageRead(ctx, payload.MessageId, payload.ChatId, user.Id)
-	if err != nil {
-		return fmt.Errorf("failed to update last message read: %w", err)
-	}
-
 	msg, err := m.MessageUseCase.GetMessageById(ctx, payload.MessageId)
 	if err != nil {
 		return fmt.Errorf("failed to get message by id: %w", err)
 	}
+
+	err = m.MessageUseCase.UpdateLastReadTs(ctx, msg.CreatedAt, payload.ChatId, user.Id)
+	if err != nil {
+		return fmt.Errorf("failed to update last message read: %w", err)
+	}
+
 	// send message to message author
 	messageReadForm := forms2.NotifyMessageRead{
 		MessageId: payload.MessageId,
 		ChatId:    payload.ChatId,
 		SenderId:  user.Id,
 	}
+
 	err = m.notifyMessageRead(ctx, messageReadForm, msg.SenderID)
 	if err != nil {
 		return fmt.Errorf("failed to notify message read: %w", err)

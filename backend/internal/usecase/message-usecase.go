@@ -26,8 +26,8 @@ type MessageRepository interface {
 
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 
-	GetLastMessageRead(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*models.Message, error)
-	UpdateLastMessageRead(ctx context.Context, messageId uuid.UUID, chatId uuid.UUID, userId uuid.UUID) error
+	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
+	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
 }
 
 type MessageUseCase struct {
@@ -142,12 +142,7 @@ func (m *MessageUseCase) DeleteMessage(ctx context.Context, messageId uuid.UUID)
 	return nil
 }
 
-func (m *MessageUseCase) UpdateLastMessageRead(ctx context.Context, messageId, chatId, userId uuid.UUID) error {
-	// validate
-	if messageId == uuid.Nil {
-		return fmt.Errorf("messageId is empty")
-	}
-
+func (m *MessageUseCase) UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId, userId uuid.UUID) error {
 	// check if user is participant
 	isParticipant, err := m.chatRepo.IsParticipant(ctx, chatId, userId)
 	if err != nil {
@@ -157,14 +152,14 @@ func (m *MessageUseCase) UpdateLastMessageRead(ctx context.Context, messageId, c
 		return ErrNotParticipant
 	}
 
-	err = m.messageRepo.UpdateLastMessageRead(ctx, messageId, chatId, userId)
+	err = m.messageRepo.UpdateLastReadTs(ctx, timestamp, chatId, userId)
 	if err != nil {
 		return fmt.Errorf("m.messageRepo.UpdateLastMessageRead: %w", err)
 	}
 	return nil
 }
 
-func (m *MessageUseCase) GetLastMessageRead(ctx context.Context, chatId, userId uuid.UUID) (*models.Message, error) {
+func (m *MessageUseCase) GetLastReadTs(ctx context.Context, chatId, userId uuid.UUID) (*time.Time, error) {
 	// validate
 	if chatId == uuid.Nil {
 		return nil, fmt.Errorf("chatId is empty")
@@ -179,11 +174,11 @@ func (m *MessageUseCase) GetLastMessageRead(ctx context.Context, chatId, userId 
 		return nil, ErrNotParticipant
 	}
 
-	message, err := m.messageRepo.GetLastMessageRead(ctx, chatId, userId)
+	ts, err := m.messageRepo.GetLastReadTs(ctx, chatId, userId)
 	if err != nil {
 		return nil, fmt.Errorf("m.messageRepo.GetLastMessageRead: %w", err)
 	}
-	return message, nil
+	return ts, nil
 }
 
 func (m *MessageUseCase) GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error) {

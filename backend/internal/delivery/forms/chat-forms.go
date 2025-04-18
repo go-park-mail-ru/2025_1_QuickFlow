@@ -28,6 +28,7 @@ type ChatOut struct {
 	IsOnline    *bool       `json:"online,omitempty"`
 	LastSeen    string      `json:"last_seen,omitempty"`
 	Username    string      `json:"username,omitempty"`
+	LastReadTs  string      `json:"last_read,omitempty"`
 }
 
 type PrivateChatInfo struct {
@@ -79,6 +80,9 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 			UpdatedAt: chat.UpdatedAt.Format(config.TimeStampLayout),
 			AvatarURL: chat.AvatarURL,
 			Type:      chatType,
+		}
+		if chat.LastRead != nil {
+			chatOut.LastReadTs = chat.LastRead.Format(config.TimeStampLayout)
 		}
 		if chat.LastMessage.ID != uuid.Nil {
 			msg := ToMessageOut(chat.LastMessage, lastMessageSenderInfo[chat.LastMessage.SenderID])

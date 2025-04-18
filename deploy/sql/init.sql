@@ -128,7 +128,7 @@ create table if not exists chat_user(
                                         id int generated always as identity primary key,
                                         chat_id uuid references chat(id) on delete cascade,
                                         user_id uuid references "user"(id) on delete cascade,
-                                        last_read_msg_id uuid references message(id) on delete set null,
+                                        last_read timestamptz,
                                         unique(chat_id, user_id)
 );
 
@@ -174,51 +174,3 @@ create table if not exists user_follow(
 
 create extension if not exists pg_trgm;
 SET pg_trgm.similarity_threshold = 0.3;
-
-CREATE OR REPLACE FUNCTION update_last_read_msg_delete()
-    RETURNS TRIGGER AS $$
-DECLARE
-    last_msg RECORD;
-    userid uuid;
-BEGIN
-    -- проверяем, является ли сообщение последним прочитанным для пользователя
-    select user_id
-    into userid
-    from chat_user
-    where chat_id = OLD.chat_id and last_read_msg_id = OLD.id;
-
-    IF FOUND THEN
-        -- находим последнее сообщение в чате, которое было отправлено до удаляемого сообщения
-        SELECT id, created_at
-        INTO last_msg
-        FROM message
-        WHERE chat_id = OLD.chat_id
-          AND created_at = (
-            select max(created_at)
-            from message
-            where chat_id = OLD.chat_id
-              and created_at < OLD.created_at
-              and sender_id != userid);
-
-        -- Если такое сообщение найдено, обновляем last_read_msg_id
-        IF FOUND THEN
-            UPDATE chat_user
-            SET last_read_msg_id = last_msg.id
-            WHERE chat_id = OLD.chat_id and user_id = userid;
-        ELSE
-            -- Если не нашли подходящего сообщения, ставим last_read_msg_id в NULL
-            UPDATE chat_user
-            SET last_read_msg_id = NULL
-            WHERE chat_id = OLD.chat_id and user_id = userid;
-        END IF;
-    END IF;
-
-        RETURN OLD;
-
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_update_last_read_msg_after_delete
-    AFTER DELETE ON message
-    FOR EACH ROW
-EXECUTE FUNCTION update_last_read_msg_delete();

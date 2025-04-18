@@ -19,7 +19,7 @@ const (
         RETURNING id
 `
 	getUserChatsQuery = `
-        SELECT c.id, c.name, c.avatar_url, c.type, c.created_at, c.updated_at
+        SELECT c.id, c.name, c.avatar_url, c.type, c.created_at, c.updated_at, cu.last_read
         FROM chat c
         join chat_user cu on c.id = cu.chat_id
         WHERE cu.user_id = $1
@@ -38,9 +38,14 @@ const (
 		WHERE type = $1 AND id in
 			(select cu1.chat_id 
 			    from chat_user cu1 join chat_user cu2 on cu1.chat_id = cu2.chat_id
-			    where cu1.user_id = $2 and cu2.user_id = $3
-		)
+			    where cu1.user_id = $2 and cu2.user_id = $3)
 `
+
+	getLastMessageReadTs = `
+		select last_read 
+		from chat_user
+		where chat_id = $1 and user_id = $2
+	`
 	getChatParticipantsQuery = `
 		SELECT u.id, u.username 
 		FROM chat_user cu JOIN "user" u ON cu.user_id = u.id 
@@ -95,7 +100,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	var chatPostgres pgmodels.ChatPostgres
 
 	for rows.Next() {
-		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
+		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt, &chatPostgres.LastRead)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan chat from database for user %v: %s", userId, err.Error()))
 			return nil, err
@@ -124,20 +129,27 @@ func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.
 	return *chatPostgres.ToChat(), nil
 }
 
-func (c *ChatRepository) GetPrivateChat(ctx context.Context, sender, receiver uuid.UUID) (models.Chat, error) {
+func (c *ChatRepository) GetPrivateChat(ctx context.Context, requester, companion uuid.UUID) (models.Chat, error) {
 	var chatPostgres pgmodels.ChatPostgres
-	err := c.ConnPool.QueryRowContext(ctx, getPrivateChatQuery, models.ChatTypePrivate, sender, receiver).
+	err := c.ConnPool.QueryRowContext(ctx, getPrivateChatQuery, models.ChatTypePrivate, requester, companion).
 		Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL,
 			&chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		logger.Error(ctx, fmt.Sprintf("Private chat between %s and %s not found", sender, receiver))
+		logger.Error(ctx, fmt.Sprintf("Private chat between %s and %s not found", requester, companion))
 		return models.Chat{}, usecase.ErrNotFound
 	} else if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Unable to get private chat between %s and %s from database: %s", sender, receiver, err.Error()))
+		logger.Error(ctx, fmt.Sprintf("Unable to get private chat between %s and %s from database: %s", requester, companion, err.Error()))
 		return models.Chat{}, err
 	}
 
-	logger.Info(ctx, fmt.Sprintf("Fetched private chat between %s and %s", sender, receiver))
+	// get last read ts
+	err = c.ConnPool.QueryRowContext(ctx, getLastReadMessageQuery, chatPostgres.Id, companion).Scan(&chatPostgres.LastRead)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get last read message from database: %s", err.Error()))
+		return models.Chat{}, err
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Fetched private chat between %s and %s", requester, companion))
 	return *chatPostgres.ToChat(), nil
 }
 

@@ -83,6 +83,11 @@ func ToMessagesOut(messages []models.Message, usersInfo map[uuid.UUID]models.Pub
 	return messagesOut
 }
 
+type MessagesOut struct {
+	Messages   []MessageOut `json:"messages"`
+	LastReadTs string       `json:"last_read_ts,omitempty"`
+}
+
 type MessageForm struct {
 	Text            string    `form:"text" json:"text"`
 	ChatId          uuid.UUID `form:"chat_id" json:"chat_id,omitempty"`

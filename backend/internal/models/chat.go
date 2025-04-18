@@ -27,4 +27,5 @@ type Chat struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	LastMessage Message
+	LastRead    *time.Time
 }

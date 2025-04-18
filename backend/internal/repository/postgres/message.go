@@ -37,14 +37,14 @@ const (
 `
 	markReadQuery = `
         update chat_user
-        set last_read_msg_id = $3
+        set last_read = $3
         where chat_id = $1 and user_id = $2;
         
 `
 	getLastReadMessageQuery = `
-		select id, chat_id, sender_id, text, created_at, updated_at
-		from message m join chat_user cu on m.id = cu.last_read_msg_id
-		where cu.chat_id = $1 and cu.user_id = $2;
+		select last_read 
+		from chat_user
+		where chat_id = $1 and user_id = $2;
 `
 
 	getLastChatMessage = `
@@ -155,23 +155,22 @@ func (m *MessageRepository) DeleteMessage(ctx context.Context, messageId uuid.UU
 	}
 	return nil
 }
-func (m *MessageRepository) UpdateLastMessageRead(ctx context.Context, messageId uuid.UUID, chatId uuid.UUID, userId uuid.UUID) error {
-	_, err := m.connPool.ExecContext(ctx, markReadQuery, messageId, chatId, userId)
+func (m *MessageRepository) UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error {
+	_, err := m.connPool.ExecContext(ctx, markReadQuery, chatId, userId, pgtype.Timestamptz{Time: timestamp, Valid: true})
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Error(ctx, fmt.Sprintf("Unable to find chat %v with user %v: %s", chatId, userId, err.Error()))
 		return usecase.ErrNotFound
 	} else if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Unable to update last read message %v for chat %v with user %v: %s", messageId, chatId, userId, err.Error()))
+		logger.Error(ctx, fmt.Sprintf("Unable to update last read %v for chat %v with user %v: %s", timestamp, chatId, userId, err.Error()))
 		return fmt.Errorf("unable to update last read message in database: %w", err)
 	}
 	return nil
 }
 
-func (m *MessageRepository) GetLastMessageRead(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*models.Message, error) {
-	var messagePostgres pgmodels.MessagePostgres
+func (m *MessageRepository) GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error) {
+	var timestamp pgtype.Timestamptz
 	err := m.connPool.QueryRowContext(ctx, getLastReadMessageQuery, pgtype.UUID{Bytes: chatId, Valid: true}, pgtype.UUID{Bytes: userId, Valid: true}).Scan(
-		&messagePostgres.ID, &messagePostgres.ChatID, &messagePostgres.SenderID,
-		&messagePostgres.Text, &messagePostgres.CreatedAt, &messagePostgres.UpdatedAt)
+		&timestamp)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
@@ -179,8 +178,10 @@ func (m *MessageRepository) GetLastMessageRead(ctx context.Context, chatId uuid.
 		return nil, fmt.Errorf("unable to get last read message from database: %w", err)
 	}
 
-	message := messagePostgres.ToMessage()
-	return &message, nil
+	if timestamp.Valid {
+		return &timestamp.Time, nil
+	}
+	return nil, nil
 }
 
 func (m *MessageRepository) GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error) {

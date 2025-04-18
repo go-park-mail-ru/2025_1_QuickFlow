@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"quickflow/config"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,8 +26,8 @@ type MessageUseCase interface {
 	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
 	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
-	UpdateLastMessageRead(ctx context.Context, messageId uuid.UUID, chatId uuid.UUID, userId uuid.UUID) error
-	GetLastMessageRead(ctx context.Context, chatId, userId uuid.UUID) (*models.Message, error)
+	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
+	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
 }
 
 type MessageHandler struct {
@@ -128,9 +129,15 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 			publicInfo[info.Id] = info
 		}
 	}
-	messagesOut := forms.ToMessagesOut(messages, publicInfo)
+	getLastReadTs, err := m.messageUseCase.GetLastReadTs(ctx, chatId, user.Id)
+	out := forms.MessagesOut{
+		Messages: forms.ToMessagesOut(messages, publicInfo),
+	}
+	if getLastReadTs != nil {
+		out.LastReadTs = getLastReadTs.Format(config.TimeStampLayout)
+	}
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(messagesOut)
+	err = json.NewEncoder(w).Encode(out)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode feed: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)

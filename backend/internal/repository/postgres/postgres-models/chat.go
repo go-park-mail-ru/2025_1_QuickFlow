@@ -13,10 +13,12 @@ type ChatPostgres struct {
 	Type      pgtype.Int4
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
+	LastRead  pgtype.Timestamptz
+	Messages  []MessagePostgres
 }
 
 func (c *ChatPostgres) ToChat() *models.Chat {
-	return &models.Chat{
+	chat := &models.Chat{
 		ID:        c.Id.Bytes,
 		Name:      getStringIfValid(c.Name),
 		AvatarURL: getStringIfValid(c.AvatarURL),
@@ -24,6 +26,10 @@ func (c *ChatPostgres) ToChat() *models.Chat {
 		CreatedAt: c.CreatedAt.Time,
 		UpdatedAt: c.UpdatedAt.Time,
 	}
+	if c.LastRead.Valid {
+		chat.LastRead = &c.LastRead.Time
+	}
+	return chat
 }
 
 func ModelToPostgres(chat *models.Chat) *ChatPostgres {
@@ -32,6 +38,10 @@ func ModelToPostgres(chat *models.Chat) *ChatPostgres {
 		Type:      pgtype.Int4{Int32: int32(chat.Type), Valid: true},
 		CreatedAt: pgtype.Timestamptz{Time: chat.CreatedAt, Valid: true},
 		UpdatedAt: pgtype.Timestamptz{Time: chat.UpdatedAt, Valid: true},
+	}
+
+	if chat.LastRead != nil {
+		chatPostgres.LastRead = pgtype.Timestamptz{Time: *chat.LastRead, Valid: true}
 	}
 	if len(chat.Name) == 0 {
 		chatPostgres.Name = pgtype.Text{Valid: false}
