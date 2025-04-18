@@ -6,6 +6,8 @@ import (
     "errors"
     "fmt"
     "github.com/google/uuid"
+    "github.com/jackc/pgx/v5/pgtype"
+
     "quickflow/internal/models"
     pgmodels "quickflow/internal/repository/postgres/postgres-models"
     "quickflow/internal/usecase"
@@ -19,7 +21,7 @@ const (
         RETURNING id
 `
     getUserChatsQuery = `
-        SELECT c.id, c.name, c.avatar_url, c.type, c.created_at, c.updated_at, cu.last_read
+        SELECT c.id, c.name, c.avatar_url, c.type, c.created_at, c.updated_at
         FROM chat c
         join chat_user cu on c.id = cu.chat_id
         WHERE cu.user_id = $1
@@ -100,10 +102,31 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
     var chatPostgres pgmodels.ChatPostgres
 
     for rows.Next() {
-        err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt, &chatPostgres.LastRead)
+        err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
         if err != nil {
             logger.Error(ctx, fmt.Sprintf("Unable to scan chat from database for user %v: %s", userId, err.Error()))
             return nil, err
+        }
+
+        participants, err := c.GetChatParticipants(ctx, chatPostgres.Id.Bytes)
+        if err != nil {
+            logger.Error(ctx, fmt.Sprintf("Unable to get chat %v participants from database: %s", chatPostgres.Id, err.Error()))
+            return nil, err
+        }
+        var lastRead pgtype.Timestamptz
+        for _, participant := range participants {
+            // get last read ts
+            if participant.Id != userId {
+                err = c.ConnPool.QueryRowContext(ctx, getLastMessageReadTs, chatPostgres.Id, participant.Id).Scan(&lastRead)
+                if err != nil {
+                    logger.Error(ctx, fmt.Sprintf("Unable to get last read message from database: %s", err.Error()))
+                    return nil, err
+                }
+                if lastRead.Valid && (!chatPostgres.LastRead.Valid || lastRead.Time.After(chatPostgres.LastRead.Time)) {
+                    chatPostgres.LastRead = lastRead
+                }
+            }
+
         }
         logger.Info(ctx, fmt.Sprintf("chat name %v last read %v", chatPostgres.Name, chatPostgres.LastRead))
         chats = append(chats, *chatPostgres.ToChat())
