@@ -70,14 +70,13 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	postForm.Text = r.FormValue("text")
 	isRepostString := r.FormValue("is_repost")
 
-	sanitizer.SanitizePost(&postForm, p.policy)
-
-	if utf8.RuneCountInString(postForm.Text) > 4096 {
-		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", len(postForm.Text)))
+	if utf8.RuneCountInString(postForm.Text) >= 4000 {
+		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(postForm.Text)))
 		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
 		return
-
 	}
+
+	sanitizer.SanitizePost(&postForm, p.policy)
 
 	if len(isRepostString) != 0 {
 		postForm.IsRepost, err = strconv.ParseBool(r.FormValue("is_repost"))
@@ -224,15 +223,14 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	var updatePostForm forms.UpdatePostForm
 	updatePostForm.Text = r.FormValue("text")
 
-	sanitizer.SanitizeUpdatePost(&updatePostForm, p.policy)
-
-	// TODO make clean
-	if utf8.RuneCountInString(updatePostForm.Text) > 4096 {
-		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", len(updatePostForm.Text)))
+	if utf8.RuneCountInString(updatePostForm.Text) >= 4000 {
+		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(updatePostForm.Text)))
 		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
 		return
 
 	}
+
+	sanitizer.SanitizeUpdatePost(&updatePostForm, p.policy)
 
 	updatePostForm.Images, err = http2.GetFiles(r, "pics")
 	if errors.Is(err, http2.TooManyFilesErr) {

@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"quickflow/config"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
 
+	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
@@ -192,6 +193,12 @@ func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		logger.Error(ctx, "Failed to parse message body")
 		http2.WriteJSONError(w, "Failed to parse message body", http.StatusBadRequest)
+		return
+	}
+
+	if utf8.RuneCountInString(messageForm.Text) >= 4000 {
+		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(messageForm.Text)))
+		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
 		return
 	}
 

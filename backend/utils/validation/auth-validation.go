@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	randSpecialSymbols = "_/!@#$%^&*(),.?\":{}|<>"
-	acceptableLogin    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789"
+	acceptableLogin = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789"
 )
 
 func validateLogin(login string) bool {
@@ -48,7 +47,7 @@ func validatePassword(password string) bool {
 		return false
 	}
 
-	var hasUpper, hasLower, hasSpecial, hasDigit bool
+	var hasUpper, hasLower, hasDigit bool
 
 	for _, char := range password {
 		switch {
@@ -65,12 +64,10 @@ func validatePassword(password string) bool {
 		case unicode.IsDigit(char):
 			hasDigit = true
 
-		case strings.ContainsRune(randSpecialSymbols, char):
-			hasSpecial = true
 		}
 	}
 
-	return hasUpper && hasLower && hasDigit && hasSpecial
+	return hasUpper && hasLower && hasDigit
 }
 
 func validateCreds(str string) bool {
