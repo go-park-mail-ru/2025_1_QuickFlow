@@ -23,7 +23,6 @@ import (
 
 type MessageUseCase interface {
 	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
-	GetMessageByTs(ctx context.Context, timestamp time.Time) (models.Message, error)
 	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
 	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
