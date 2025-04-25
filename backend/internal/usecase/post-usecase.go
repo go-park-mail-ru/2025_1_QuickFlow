@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 
 	"quickflow/internal/models"
 	"quickflow/utils/validation"
@@ -186,23 +187,42 @@ func (p *PostService) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	}
 
 	// Upload files to storage
-	var fileURLs []string
-	if len(postUpdate.Files) != 0 {
-		fileURLs, err = p.fileRepo.UploadManyFiles(ctx, postUpdate.Files)
-		if err != nil {
-			return models.Post{}, fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
+
+	var g errgroup.Group
+	fileURLChan := make(chan []string, 1)
+
+	g.Go(func() error {
+		var urls []string
+		var err error
+		if len(postUpdate.Files) > 0 {
+			urls, err = p.fileRepo.UploadManyFiles(ctx, postUpdate.Files)
+			if err != nil {
+				return fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
+			}
 		}
-	}
+		fileURLChan <- urls
+		return nil
+	})
 
-	err = p.postRepo.UpdatePostText(ctx, postUpdate.Id, postUpdate.Desc)
-	if err != nil {
-		return models.Post{}, fmt.Errorf("p.postRepo.UpdatePostText: %w", err)
-	}
+	g.Go(func() error {
+		if err := p.postRepo.UpdatePostText(ctx, postUpdate.Id, postUpdate.Desc); err != nil {
+			return fmt.Errorf("p.postRepo.UpdatePostText: %w", err)
+		}
+		return nil
+	})
 
-	err = p.postRepo.UpdatePostFiles(ctx, postUpdate.Id, fileURLs)
-	if err != nil {
-		return models.Post{}, fmt.Errorf("p.postRepo.UpdatePostFiles: %w", err)
+	g.Go(func() error {
+		fileURLs := <-fileURLChan
+		if err := p.postRepo.UpdatePostFiles(ctx, postUpdate.Id, fileURLs); err != nil {
+			return fmt.Errorf("p.postRepo.UpdatePostFiles: %w", err)
+		}
+		return nil
+	})
+
+	if err = g.Wait(); err != nil {
+		return models.Post{}, err
 	}
+	close(fileURLChan)
 
 	// delete old photos
 	for _, pic := range oldPics {

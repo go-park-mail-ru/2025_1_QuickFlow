@@ -282,7 +282,9 @@ func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, user
 	}
 
 	rows, err := p.connPool.QueryContext(ctx, GetPublicUsersInfoQuery, userIds)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, usecase.ErrNotFound
+	} else if err != nil {
 		return nil, fmt.Errorf("unable to get public user info: %w", err)
 	}
 	defer rows.Close()

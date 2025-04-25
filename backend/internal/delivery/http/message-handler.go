@@ -1,12 +1,10 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -21,15 +19,6 @@ import (
 	"quickflow/pkg/sanitizer"
 	http2 "quickflow/utils/http"
 )
-
-type MessageUseCase interface {
-	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
-	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
-	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
-	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
-	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
-	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
-}
 
 type MessageHandler struct {
 	messageUseCase MessageUseCase

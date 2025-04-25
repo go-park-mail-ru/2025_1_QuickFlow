@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -18,6 +19,15 @@ import (
 	"quickflow/pkg/logger"
 	http2 "quickflow/utils/http"
 )
+
+type MessageUseCase interface {
+	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
+	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
+	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
+	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
+	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
+	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
+}
 
 type CommandHandler func(ctx context.Context, user models.User, payload json.RawMessage) error
 

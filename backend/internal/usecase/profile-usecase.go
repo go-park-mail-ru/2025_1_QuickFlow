@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 
 	"quickflow/internal/models"
 	"quickflow/utils/validation"
@@ -77,7 +78,7 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Pr
 	}
 
 	// check if user with this username already exists
-	if newProfile.Username != "" {
+	if len(newProfile.Username) != 0 {
 		user, err := p.userRepo.GetUserByUsername(ctx, newProfile.Username)
 		if err != nil && !errors.Is(err, ErrNotFound) {
 			return fmt.Errorf("p.userRepo.GetUserByUsername: %w", err)
@@ -87,33 +88,43 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Pr
 		}
 	}
 
-	err := p.profileRepo.UpdateProfileTextInfo(ctx, newProfile)
-	if err != nil {
-		return fmt.Errorf("p.profileRepo.UpdateProfileTextInfo: %w", err)
-	}
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		if err := p.profileRepo.UpdateProfileTextInfo(ctx, newProfile); err != nil {
+			return fmt.Errorf("p.profileRepo.UpdateProfileTextInfo: %w", err)
+		}
+		return nil
+	})
 
 	if newProfile.Avatar != nil {
-		avatarUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Avatar)
-		if err != nil {
-			return fmt.Errorf("p.fileRepo.UploadFile: %w", err)
-		}
-
-		err = p.profileRepo.UpdateProfileAvatar(ctx, newProfile.UserId, avatarUrl)
-		if err != nil {
-			return fmt.Errorf("p.profileRepo.UpdateProfileAvatar: %w", err)
-		}
+		g.Go(func() error {
+			avatarUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Avatar)
+			if err != nil {
+				return fmt.Errorf("p.fileRepo.UploadFile (avatar): %w", err)
+			}
+			if err := p.profileRepo.UpdateProfileAvatar(ctx, newProfile.UserId, avatarUrl); err != nil {
+				return fmt.Errorf("p.profileRepo.UpdateProfileAvatar: %w", err)
+			}
+			return nil
+		})
 	}
 
 	if newProfile.Background != nil {
-		backgroundUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Background)
-		if err != nil {
-			return fmt.Errorf("p.fileRepo.UploadFile: %w", err)
-		}
+		g.Go(func() error {
+			backgroundUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Background)
+			if err != nil {
+				return fmt.Errorf("p.fileRepo.UploadFile (background): %w", err)
+			}
+			if err := p.profileRepo.UpdateProfileCover(ctx, newProfile.UserId, backgroundUrl); err != nil {
+				return fmt.Errorf("p.profileRepo.UpdateProfileCover: %w", err)
+			}
+			return nil
+		})
+	}
 
-		err = p.profileRepo.UpdateProfileCover(ctx, newProfile.UserId, backgroundUrl)
-		if err != nil {
-			return fmt.Errorf("p.profileRepo.UpdateProfileCover: %w", err)
-		}
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
 	return nil
