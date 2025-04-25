@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/models"
 )
 
@@ -104,8 +104,8 @@ func (p *PostOut) FromPost(post models.Post) {
 	p.Id = post.Id.String()
 	p.Desc = post.Desc
 	p.Pics = urls
-	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
-	p.UpdatedAt = post.UpdatedAt.Format(config.TimeStampLayout)
+	p.CreatedAt = post.CreatedAt.Format(time2.TimeStampLayout)
+	p.UpdatedAt = post.UpdatedAt.Format(time2.TimeStampLayout)
 	p.Creator.ID = post.CreatorId.String()
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount

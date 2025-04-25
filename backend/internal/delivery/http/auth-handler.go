@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
@@ -88,7 +88,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: form.Password,
 	}
 
-	date, err := time.Parse(config.DateLayout, form.DateOfBirth)
+	date, err := time.Parse(time2.DateLayout, form.DateOfBirth)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
 		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)

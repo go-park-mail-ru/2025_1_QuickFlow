@@ -6,6 +6,12 @@ import (
 	"quickflow/utils"
 )
 
+type CSRFHandler struct{}
+
+func NewCSRFHandler() *CSRFHandler {
+	return &CSRFHandler{}
+}
+
 // GetCSRF godoc
 // @Summary Get CSRF token
 // @Description Get CSRF token
@@ -15,7 +21,7 @@ import (
 // @Success 200 {object} forms.CSRFResponse "CSRF token"
 // @Failure 500 {object} forms.ErrorForm "Server error"
 // @Router /api/csrf [get]
-func GetCSRF(w http.ResponseWriter, r *http.Request) {
+func (c *CSRFHandler) GetCSRF(w http.ResponseWriter, r *http.Request) {
 	token, err := utils.GenerateCSRFToken()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

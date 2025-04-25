@@ -30,15 +30,15 @@ type ChatRepository interface {
 	LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error
 }
 
-type ChatUseCase struct {
+type ChatService struct {
 	chatRepo    ChatRepository
 	fileRepo    FileRepository
 	profileRepo ProfileRepository
 	messageRepo MessageRepository
 }
 
-func NewChatUseCase(charRepo ChatRepository, fileRepo FileRepository, profileRepo ProfileRepository, messageRepo MessageRepository) *ChatUseCase {
-	return &ChatUseCase{
+func NewChatUseCase(charRepo ChatRepository, fileRepo FileRepository, profileRepo ProfileRepository, messageRepo MessageRepository) *ChatService {
+	return &ChatService{
 		chatRepo:    charRepo,
 		fileRepo:    fileRepo,
 		profileRepo: profileRepo,
@@ -47,7 +47,7 @@ func NewChatUseCase(charRepo ChatRepository, fileRepo FileRepository, profileRep
 }
 
 // CreateChat создает новый чат
-func (c *ChatUseCase) CreateChat(ctx context.Context, chatInfo models.ChatCreationInfo) (models.Chat, error) {
+func (c *ChatService) CreateChat(ctx context.Context, chatInfo models.ChatCreationInfo) (models.Chat, error) {
 	// validation
 	if err := validation.ValidateChatCreationInfo(chatInfo); err != nil {
 		return models.Chat{}, ErrInvalidChatCreationInfo
@@ -85,7 +85,7 @@ func (c *ChatUseCase) CreateChat(ctx context.Context, chatInfo models.ChatCreati
 	return chat, nil
 }
 
-func (c *ChatUseCase) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error) {
+func (c *ChatService) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error) {
 	chats, err := c.chatRepo.GetUserChats(ctx, userId)
 	if err != nil {
 		return nil, fmt.Errorf("c.chatRepo.GetUserChats: %w", err)
@@ -124,7 +124,7 @@ func (c *ChatUseCase) GetUserChats(ctx context.Context, userId uuid.UUID) ([]mod
 	return chats, nil
 }
 
-func (c *ChatUseCase) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
+func (c *ChatService) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
 	chat, err := c.chatRepo.GetChat(ctx, chatId)
 	if err != nil {
 		return models.Chat{}, fmt.Errorf("c.chatRepo.GetChat: %w", err)
@@ -132,7 +132,7 @@ func (c *ChatUseCase) GetChat(ctx context.Context, chatId uuid.UUID) (models.Cha
 	return chat, nil
 }
 
-func (c *ChatUseCase) DeleteChat(ctx context.Context, chatId uuid.UUID) error {
+func (c *ChatService) DeleteChat(ctx context.Context, chatId uuid.UUID) error {
 	exists, err := c.chatRepo.Exists(ctx, chatId)
 	if err != nil {
 		return fmt.Errorf("c.chatRepo.Exists: %w", err)
@@ -147,7 +147,7 @@ func (c *ChatUseCase) DeleteChat(ctx context.Context, chatId uuid.UUID) error {
 	return nil
 }
 
-func (c *ChatUseCase) JoinChat(ctx context.Context, chatId, userId uuid.UUID) error {
+func (c *ChatService) JoinChat(ctx context.Context, chatId, userId uuid.UUID) error {
 	exists, err := c.chatRepo.Exists(ctx, chatId)
 	if err != nil {
 		return fmt.Errorf("c.chatRepo.Exists: %w", err)
@@ -171,7 +171,7 @@ func (c *ChatUseCase) JoinChat(ctx context.Context, chatId, userId uuid.UUID) er
 	return nil
 }
 
-func (c *ChatUseCase) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error {
+func (c *ChatService) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error {
 	exists, err := c.chatRepo.Exists(ctx, chatId)
 	if err != nil {
 		return fmt.Errorf("c.chatRepo.Exists: %w", err)
@@ -195,7 +195,7 @@ func (c *ChatUseCase) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) e
 	return nil
 }
 
-func (c *ChatUseCase) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
+func (c *ChatService) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
 	participants, err := c.chatRepo.GetChatParticipants(ctx, chatId)
 	if err != nil {
 		return nil, fmt.Errorf("c.chatRepo.GetChatParticipants: %w", err)
@@ -203,7 +203,7 @@ func (c *ChatUseCase) GetChatParticipants(ctx context.Context, chatId uuid.UUID)
 	return participants, nil
 }
 
-func (c *ChatUseCase) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error) {
+func (c *ChatService) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error) {
 	chat, err := c.chatRepo.GetPrivateChat(ctx, userId1, userId2)
 	if err != nil {
 		return models.Chat{}, fmt.Errorf("c.chatRepo.GetPrivateChat: %w", err)

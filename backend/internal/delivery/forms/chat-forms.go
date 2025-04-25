@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/models"
 	"quickflow/pkg/logger"
 )
@@ -57,7 +57,7 @@ func (g *GetChatsForm) GetParams(values url.Values) error {
 
 	g.ChatsCount = int(numChats)
 
-	ts, err := time.Parse(config.TimeStampLayout, values.Get("ts"))
+	ts, err := time.Parse(time2.TimeStampLayout, values.Get("ts"))
 	if err != nil {
 		ts = time.Now()
 	}
@@ -80,18 +80,18 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 		chatOut := ChatOut{
 			ID:        chat.ID.String(),
 			Name:      chat.Name,
-			CreatedAt: chat.CreatedAt.Format(config.TimeStampLayout),
-			UpdatedAt: chat.UpdatedAt.Format(config.TimeStampLayout),
+			CreatedAt: chat.CreatedAt.Format(time2.TimeStampLayout),
+			UpdatedAt: chat.UpdatedAt.Format(time2.TimeStampLayout),
 			AvatarURL: chat.AvatarURL,
 			Type:      chatType,
 		}
 		if chat.LastReadByOther != nil {
 			logger.Info(context.Background(), fmt.Sprintf("Last read by other for user %v is %v", chatOut.Name, chat.LastReadByOther))
-			chatOut.LastReadByOther = chat.LastReadByOther.Format(config.TimeStampLayout)
+			chatOut.LastReadByOther = chat.LastReadByOther.Format(time2.TimeStampLayout)
 		}
 		if chat.LastReadByMe != nil {
 			logger.Info(context.Background(), fmt.Sprintf("Last read by me for user %v is %v", chatOut.Name, chat.LastReadByMe))
-			chatOut.LastReadByMe = chat.LastReadByMe.Format(config.TimeStampLayout)
+			chatOut.LastReadByMe = chat.LastReadByMe.Format(time2.TimeStampLayout)
 		}
 		if chat.LastMessage.ID != uuid.Nil {
 			msg := ToMessageOut(chat.LastMessage, lastMessageSenderInfo[chat.LastMessage.SenderID])

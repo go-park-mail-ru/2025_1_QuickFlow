@@ -1,4 +1,4 @@
-package minio_config
+package minio_cofig
 
 import (
 	"os"

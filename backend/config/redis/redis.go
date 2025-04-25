@@ -1,4 +1,4 @@
-package redis
+package redis_config
 
 import (
 	get_env "quickflow/utils/get-env"

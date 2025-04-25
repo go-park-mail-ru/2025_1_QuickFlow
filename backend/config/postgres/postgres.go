@@ -1,4 +1,4 @@
-package postgres
+package postgres_config
 
 import (
 	getenv "quickflow/utils/get-env"

@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/models"
 )
 
@@ -34,7 +34,7 @@ func (m *GetMessagesForm) GetParams(values url.Values) error {
 
 	m.MessagesCount = int(numMessages)
 
-	ts, err := time.Parse(config.TimeStampLayout, values.Get("ts"))
+	ts, err := time.Parse(time2.TimeStampLayout, values.Get("ts"))
 	if err != nil {
 		ts = time.Now()
 	}
@@ -57,8 +57,8 @@ func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut
 	return MessageOut{
 		ID:             message.ID,
 		Text:           message.Text,
-		CreatedAt:      message.CreatedAt.Format(config.TimeStampLayout),
-		UpdatedAt:      message.UpdatedAt.Format(config.TimeStampLayout),
+		CreatedAt:      message.CreatedAt.Format(time2.TimeStampLayout),
+		UpdatedAt:      message.UpdatedAt.Format(time2.TimeStampLayout),
 		AttachmentURLs: message.AttachmentURLs,
 
 		Sender: PublicUserInfoToOut(info, ""),
@@ -72,8 +72,8 @@ func ToMessagesOut(messages []models.Message, usersInfo map[uuid.UUID]models.Pub
 		messagesOut = append(messagesOut, MessageOut{
 			ID:             message.ID,
 			Text:           message.Text,
-			CreatedAt:      message.CreatedAt.Format(config.TimeStampLayout),
-			UpdatedAt:      message.UpdatedAt.Format(config.TimeStampLayout),
+			CreatedAt:      message.CreatedAt.Format(time2.TimeStampLayout),
+			UpdatedAt:      message.UpdatedAt.Format(time2.TimeStampLayout),
 			AttachmentURLs: message.AttachmentURLs,
 
 			Sender: PublicUserInfoToOut(usersInfo[message.SenderID], ""),

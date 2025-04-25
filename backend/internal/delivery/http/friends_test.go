@@ -24,7 +24,7 @@ func TestFriendsHandler_GetFriends(t *testing.T) {
 
 	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
 	mockWS := mocks.NewMockIWebSocketManager(ctrl)
-	handler := http2.NewFriendsHandler(mockFriendsUseCase, mockWS)
+	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
 	targetUserID := uuid.New()
@@ -110,7 +110,7 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 
 	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
 	mockWS := mocks.NewMockIWebSocketManager(ctrl)
-	handler := http2.NewFriendsHandler(mockFriendsUseCase, mockWS)
+	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
 	receiverID := uuid.New()
@@ -206,7 +206,7 @@ func TestFriendsHandler_AcceptFriendRequest(t *testing.T) {
 
 	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
 	mockWS := mocks.NewMockIWebSocketManager(ctrl)
-	handler := http2.NewFriendsHandler(mockFriendsUseCase, mockWS)
+	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
 	receiverID := uuid.New()
@@ -274,7 +274,7 @@ func TestFriendsHandler_DeleteFriend(t *testing.T) {
 
 	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
 	mockWS := mocks.NewMockIWebSocketManager(ctrl)
-	handler := http2.NewFriendsHandler(mockFriendsUseCase, mockWS)
+	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
 	friendID := uuid.New()
@@ -342,7 +342,7 @@ func TestFriendsHandler_Unfollow(t *testing.T) {
 
 	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
 	mockWS := mocks.NewMockIWebSocketManager(ctrl)
-	handler := http2.NewFriendsHandler(mockFriendsUseCase, mockWS)
+	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
 	friendID := uuid.New()

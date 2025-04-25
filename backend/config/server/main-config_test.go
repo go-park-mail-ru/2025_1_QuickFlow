@@ -1,4 +1,4 @@
-package config
+package server_config
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 
 func TestLoadConfig_Success(t *testing.T) {
 	// Создаем временный конфигурационный файл для теста
-	cfg := &Config{
+	cfg := &ServerConfig{
 		Addr:         "localhost:8080",
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,

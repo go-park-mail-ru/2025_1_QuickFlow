@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
+	time2 "quickflow/config/time"
 	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
 
-	"quickflow/config"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	http2 "quickflow/utils/http"
@@ -77,7 +77,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts, err := time.Parse(config.TimeStampLayout, feedForm.Ts)
+	ts, err := time.Parse(time2.TimeStampLayout, feedForm.Ts)
 	if err != nil {
 		ts = time.Now()
 	}
@@ -162,7 +162,7 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ts, err := time.Parse(config.TimeStampLayout, feedForm.Ts)
+	ts, err := time.Parse(time2.TimeStampLayout, feedForm.Ts)
 	if err != nil {
 		ts = time.Now()
 	}
@@ -263,7 +263,7 @@ func (f *FeedHandler) FetchUserPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ts, err := time.Parse(config.TimeStampLayout, feedForm.Ts)
+	ts, err := time.Parse(time2.TimeStampLayout, feedForm.Ts)
 	if err != nil {
 		ts = time.Now()
 	}

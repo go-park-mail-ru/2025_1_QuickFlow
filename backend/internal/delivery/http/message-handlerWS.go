@@ -33,16 +33,16 @@ type IWebSocketRouter interface {
 	Route(ctx context.Context, command string, user models.User, payload json.RawMessage) error
 }
 
-// MessageHandlerWS Обработчик сообщений
-type MessageHandlerWS struct {
+// MessageListenerWS Обработчик сообщений
+type MessageListenerWS struct {
 	profileUseCase   ProfileUseCase
 	WebSocketManager IWebSocketConnectionManager
 	WebSocketRouter  IWebSocketRouter
 	policy           *bluemonday.Policy
 }
 
-func NewMessageHandlerWS(profileUseCase ProfileUseCase, webSocketManager IWebSocketConnectionManager, webSocketRouter IWebSocketRouter, policy *bluemonday.Policy) *MessageHandlerWS {
-	return &MessageHandlerWS{
+func NewMessageListenerWS(profileUseCase ProfileUseCase, webSocketManager IWebSocketConnectionManager, webSocketRouter IWebSocketRouter, policy *bluemonday.Policy) *MessageListenerWS {
+	return &MessageListenerWS{
 		profileUseCase:   profileUseCase,
 		WebSocketManager: webSocketManager,
 		policy:           policy,
@@ -61,7 +61,7 @@ func NewMessageHandlerWS(profileUseCase ProfileUseCase, webSocketManager IWebSoc
 // @Failure 400 {object} forms.ErrorForm "Invalid data"
 // @Failure 500 {object} forms.ErrorForm "Server error"
 // @Router /api/ws [get]
-func (m *MessageHandlerWS) HandleMessages(w http.ResponseWriter, r *http.Request) {
+func (m *MessageListenerWS) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 	// Извлекаем пользователя из контекста
 	user, ok := ctx.Value("user").(models.User)

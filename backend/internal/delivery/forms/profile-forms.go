@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/models"
 )
 
@@ -86,7 +86,7 @@ func ModelToForm(profile models.Profile, username string, isOnline bool, relatio
 		ChatId:              uuid,
 	}
 	if !isOnline {
-		profileForm.LastSeen = profile.LastSeen.Format(config.TimeStampLayout)
+		profileForm.LastSeen = profile.LastSeen.Format(time2.TimeStampLayout)
 	}
 	return profileForm
 }
@@ -180,7 +180,7 @@ func BasicInfoToForm(info models.BasicInfo, username string) *ProfileInfo {
 		Name:          info.Name,
 		Surname:       info.Surname,
 		Sex:           info.Sex,
-		DateOfBirth:   info.DateOfBirth.Format(config.DateLayout),
+		DateOfBirth:   info.DateOfBirth.Format(time2.DateLayout),
 		Bio:           info.Bio,
 		AvatarUrl:     info.AvatarUrl,
 		BackgroundUrl: info.BackgroundUrl,
@@ -188,7 +188,7 @@ func BasicInfoToForm(info models.BasicInfo, username string) *ProfileInfo {
 }
 
 func ProfileInfoToModel(info ProfileInfo) (*models.BasicInfo, error) {
-	date, err := time.Parse(config.DateLayout, info.DateOfBirth)
+	date, err := time.Parse(time2.DateLayout, info.DateOfBirth)
 	if err != nil {
 		return nil, errors.New("incorrect date format")
 	}

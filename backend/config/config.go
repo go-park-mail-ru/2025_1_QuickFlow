@@ -1,38 +1,19 @@
 package config
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/BurntSushi/toml"
+	cors_config "quickflow/config/cors"
+	minio_config "quickflow/config/minio"
+	"quickflow/config/postgres"
+	redis_config "quickflow/config/redis"
+	server_config "quickflow/config/server"
+	validation_config "quickflow/config/validation"
 )
 
 type Config struct {
-	Addr         string        `toml:"addr"`
-	ReadTimeout  time.Duration `toml:"read_timeout"`
-	WriteTimeout time.Duration `toml:"write_timeout"`
-}
-
-// loadConfig loads config from file.
-func loadConfig(configPath string) (*Config, error) {
-	if configPath == "" {
-		configPath = "../deploy/config/feeder/config.toml"
-	}
-
-	var cfg Config
-	_, err := toml.DecodeFile(configPath, &cfg)
-	if err != nil {
-		return nil, fmt.Errorf("config.LoadConfig: %w", err)
-	}
-	return &cfg, nil
-}
-
-func Parse(configPath string) (*Config, error) {
-	// Loading config
-	cfg, err := loadConfig(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("internal.Run: %w", err)
-	}
-
-	return cfg, nil
+	PostgresConfig   *postgres_config.PostgresConfig
+	MinioConfig      *minio_config.MinioConfig
+	CORSConfig       *cors_config.CORSConfig
+	RedisConfig      *redis_config.RedisConfig
+	ServerConfig     *server_config.ServerConfig
+	ValidationConfig *validation_config.ValidationConfig
 }

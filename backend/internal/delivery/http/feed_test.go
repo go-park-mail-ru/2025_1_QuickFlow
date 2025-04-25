@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/delivery/forms"
 	http2 "quickflow/internal/delivery/http"
 	"quickflow/internal/delivery/http/mocks"
@@ -33,7 +33,7 @@ func TestFeedHandler_GetFeed(t *testing.T) {
 
 	user := models.User{Id: uuid.New()}
 	now := time.Now()
-	nowStr := now.Format(config.TimeStampLayout)
+	nowStr := now.Format(time2.TimeStampLayout)
 
 	tests := []struct {
 		name           string

@@ -30,21 +30,21 @@ type MessageRepository interface {
 	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
 }
 
-type MessageUseCase struct {
+type MessageService struct {
 	fileRepo    FileRepository
 	messageRepo MessageRepository
 	chatRepo    ChatRepository
 }
 
-func NewMessageUseCase(messageRepo MessageRepository, fileRepo FileRepository, chatRepo ChatRepository) *MessageUseCase {
-	return &MessageUseCase{
+func NewMessageService(messageRepo MessageRepository, fileRepo FileRepository, chatRepo ChatRepository) *MessageService {
+	return &MessageService{
 		fileRepo:    fileRepo,
 		messageRepo: messageRepo,
 		chatRepo:    chatRepo,
 	}
 }
 
-func (m *MessageUseCase) GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error) {
+func (m *MessageService) GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error) {
 	// validation
 	if numMessages <= 0 {
 		return nil, ErrInvalidNumMessages
@@ -67,7 +67,7 @@ func (m *MessageUseCase) GetMessagesForChat(ctx context.Context, chatId uuid.UUI
 	return messages, nil
 }
 
-func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error) {
+func (m *MessageService) SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error) {
 	// validate
 	err := validation.ValidateMessage(message)
 	if err != nil {
@@ -128,7 +128,7 @@ func (m *MessageUseCase) SaveMessage(ctx context.Context, message models.Message
 	return message.ChatID, nil
 }
 
-func (m *MessageUseCase) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {
+func (m *MessageService) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {
 	// validate
 	if messageId == uuid.Nil {
 		return fmt.Errorf("messageId is empty")
@@ -142,7 +142,7 @@ func (m *MessageUseCase) DeleteMessage(ctx context.Context, messageId uuid.UUID)
 	return nil
 }
 
-func (m *MessageUseCase) UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId, userId uuid.UUID) error {
+func (m *MessageService) UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId, userId uuid.UUID) error {
 	// check if user is participant
 	isParticipant, err := m.chatRepo.IsParticipant(ctx, chatId, userId)
 	if err != nil {
@@ -159,7 +159,7 @@ func (m *MessageUseCase) UpdateLastReadTs(ctx context.Context, timestamp time.Ti
 	return nil
 }
 
-func (m *MessageUseCase) GetLastReadTs(ctx context.Context, chatId, userId uuid.UUID) (*time.Time, error) {
+func (m *MessageService) GetLastReadTs(ctx context.Context, chatId, userId uuid.UUID) (*time.Time, error) {
 	// validate
 	if chatId == uuid.Nil {
 		return nil, fmt.Errorf("chatId is empty")
@@ -181,7 +181,7 @@ func (m *MessageUseCase) GetLastReadTs(ctx context.Context, chatId, userId uuid.
 	return ts, nil
 }
 
-func (m *MessageUseCase) GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error) {
+func (m *MessageService) GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error) {
 	// validate
 	if messageId == uuid.Nil {
 		return models.Message{}, fmt.Errorf("messageId is empty")

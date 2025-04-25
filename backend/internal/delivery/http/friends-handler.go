@@ -25,13 +25,13 @@ type FriendsUseCase interface {
 	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error)
 }
 
-type FriendsHandler struct {
+type FriendHandler struct {
 	FriendsUseCase FriendsUseCase
 	ConnService    IWebSocketConnectionManager
 }
 
-func NewFriendsHandler(friendsUseCase FriendsUseCase, connService IWebSocketConnectionManager) *FriendsHandler {
-	return &FriendsHandler{
+func NewFriendHandler(friendsUseCase FriendsUseCase, connService IWebSocketConnectionManager) *FriendHandler {
+	return &FriendHandler{
 		FriendsUseCase: friendsUseCase,
 		ConnService:    connService,
 	}
@@ -46,7 +46,7 @@ func NewFriendsHandler(friendsUseCase FriendsUseCase, connService IWebSocketConn
 // @Failure 400 {object} forms.ErrorForm "Некорректные данные"
 // @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
 // @Router /api/friends [get]
-func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
+func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
 	user, ok := ctx.Value("user").(models.User)
@@ -105,7 +105,7 @@ func (f *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 // @Failure 409 {object} forms.ErrorForm "Отношение между пользователями (подписчик/друг) уже существует
 // @Failure 500 {object} forms.ErrorForm "Ошибка сервера"
 // @Router /api/friends [post]
-func (f *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
+func (f *FriendHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
 	user, ok := ctx.Value("user").(models.User)
@@ -151,7 +151,7 @@ func (f *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 	logger.Info(ctx, fmt.Sprintf("Successfully processed friend request to user %s", req.ReceiverID))
 }
 
-func (f *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
+func (f *FriendHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
 	user, ok := ctx.Value("user").(models.User)
@@ -182,7 +182,7 @@ func (f *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 	logger.Info(ctx, fmt.Sprintf("Successfully accepted friend request from user %s", req.ReceiverID))
 }
 
-func (f *FriendsHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
+func (f *FriendHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
 	user, ok := ctx.Value("user").(models.User)
@@ -213,7 +213,7 @@ func (f *FriendsHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, fmt.Sprintf("Successfully deleted friend from user %s", req.FriendID))
 }
 
-func (f *FriendsHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
+func (f *FriendHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
 	user, ok := ctx.Value("user").(models.User)

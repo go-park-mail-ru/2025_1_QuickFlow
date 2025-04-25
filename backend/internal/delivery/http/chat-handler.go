@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
@@ -148,7 +148,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 
 		privateChatsOnlineStatus[chat.ID] = forms.PrivateChatInfo{
 			Username: username,
-			Activity: forms.Activity{IsOnline: isOnline, LastSeen: lastSeen.Format(config.TimeStampLayout)},
+			Activity: forms.Activity{IsOnline: isOnline, LastSeen: lastSeen.Format(time2.TimeStampLayout)},
 		}
 	}
 

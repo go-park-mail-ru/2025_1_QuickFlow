@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"quickflow/config"
 	"sync"
 	"time"
+
+	time2 "quickflow/config/time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -56,15 +57,15 @@ func (wm *WSConnectionManager) IsConnected(userId uuid.UUID) (*websocket.Conn, b
 
 // ---------------------------------------------------------
 
-type MessageHandlerWS struct {
+type InternalWSMessageHandler struct {
 	WSConnectionManager *WSConnectionManager
 	MessageUseCase      http2.MessageUseCase
 	profileUseCase      http2.ProfileUseCase
 	ChatUseCase         http2.ChatUseCase
 }
 
-func NewMessageHandlerWS(wsConnManager *WSConnectionManager, messageUseCase http2.MessageUseCase, profileUseCase http2.ProfileUseCase, chatUseCase http2.ChatUseCase) *MessageHandlerWS {
-	return &MessageHandlerWS{
+func NewInternalWSMessageHandler(wsConnManager *WSConnectionManager, messageUseCase http2.MessageUseCase, profileUseCase http2.ProfileUseCase, chatUseCase http2.ChatUseCase) *InternalWSMessageHandler {
+	return &InternalWSMessageHandler{
 		WSConnectionManager: wsConnManager,
 		MessageUseCase:      messageUseCase,
 		profileUseCase:      profileUseCase,
@@ -72,7 +73,7 @@ func NewMessageHandlerWS(wsConnManager *WSConnectionManager, messageUseCase http
 	}
 }
 
-func (m *MessageHandlerWS) Handle(ctx context.Context, user models.User, payload json.RawMessage) error {
+func (m *InternalWSMessageHandler) Handle(ctx context.Context, user models.User, payload json.RawMessage) error {
 	var messageForm forms.MessageForm
 	if err := json.Unmarshal(payload, &messageForm); err != nil {
 		return fmt.Errorf("failed to unmarshal payload: %w", err)
@@ -118,7 +119,7 @@ func (m *MessageHandlerWS) Handle(ctx context.Context, user models.User, payload
 }
 
 // SendMessageToUser sends a message to a specific user
-func (m *MessageHandlerWS) SendMessageToUser(_ context.Context, userId uuid.UUID, message forms.MessageOut) error {
+func (m *InternalWSMessageHandler) SendMessageToUser(_ context.Context, userId uuid.UUID, message forms.MessageOut) error {
 	conn, exists := m.WSConnectionManager.IsConnected(userId)
 
 	if !exists {
@@ -143,7 +144,7 @@ func (m *MessageHandlerWS) SendMessageToUser(_ context.Context, userId uuid.UUID
 }
 
 // SendMessageToChat sends a message to all participants in a chat
-func (m *MessageHandlerWS) sendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo, chatParticipants []models.User) error {
+func (m *InternalWSMessageHandler) sendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo, chatParticipants []models.User) error {
 	for _, user := range chatParticipants {
 		err := m.SendMessageToUser(ctx, user.Id, forms.ToMessageOut(message, publicSenderInfo))
 		if err != nil {
@@ -154,7 +155,7 @@ func (m *MessageHandlerWS) sendMessageToChat(ctx context.Context, message models
 	return nil
 }
 
-func (m *MessageHandlerWS) MarkMessageRead(ctx context.Context, user models.User, jsonPayload json.RawMessage) error {
+func (m *InternalWSMessageHandler) MarkMessageRead(ctx context.Context, user models.User, jsonPayload json.RawMessage) error {
 	var payload forms2.MarkReadPayload
 
 	if err := json.Unmarshal(jsonPayload, &payload); err != nil {
@@ -178,7 +179,7 @@ func (m *MessageHandlerWS) MarkMessageRead(ctx context.Context, user models.User
 	// send message to message author
 	messageReadForm := forms2.NotifyMessageRead{
 		MessageId: payload.MessageId,
-		Timestamp: msg.CreatedAt.Format(config.TimeStampLayout),
+		Timestamp: msg.CreatedAt.Format(time2.TimeStampLayout),
 		ChatId:    payload.ChatId,
 		SenderId:  user.Id,
 	}
@@ -190,7 +191,7 @@ func (m *MessageHandlerWS) MarkMessageRead(ctx context.Context, user models.User
 	return nil
 }
 
-func (m *MessageHandlerWS) notifyMessageRead(_ context.Context, read forms2.NotifyMessageRead, receiver uuid.UUID) error {
+func (m *InternalWSMessageHandler) notifyMessageRead(_ context.Context, read forms2.NotifyMessageRead, receiver uuid.UUID) error {
 	conn, exists := m.WSConnectionManager.IsConnected(receiver)
 	if !exists {
 		return fmt.Errorf("user not connected")
@@ -240,28 +241,4 @@ func (wm *PingHandlerWS) Handle(ctx context.Context, conn *websocket.Conn) {
 		}
 	}()
 	return
-}
-
-// WebSocketRouter - Маршрутизатор для WebSocket команд
-type WebSocketRouter struct {
-	handlers map[string]http2.CommandHandler
-}
-
-func (r *WebSocketRouter) RegisterHandler(command string, handler http2.CommandHandler) {
-	if r.handlers == nil {
-		r.handlers = make(map[string]http2.CommandHandler)
-	}
-	r.handlers[command] = handler
-}
-
-func (r *WebSocketRouter) Route(ctx context.Context, command string, user models.User, payload json.RawMessage) error {
-	handler, found := r.handlers[command]
-	if !found {
-		return fmt.Errorf("no handler for command: %s", command)
-	}
-	return handler(ctx, user, payload)
-}
-
-func NewWebSocketRouter() *WebSocketRouter {
-	return &WebSocketRouter{}
 }

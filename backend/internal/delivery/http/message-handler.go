@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
 
-	"quickflow/config"
+	time2 "quickflow/config/time"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
@@ -135,7 +135,7 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 		Messages: forms.ToMessagesOut(messages, publicInfo),
 	}
 	if getLastReadTs != nil {
-		out.LastReadTs = getLastReadTs.Format(config.TimeStampLayout)
+		out.LastReadTs = getLastReadTs.Format(time2.TimeStampLayout)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(out)

@@ -1,4 +1,4 @@
-package config
+package time_config
 
 import (
 	"time"
