@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"quickflow/monolith/internal/delivery/forms"
-	forms2 "quickflow/monolith/internal/delivery/ws/forms"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
-	http2 "quickflow/monolith/utils/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/microcosm-cc/bluemonday"
+
+	"quickflow/internal/delivery/forms"
+	forms2 "quickflow/internal/delivery/ws/forms"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
+	http2 "quickflow/utils/http"
 )
 
 type MessageUseCase interface {

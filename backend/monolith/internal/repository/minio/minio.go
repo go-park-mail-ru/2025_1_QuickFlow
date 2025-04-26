@@ -9,10 +9,10 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/sync/errgroup"
 
-	minioconfig "quickflow/monolith/config/minio"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
-	threadsafeslice "quickflow/monolith/pkg/thread-safe-slice"
+	minioconfig "quickflow/config/minio"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
+	threadsafeslice "quickflow/pkg/thread-safe-slice"
 )
 
 type MinioRepository struct {

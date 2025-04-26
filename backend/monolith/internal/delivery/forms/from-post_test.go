@@ -1,11 +1,12 @@
 package forms
 
 import (
-	"quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+
+	"quickflow/internal/models"
 )
 
 func TestPostOut_FromPost(t *testing.T) {

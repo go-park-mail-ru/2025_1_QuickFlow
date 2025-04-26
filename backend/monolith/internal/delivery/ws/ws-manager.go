@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"quickflow/monolith/internal/delivery/forms"
-	"quickflow/monolith/internal/models"
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
 )
 
 type IWebSocketManager interface {

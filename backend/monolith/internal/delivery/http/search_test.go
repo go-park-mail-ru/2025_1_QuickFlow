@@ -6,16 +6,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"quickflow/monolith/internal/delivery/forms"
-	http2 "quickflow/monolith/internal/delivery/http"
-	"quickflow/monolith/internal/delivery/http/mocks"
-	"quickflow/monolith/internal/models"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestSearchHandler_SearchSimilar(t *testing.T) {

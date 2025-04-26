@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"quickflow/monolith/internal/models"
-	pgmodels "quickflow/monolith/internal/repository/postgres/postgres-models"
-	"quickflow/monolith/pkg/logger"
+	"quickflow/internal/models"
+	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/pkg/logger"
 )
 
 const getPostsQuery = `

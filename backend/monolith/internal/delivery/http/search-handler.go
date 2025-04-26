@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"quickflow/monolith/internal/delivery/forms"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
 )
 
 type SearchUseCase interface {

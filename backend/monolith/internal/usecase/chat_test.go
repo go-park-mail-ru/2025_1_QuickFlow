@@ -2,14 +2,15 @@ package usecase
 
 import (
 	"context"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/internal/usecase/mocks"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/models"
+	"quickflow/internal/usecase/mocks"
 )
 
 func TestCreateChat_InvalidChatCreationInfo(t *testing.T) {

@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"quickflow/monolith/utils"
+	"quickflow/utils"
 )
 
 type CSRFHandler struct{}

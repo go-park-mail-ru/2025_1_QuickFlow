@@ -3,14 +3,15 @@ package usecase_test
 import (
 	"context"
 	"errors"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/internal/usecase"
-	"quickflow/monolith/internal/usecase/mocks"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/models"
+	"quickflow/internal/usecase"
+	"quickflow/internal/usecase/mocks"
 )
 
 func TestAuthService_CreateUser(t *testing.T) {
@@ -30,10 +31,10 @@ func TestAuthService_CreateUser(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		mockSetup   func()
-		user        models.User
-		profile     models.Profile
-		expectedErr error
+		mockSetup    func()
+		user         models.User
+		profile      models.Profile
+		expectedErr  error
 		expectedUser bool
 	}{
 		{
@@ -133,9 +134,9 @@ func TestAuthService_AuthUser(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		mockSetup   func()
-		authData    models.LoginData
-		expectedErr error
+		mockSetup    func()
+		authData     models.LoginData
+		expectedErr  error
 		expectedSess bool
 	}{
 		{

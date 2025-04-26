@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
@@ -11,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/models"
 )
 
 func TestSaveSession(t *testing.T) {

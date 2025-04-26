@@ -2,7 +2,8 @@ package postgres_models
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
-	"quickflow/monolith/internal/models"
+
+	"quickflow/internal/models"
 )
 
 type UserPostgres struct {

@@ -10,12 +10,12 @@ import (
 
 	"github.com/google/uuid"
 
-	time2 "quickflow/monolith/config/time"
-	"quickflow/monolith/internal/delivery/forms"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/internal/usecase"
-	"quickflow/monolith/pkg/logger"
-	http2 "quickflow/monolith/utils/http"
+	time2 "quickflow/config/time"
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
+	"quickflow/internal/usecase"
+	"quickflow/pkg/logger"
+	http2 "quickflow/utils/http"
 )
 
 type ChatUseCase interface {

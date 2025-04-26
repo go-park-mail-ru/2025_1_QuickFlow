@@ -10,13 +10,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 
-	time2 "quickflow/monolith/config/time"
-	"quickflow/monolith/internal/delivery/forms"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
-	"quickflow/monolith/pkg/sanitizer"
-	http2 "quickflow/monolith/utils/http"
-	"quickflow/monolith/utils/validation"
+	time2 "quickflow/config/time"
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
+	"quickflow/pkg/sanitizer"
+	http2 "quickflow/utils/http"
+	"quickflow/utils/validation"
 )
 
 type AuthUseCase interface {

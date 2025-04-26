@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"quickflow/monolith/pkg/logger"
+	"quickflow/pkg/logger"
 )
 
 func RecoveryMiddleware(next http.Handler) http.Handler {

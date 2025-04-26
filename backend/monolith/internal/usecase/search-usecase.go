@@ -2,7 +2,8 @@ package usecase
 
 import (
 	"context"
-	"quickflow/monolith/internal/models"
+
+	"quickflow/internal/models"
 )
 
 type SearchService struct {

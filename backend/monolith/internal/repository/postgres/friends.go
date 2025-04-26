@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 
-	"quickflow/monolith/internal/models"
-	postgresModels "quickflow/monolith/internal/repository/postgres/postgres-models"
-	"quickflow/monolith/pkg/logger"
+	"quickflow/internal/models"
+	postgresModels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/pkg/logger"
 )
 
 const (

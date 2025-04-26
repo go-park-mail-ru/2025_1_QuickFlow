@@ -3,14 +3,15 @@ package forms_test
 import (
 	"errors"
 	"net/url"
-	"quickflow/monolith/internal/delivery/forms"
-	"quickflow/monolith/internal/models"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/delivery/forms"
+	"quickflow/internal/models"
 )
 
 func TestPostForm_ToPostModel(t *testing.T) {

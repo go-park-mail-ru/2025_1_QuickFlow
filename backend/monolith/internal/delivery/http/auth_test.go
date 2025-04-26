@@ -6,10 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/monolith/internal/delivery/forms"
-	http2 "quickflow/monolith/internal/delivery/http"
-	"quickflow/monolith/internal/delivery/http/mocks"
-	"quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
@@ -17,6 +13,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestAuthHandler_SignUp(t *testing.T) {

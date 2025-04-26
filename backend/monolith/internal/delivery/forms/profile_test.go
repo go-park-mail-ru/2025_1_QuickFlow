@@ -1,12 +1,13 @@
 package forms
 
 import (
-	"quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/models"
 )
 
 func TestProfileForm_FormToModel(t *testing.T) {

@@ -8,10 +8,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/monolith/internal/delivery/forms"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
-	http2 "quickflow/monolith/utils/http"
+	"quickflow/internal/delivery/forms"
+
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
+	http2 "quickflow/utils/http"
 )
 
 type FriendsUseCase interface {

@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/monolith/internal/models"
-	postgres_models2 "quickflow/monolith/internal/repository/postgres/postgres-models"
-	"quickflow/monolith/internal/usecase"
-	"quickflow/monolith/utils/validation"
+	"quickflow/internal/models"
+	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/internal/usecase"
+	"quickflow/utils/validation"
 )
 
 const (
@@ -79,7 +79,7 @@ func (u *PostgresUserRepository) IsExists(ctx context.Context, login string) (bo
 // SaveUser saves user to the repository.
 func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models.User) (uuid.UUID, error) {
 
-	userPostgres := postgres_models2.ConvertUserToPostgres(user)
+	userPostgres := pgmodels.ConvertUserToPostgres(user)
 
 	_, err := u.connPool.ExecContext(ctx, insertUserQuery,
 		userPostgres.Id, userPostgres.Username,
@@ -94,7 +94,7 @@ func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models.User)
 
 // GetUser returns user by login and password.
 func (u *PostgresUserRepository) GetUser(ctx context.Context, loginData models.LoginData) (models.User, error) {
-	var userPostgres postgres_models2.UserPostgres
+	var userPostgres pgmodels.UserPostgres
 
 	err := u.connPool.QueryRowContext(ctx, getUserByUsername, loginData.Login).Scan(
 		&userPostgres.Id, &userPostgres.Username,
@@ -112,7 +112,7 @@ func (u *PostgresUserRepository) GetUser(ctx context.Context, loginData models.L
 
 // GetUserByUId returns user by id.
 func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.UUID) (models.User, error) {
-	var userPostgres postgres_models2.UserPostgres
+	var userPostgres pgmodels.UserPostgres
 
 	err := u.connPool.QueryRowContext(ctx, getUserByUIdQuery,
 		userId).Scan(&userPostgres.Id, &userPostgres.Username,
@@ -125,7 +125,7 @@ func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.U
 }
 
 func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
-	var user postgres_models2.UserPostgres
+	var user pgmodels.UserPostgres
 	err := u.connPool.QueryRowContext(ctx, getUserByUsername, username).Scan(&user.Id, &user.Username, &user.Password, &user.Salt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.User{}, usecase.ErrNotFound
@@ -145,7 +145,7 @@ func (u *PostgresUserRepository) SearchSimilar(ctx context.Context, toSearch str
 
 	var users []models.PublicUserInfo
 	for rows.Next() {
-		var user postgres_models2.PublicUserInfoPostgres
+		var user pgmodels.PublicUserInfoPostgres
 		err = rows.Scan(&user.Id, &user.Username, &user.Firstname, &user.Lastname, &user.AvatarURL)
 		if err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)

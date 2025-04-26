@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"quickflow/monolith/internal/models"
-	postgres_models2 "quickflow/monolith/internal/repository/postgres/postgres-models"
-	"quickflow/monolith/internal/usecase"
-	"quickflow/monolith/pkg/logger"
+	"quickflow/internal/models"
+	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	"quickflow/internal/usecase"
+	"quickflow/pkg/logger"
 )
 
 const (
@@ -100,7 +100,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	}
 	defer rows.Close()
 
-	var chatPostgres postgres_models2.ChatPostgres
+	var chatPostgres pgmodels.ChatPostgres
 
 	for rows.Next() {
 		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt, &chatPostgres.LastReadByMe)
@@ -140,7 +140,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 }
 
 func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
-	var chatPostgres postgres_models2.ChatPostgres
+	var chatPostgres pgmodels.ChatPostgres
 	err := c.ConnPool.QueryRowContext(ctx, getChatQuery, chatId).Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Error(ctx, fmt.Sprintf("Chat with id %s not found", chatId))
@@ -156,7 +156,7 @@ func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.
 }
 
 func (c *ChatRepository) GetPrivateChat(ctx context.Context, requester, companion uuid.UUID) (models.Chat, error) {
-	var chatPostgres postgres_models2.ChatPostgres
+	var chatPostgres pgmodels.ChatPostgres
 	err := c.ConnPool.QueryRowContext(ctx, getPrivateChatQuery, models.ChatTypePrivate, requester, companion).
 		Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL,
 			&chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
@@ -236,7 +236,7 @@ func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UU
 	defer rows.Close()
 
 	for rows.Next() {
-		var user postgres_models2.UserPostgres
+		var user pgmodels.UserPostgres
 		err = rows.Scan(&user.Id, &user.Username)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan user from database for chat %v: %s", chatId, err.Error()))

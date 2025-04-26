@@ -7,10 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	http2 "quickflow/monolith/internal/delivery/http"
-	"quickflow/monolith/internal/delivery/http/mocks"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/internal/usecase"
 	"testing"
 	"time"
 
@@ -19,6 +15,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
+
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
+	"quickflow/internal/usecase"
 )
 
 func TestMessageHandler_GetMessagesForChat(t *testing.T) {

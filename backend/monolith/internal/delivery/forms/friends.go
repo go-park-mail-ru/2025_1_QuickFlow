@@ -2,7 +2,8 @@ package forms
 
 import (
 	"github.com/google/uuid"
-	"quickflow/monolith/internal/models"
+
+	"quickflow/internal/models"
 )
 
 type FriendRequest struct {

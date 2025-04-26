@@ -3,12 +3,13 @@ package forms
 import (
 	"errors"
 	"net/url"
-	time2 "quickflow/monolith/config/time"
-	"quickflow/monolith/internal/models"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
+
+	time2 "quickflow/config/time"
+	"quickflow/internal/models"
 )
 
 type GetMessagesForm struct {

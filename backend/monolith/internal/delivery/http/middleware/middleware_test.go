@@ -5,13 +5,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/monolith/internal/delivery/http/mocks"
-	"quickflow/monolith/internal/models"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/config/cors"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestContentTypeMiddleware(t *testing.T) {

@@ -3,14 +3,15 @@ package usecase_test
 import (
 	"context"
 	"errors"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/internal/usecase"
-	"quickflow/monolith/internal/usecase/mocks"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/models"
+	"quickflow/internal/usecase"
+	"quickflow/internal/usecase/mocks"
 )
 
 func TestPostService_AddPost(t *testing.T) {
@@ -78,9 +79,9 @@ func TestPostService_AddPost(t *testing.T) {
 
 func TestPostService_DeletePost(t *testing.T) {
 	tests := []struct {
-		name   string
-		user   models.User
-		postId uuid.UUID
+		name            string
+		user            models.User
+		postId          uuid.UUID
 		belongsTo       bool
 		deletePostErr   error
 		getPostFilesErr error

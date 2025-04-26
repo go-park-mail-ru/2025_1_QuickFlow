@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
@@ -11,6 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/models"
 )
 
 func TestSaveProfile(t *testing.T) {

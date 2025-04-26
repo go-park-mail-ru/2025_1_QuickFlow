@@ -8,16 +8,17 @@ import (
 	"sync"
 	"time"
 
+	time2 "quickflow/config/time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	time2 "quickflow/monolith/config/time"
-	"quickflow/monolith/internal/delivery/forms"
-	http2 "quickflow/monolith/internal/delivery/http"
-	forms2 "quickflow/monolith/internal/delivery/ws/forms"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
-	"quickflow/monolith/utils/validation"
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	forms2 "quickflow/internal/delivery/ws/forms"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
+	"quickflow/utils/validation"
 )
 
 type WSConnectionManager struct {

@@ -3,11 +3,12 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
 	"strconv"
 
 	"github.com/google/uuid"
+
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
 )
 
 type FriendsRepository interface {

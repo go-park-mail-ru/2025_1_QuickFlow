@@ -2,11 +2,12 @@ package forms
 
 import (
 	"errors"
-	time2 "quickflow/monolith/config/time"
-	"quickflow/monolith/internal/models"
 	"time"
 
 	"github.com/google/uuid"
+
+	time2 "quickflow/config/time"
+	"quickflow/internal/models"
 )
 
 type ProfileInfo struct {

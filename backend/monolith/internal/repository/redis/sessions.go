@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	redis2 "quickflow/monolith/config/redis"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/pkg/logger"
+	redis2 "quickflow/config/redis"
+	"quickflow/internal/models"
+	"quickflow/pkg/logger"
 )
 
 type RedisSessionRepository struct {

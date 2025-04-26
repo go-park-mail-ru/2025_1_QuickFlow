@@ -27,9 +27,9 @@ type ContactInfo struct {
 
 type BasicInfo struct {
 	Name          string
-	Surname     string
-	Sex         Sex
-	DateOfBirth time.Time
+	Surname       string
+	Sex           Sex
+	DateOfBirth   time.Time
 	Bio           string
 	AvatarUrl     string
 	BackgroundUrl string

@@ -7,17 +7,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"quickflow/monolith/internal/delivery/forms"
-	http2 "quickflow/monolith/internal/delivery/http"
-	"quickflow/monolith/internal/delivery/http/mocks"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/internal/usecase"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
+	"quickflow/internal/usecase"
 )
 
 func TestChatHandler_GetUserChats(t *testing.T) {

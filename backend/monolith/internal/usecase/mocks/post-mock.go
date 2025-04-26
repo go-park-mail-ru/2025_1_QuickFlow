@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	"quickflow/monolith/internal/models"
+	models "quickflow/internal/models"
 	reflect "reflect"
 	time "time"
 

@@ -7,17 +7,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	time2 "quickflow/monolith/config/time"
-	"quickflow/monolith/internal/delivery/forms"
-	http2 "quickflow/monolith/internal/delivery/http"
-	"quickflow/monolith/internal/delivery/http/mocks"
-	"quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	time2 "quickflow/config/time"
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestFeedHandler_GetFeed(t *testing.T) {

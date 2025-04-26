@@ -8,15 +8,15 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"quickflow/monolith/internal/models"
+	"quickflow/internal/models"
 	"testing"
 )
 
 func TestSaveUser(t *testing.T) {
 	tests := []struct {
-		name string
-		user models.User
-		mock func(mock sqlmock.Sqlmock)
+		name    string
+		user    models.User
+		mock    func(mock sqlmock.Sqlmock)
 		wantErr bool
 	}{
 		{
