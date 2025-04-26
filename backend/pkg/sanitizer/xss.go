@@ -2,7 +2,6 @@ package sanitizer
 
 import (
 	"github.com/microcosm-cc/bluemonday"
-
 	"quickflow/internal/delivery/forms"
 )
 
@@ -52,4 +51,8 @@ func SanitizeUniversityInfo(universityInfo *forms.UniversityEducationForm, polic
 	universityInfo.UniversityFaculty = policy.Sanitize(universityInfo.UniversityFaculty)
 	universityInfo.UniversityCity = policy.Sanitize(universityInfo.UniversityCity)
 	universityInfo.UniversityName = policy.Sanitize(universityInfo.UniversityName)
+}
+
+func SanitizeFeedbackText(feedback *forms.FeedbackForm, policy *bluemonday.Policy) {
+	feedback.Text = policy.Sanitize(feedback.Text)
 }

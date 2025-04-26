@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/microcosm-cc/bluemonday"
 	"net/http"
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
 	"quickflow/internal/usecase"
 	"quickflow/pkg/logger"
+	"quickflow/pkg/sanitizer"
 	http2 "quickflow/utils/http"
 	"time"
 )
@@ -25,12 +27,14 @@ type FeedbackUseCase interface {
 type FeedbackHandler struct {
 	feedbackUseCase FeedbackUseCase
 	profileService  ProfileUseCase
+	policy          *bluemonday.Policy
 }
 
-func NewFeedbackService(feedbackUseCase FeedbackUseCase, profileService ProfileUseCase) *FeedbackHandler {
+func NewFeedbackService(feedbackUseCase FeedbackUseCase, profileService ProfileUseCase, policy *bluemonday.Policy) *FeedbackHandler {
 	return &FeedbackHandler{
 		feedbackUseCase: feedbackUseCase,
 		profileService:  profileService,
+		policy:          policy,
 	}
 }
 
@@ -51,6 +55,8 @@ func (f *FeedbackHandler) SaveFeedback(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+
+	sanitizer.SanitizeFeedbackText(&form, f.policy)
 
 	feedback, err := form.ToFeedback(user.Id)
 	if err != nil {

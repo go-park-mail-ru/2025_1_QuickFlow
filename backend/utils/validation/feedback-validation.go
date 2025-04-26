@@ -20,7 +20,8 @@ func ValidateFeedback(feedback *models.Feedback) error {
 		return ErrRespondent
 	}
 
-	if feedback.Rating < 0 || feedback.Rating > 5 {
+	if feedback.Rating < 0 || (feedback.Rating >= 5 &&
+		feedback.Type != models.FeedbackRecommendation || feedback.Rating >= 10) {
 		return ErrRating
 	}
 

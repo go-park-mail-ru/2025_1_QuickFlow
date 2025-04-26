@@ -47,7 +47,7 @@ func (f *HttpWSHandlerFactory) InitHttpHandlers() *HttpHandlerCollection {
 		MessageHandler:  http2.NewMessageHandler(f.serviceFactory.MessageService(), f.serviceFactory.AuthService(), f.serviceFactory.ProfileService(), f.sanitizer),
 		FriendHandler:   http2.NewFriendHandler(f.serviceFactory.FriendService(), f.connManager),
 		CSRFHandler:     http2.NewCSRFHandler(),
-		FeedbackHandler: http2.NewFeedbackService(f.serviceFactory.FeedBackService(), f.serviceFactory.ProfileService()),
+		FeedbackHandler: http2.NewFeedbackService(f.serviceFactory.FeedBackService(), f.serviceFactory.ProfileService(), f.sanitizer),
 	}
 }
 
