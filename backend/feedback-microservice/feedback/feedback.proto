@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+//
+option go_package = "./;feedback";
+
+package feedback;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+message SaveFeedbackRequest {
+  string id = 1;
+  int32 rating = 2;
+  string respondentId = 3;
+  string type = 4;
+  string text = 5;
+  google.protobuf.Timestamp createdAt = 6;
+}
+
+message GetFeedbackRequest {
+  string type = 1;
+  google.protobuf.Timestamp ts = 2;
+  int32 feedback_count = 3;
+}
+
+message FeedbackResponse {
+  string type = 1;
+  string text = 2;
+  int32 rating = 3;
+  string username = 4;
+  string firstname = 5;
+  string lastname = 6;
+}
+
+message GetFeedbackListResponse {
+  repeated FeedbackResponse feedbacks = 1;
+}
+
+service FeedbackService {
+  rpc GetFeedbackList(GetFeedbackRequest) returns (GetFeedbackListResponse);
+  rpc SaveFeedback(SaveFeedbackRequest) returns (google.protobuf.Empty);
+}
