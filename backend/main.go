@@ -4,15 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
-
-	"quickflow/config"
-	"quickflow/config/cors"
-	minio_config "quickflow/config/minio"
-	postgres_config "quickflow/config/postgres"
-	redis_config "quickflow/config/redis"
-	"quickflow/config/server"
-	validation_config "quickflow/config/validation"
-	"quickflow/internal"
+	"quickflow/monolith"
+	"quickflow/monolith/config"
+	"quickflow/monolith/config/cors"
+	minio_config "quickflow/monolith/config/minio"
+	"quickflow/monolith/config/postgres"
+	"quickflow/monolith/config/redis"
+	server "quickflow/monolith/config/server"
+	"quickflow/monolith/config/validation"
 )
 
 func initCfg() (*config.Config, error) {
@@ -22,7 +21,7 @@ func initCfg() (*config.Config, error) {
 	validationConfig := flag.String("validation-config", "", "Path to Validation config file")
 	flag.Parse()
 
-	serverCfg, err := server_config.Parse(*serverConfigPath)
+	serverCfg, err := server.Parse(*serverConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load project server configuration: %v", err)
 	}
@@ -61,7 +60,7 @@ func main() {
 		log.Fatalf("failed to initialize configuration: %v", err)
 	}
 
-	if err = internal.Run(appCfg); err != nil {
+	if err = monolith.Run(appCfg); err != nil {
 		log.Fatalf("failed to start QuickFlow: %v", err)
 	}
 }

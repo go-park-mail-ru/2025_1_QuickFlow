@@ -14,7 +14,12 @@ COPY deploy/config /quickflow_app/deploy/config
 
 # 5. Собираем Go-приложение
 WORKDIR /quickflow_app/backend
-RUN go build -o main main.go
+RUN go build -o main main.go && \
+    echo "Содержимое /quickflow_app/backend:" && \
+    ls -la /quickflow_app/backend && \
+    echo "Текущая директория:" && \
+    pwd && \
+    ls -la
 
 # 6. Создаём минимальный образ для продакшена
 FROM debian:bookworm-slim
