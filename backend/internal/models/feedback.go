@@ -9,7 +9,7 @@ type FeedbackType string
 
 const (
 	FeedbackGeneral        = "general"
-	FeedbackPost           = "post_creation"
+	FeedbackPost           = "post"
 	FeedbackMessenger      = "messenger"
 	FeedbackRecommendation = "recommendation"
 	FeedbackProfile        = "profile"
