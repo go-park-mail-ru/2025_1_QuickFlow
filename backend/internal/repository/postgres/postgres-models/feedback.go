@@ -35,7 +35,7 @@ func (pf *PgFeedback) ToModel() models.Feedback {
 	return models.Feedback{
 		Id:           pf.Id.Bytes,
 		Rating:       int(pf.Rating.Int32),
-		Text:         pf.Type.String,
+		Text:         pf.Text.String,
 		RespondentId: pf.RespondentId.Bytes,
 		Type:         models.FeedbackType(pf.Type.String),
 		CreatedAt:    pf.CreatedAt.Time,

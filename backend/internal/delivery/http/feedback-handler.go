@@ -56,12 +56,14 @@ func (f *FeedbackHandler) SaveFeedback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("ToFeedback error: %s", err.Error()))
 		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	err = f.feedbackUseCase.SaveFeedback(ctx, feedback)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("SaveFeedback error: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to save feedback", http.StatusInternalServerError)
+		return
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Saved feedback: %s", feedback))
@@ -84,9 +86,11 @@ func (f *FeedbackHandler) GetAllFeedbackType(w http.ResponseWriter, r *http.Requ
 	if errors.Is(err, usecase.ErrNotFound) {
 		logger.Info(ctx, "GetFeedbackType not found")
 		http2.WriteJSONError(w, "GetFeedbackType not found", http.StatusNotFound)
+		return
 	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("GetFeedbackType error: %s", err.Error()))
 		http2.WriteJSONError(w, "GetFeedbackType error", http.StatusInternalServerError)
+		return
 	}
 
 	// profile infos
@@ -103,6 +107,7 @@ func (f *FeedbackHandler) GetAllFeedbackType(w http.ResponseWriter, r *http.Requ
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("GetFeedbackType error: %s", err.Error()))
 				http2.WriteJSONError(w, "GetFeedbackType error", http.StatusInternalServerError)
+				return
 			}
 			profileInfos[feedback.RespondentId] = publicInfo
 			feedbackOutput = append(feedbackOutput, forms.FromFeedBack(feedback, publicInfo))
