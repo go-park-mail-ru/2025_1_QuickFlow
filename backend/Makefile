@@ -9,7 +9,7 @@ coverage.out:
 	go test $(GO_FILES) -coverprofile=coverage.out
 
 .PHONY: summarize-coverage
-summarize-coverage: coverage.out
+summarize-coverage: monolith/coverage.out
 	go tool cover -func=coverage.out
 
 .PHONY: mockgen

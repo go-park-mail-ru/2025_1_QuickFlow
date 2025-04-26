@@ -1,0 +1,54 @@
+package sanitizer
+
+import (
+	"github.com/microcosm-cc/bluemonday"
+	forms2 "quickflow/monolith/internal/delivery/forms"
+)
+
+func SanitizeLoginData(loginData *forms2.AuthForm, policy *bluemonday.Policy) {
+	loginData.Login = policy.Sanitize(loginData.Login)
+}
+
+func SanitizeSignUpData(signUpData *forms2.SignUpForm, policy *bluemonday.Policy) {
+	signUpData.Login = policy.Sanitize(signUpData.Login)
+	signUpData.Name = policy.Sanitize(signUpData.Name)
+	signUpData.Surname = policy.Sanitize(signUpData.Surname)
+	signUpData.DateOfBirth = policy.Sanitize(signUpData.DateOfBirth)
+}
+
+func SanitizePost(postData *forms2.PostForm, policy *bluemonday.Policy) {
+	postData.Text = policy.Sanitize(postData.Text)
+}
+
+func SanitizeUpdatePost(postData *forms2.UpdatePostForm, policy *bluemonday.Policy) {
+	postData.Text = policy.Sanitize(postData.Text)
+}
+
+func SanitizeMessage(messageData *forms2.MessageForm, policy *bluemonday.Policy) {
+	messageData.Text = policy.Sanitize(messageData.Text)
+}
+
+func SanitizeProfileInfo(profileData *forms2.ProfileInfo, policy *bluemonday.Policy) {
+	profileData.Username = policy.Sanitize(profileData.Username)
+	profileData.Name = policy.Sanitize(profileData.Name)
+	profileData.Surname = policy.Sanitize(profileData.Surname)
+	profileData.Bio = policy.Sanitize(profileData.Bio)
+	profileData.DateOfBirth = policy.Sanitize(profileData.DateOfBirth)
+}
+
+func SanitizeContactInfo(contactInfo *forms2.ContactInfo, policy *bluemonday.Policy) {
+	contactInfo.Email = policy.Sanitize(contactInfo.Email)
+	contactInfo.Phone = policy.Sanitize(contactInfo.Phone)
+	contactInfo.City = policy.Sanitize(contactInfo.City)
+}
+
+func SanitizeSchoolInfo(schoolInfo *forms2.SchoolEducationForm, policy *bluemonday.Policy) {
+	schoolInfo.SchoolCity = policy.Sanitize(schoolInfo.SchoolCity)
+	schoolInfo.SchoolName = policy.Sanitize(schoolInfo.SchoolName)
+}
+
+func SanitizeUniversityInfo(universityInfo *forms2.UniversityEducationForm, policy *bluemonday.Policy) {
+	universityInfo.UniversityFaculty = policy.Sanitize(universityInfo.UniversityFaculty)
+	universityInfo.UniversityCity = policy.Sanitize(universityInfo.UniversityCity)
+	universityInfo.UniversityName = policy.Sanitize(universityInfo.UniversityName)
+}
