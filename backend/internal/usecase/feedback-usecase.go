@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"quickflow/internal/models"
 	"quickflow/utils/validation"
 	"time"
@@ -18,6 +19,9 @@ type FeedbackRepository interface {
 	SaveFeedback(ctx context.Context, feedback *models.Feedback) error
 	GetAverageRatingType(ctx context.Context, feedbackType models.FeedbackType) (float64, error)
 	GetAllFeedbackType(ctx context.Context, feedbackType models.FeedbackType, ts time.Time, count int) ([]models.Feedback, error)
+	GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error)
+	GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error)
+	GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error)
 }
 
 type FeedbackService struct {
@@ -73,4 +77,16 @@ func (s *FeedbackService) GetAverageRatings(ctx context.Context) (map[models.Fee
 		feedbacks[feedbackType] = feedback
 	}
 	return feedbacks, nil
+}
+
+func (s *FeedbackService) GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error) {
+	return s.feedbackRepo.GetNumMessagesSent(ctx, userId)
+}
+
+func (s *FeedbackService) GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error) {
+	return s.feedbackRepo.GetNumPostsCreated(ctx, userId)
+}
+
+func (s *FeedbackService) GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error) {
+	return s.feedbackRepo.GetNumProfileChanges(ctx, userId)
 }

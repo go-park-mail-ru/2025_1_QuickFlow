@@ -124,31 +124,39 @@ func (f *FeedbackRepository) GetAverageRatingType(ctx context.Context, feedbackT
 }
 
 func (f *FeedbackRepository) GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error) {
+	logger.Info(ctx, fmt.Sprintf("Trying to get amount of messages for user: %s"), userId.String())
+
 	var num int64
 	err := f.ConnPool.QueryRowContext(ctx, getNumMessagesSent, userId).Scan(&num)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("failed to get feedback: %v", err))
 		return 0, fmt.Errorf("get feedback: %w", err)
 	}
+	logger.Info(ctx, fmt.Sprintf("Successfully get amount of sent messages: %d", num))
 	return num, nil
 }
 
 func (f *FeedbackRepository) GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error) {
+	logger.Info(ctx, fmt.Sprintf("Trying to get amount of created posts for user: %s"), userId.String())
+
 	var num int64
 	err := f.ConnPool.QueryRowContext(ctx, getNumPostsCreated, userId).Scan(&num)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("failed to get feedback: %v", err))
 		return 0, fmt.Errorf("get feedback: %w", err)
 	}
+	logger.Info(ctx, fmt.Sprintf("Successfully get amount of post creations: %d", num))
 	return num, nil
 }
 
 func (f *FeedbackRepository) GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error) {
+	logger.Info(ctx, fmt.Sprintf("Trying to get amount of profile changes for user: %s"), userId.String())
 	var num int64
 	err := f.ConnPool.QueryRowContext(ctx, getNumProfileChanges, userId).Scan(&num)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("failed to get feedback: %v", err))
 		return 0, fmt.Errorf("get feedback: %w", err)
 	}
+	logger.Info(ctx, fmt.Sprintf("Successfully get amount of profile changes: %d", num))
 	return num, nil
 }
