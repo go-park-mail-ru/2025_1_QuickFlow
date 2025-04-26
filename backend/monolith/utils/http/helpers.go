@@ -9,11 +9,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+
+	"github.com/google/uuid"
+
 	"quickflow/monolith/internal/delivery/forms"
 	"quickflow/monolith/internal/models"
 	"quickflow/monolith/pkg/logger"
-
-	"github.com/google/uuid"
 )
 
 var TooManyFilesErr = errors.New("too many files")

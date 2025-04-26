@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"quickflow/monolith/internal/models"
-	"quickflow/monolith/utils/validation"
+	"quickflow/internal/models"
+	"quickflow/utils/validation"
 	"time"
 )
 
@@ -51,6 +51,14 @@ func (s *FeedbackService) GetAllFeedback(ctx context.Context, ts time.Time, coun
 		feedbacks[feedbackType] = feedback
 	}
 	return feedbacks, nil
+}
+
+func (s *FeedbackService) GetAllFeedbackType(ctx context.Context, feedbackType models.FeedbackType, ts time.Time, count int) ([]models.Feedback, error) {
+	feedback, err := s.feedbackRepo.GetAllFeedbackType(ctx, feedbackType, ts, count)
+	if err != nil {
+		return nil, fmt.Errorf("get all feedback type: %w", err)
+	}
+	return feedback, nil
 }
 
 func (s *FeedbackService) GetAverageRatings(ctx context.Context) (map[models.FeedbackType]float64, error) {

@@ -14,7 +14,7 @@ COPY deploy/config /quickflow_app/deploy/config
 
 # 5. Собираем Go-приложение
 WORKDIR /quickflow_app/backend
-RUN go build -o main main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /quickflow_app/backend/main main.go
 
 # 6. Создаём минимальный образ для продакшена
 FROM debian:bookworm-slim
@@ -28,10 +28,10 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # 8. Устанавливаем рабочую директорию
-WORKDIR /quickflow_app/backend
+WORKDIR /app
 
 # 9. Копируем бинарник и конфиги
-COPY --from=builder /quickflow_app/backend/main .
+COPY --from=builder /quickflow_app/backend/main /app/main
 COPY --from=builder /quickflow_app/deploy /quickflow_app/deploy
 
 # 10. Копируем скрипты
@@ -42,12 +42,15 @@ COPY deploy/.env /etc/environment
 
 # 12. Делаем скрипты исполнимыми
 RUN chmod +x /usr/local/bin/setup-minio-buckets.sh
+RUN chmod +x /app/main
 
-# Добавь перед CMD для вывода путей
-RUN ls -l /usr/local/bin/setup-minio-buckets.sh
+# 13. Настраиваем переменные окружения
+ARG SCHEME
+ARG DOMAIN
+ARG MINIO_PUBLIC_ENDPOINT
 
 RUN echo "SCHEME=$SCHEME" && \
-    if [ "$SCHEME" == "https" ]; then \
+    if [ "$SCHEME" = "https" ]; then \
         printf "\nMINIO_SCHEME=https" >> /etc/environment && \
         printf "\nMINIO_PUBLIC_ENDPOINT=$DOMAIN/minio" >> /etc/environment; \
     else \
@@ -55,13 +58,5 @@ RUN echo "SCHEME=$SCHEME" && \
         printf "\nMINIO_PUBLIC_ENDPOINT=localhost:9000" >> /etc/environment; \
     fi
 
-# Загружаем переменные в окружение контейнера
-ARG SCHEME
-ARG MINIO_PUBLIC_ENDPOINT
-
-ENV MINIO_SCHEME=${SCHEME}
-ENV MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
-
-
-# 13. Указываем команду для запуска
-CMD ["/bin/bash", "-c", "/usr/local/bin/setup-minio-buckets.sh && ./main -config /quickflow_app/deploy/config/feeder/config.toml"]
+# 14. Указываем команду для запуска
+CMD ["/bin/bash", "-c", "/usr/local/bin/setup-minio-buckets.sh && ./main -server-config /quickflow_app/deploy/config/feeder/config.toml -cors-config /quickflow_app/deploy/config/cors/config.toml -minio-config /quickflow_app/deploy/config/minio/config.toml -validation-config /quickflow_app/deploy/config/validation/config.toml"]

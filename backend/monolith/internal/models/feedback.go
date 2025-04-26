@@ -27,9 +27,9 @@ type Feedback struct {
 	Id           uuid.UUID
 	Rating       int
 	RespondentId uuid.UUID
-	Text      string
-	Type      FeedbackType
-	CreatedAt time.Time
+	Text         string
+	Type         FeedbackType
+	CreatedAt    time.Time
 }
 
 type AverageStat struct {

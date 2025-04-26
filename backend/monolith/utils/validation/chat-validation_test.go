@@ -2,7 +2,7 @@ package validation
 
 import (
 	"errors"
-	models2 "quickflow/monolith/internal/models"
+	models2 "quickflow/feedback-microservice/internal/models"
 	"testing"
 
 	"github.com/stretchr/testify/require"

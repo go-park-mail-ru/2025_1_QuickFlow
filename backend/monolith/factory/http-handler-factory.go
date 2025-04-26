@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/microcosm-cc/bluemonday"
+
 	"quickflow/monolith/internal/delivery/http"
 	ws2 "quickflow/monolith/internal/delivery/ws"
 )

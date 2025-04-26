@@ -2,7 +2,7 @@ package postgres_models
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
-	"quickflow/monolith/internal/models"
+	"quickflow/internal/models"
 )
 
 type PgFeedback struct {
@@ -19,7 +19,7 @@ func FromModel(feedback *models.Feedback) *PgFeedback {
 	pgFeedback := &PgFeedback{
 		Id:           pgtype.UUID{Bytes: feedback.Id, Valid: true},
 		Rating:       pgtype.Int4{Int32: int32(feedback.Rating), Valid: true},
-		Type:         pgtype.Text{String: feedback.Text, Valid: true},
+		Type:         pgtype.Text{String: string(feedback.Type), Valid: true},
 		RespondentId: pgtype.UUID{Bytes: feedback.RespondentId, Valid: true},
 		CreatedAt:    pgtype.Timestamptz{Time: feedback.CreatedAt, Valid: true},
 	}

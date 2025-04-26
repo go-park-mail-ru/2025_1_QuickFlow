@@ -2,7 +2,7 @@ package validation
 
 import (
 	"errors"
-	"quickflow/monolith/internal/models"
+	"quickflow/feedback-microservice/internal/models"
 	"testing"
 
 	"github.com/google/uuid"

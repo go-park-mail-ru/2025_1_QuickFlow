@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"quickflow/monolith/config"
-	factory2 "quickflow/monolith/factory"
-	middleware2 "quickflow/monolith/internal/delivery/http/middleware"
 
 	"github.com/gorilla/mux"
 	_ "github.com/jackc/pgx/v5/stdlib"
+
+	factory2 "quickflow/monolith/factory"
+	"quickflow/monolith/internal/delivery/http/middleware"
 )
 
 func Run(config *config.Config) error {
@@ -56,8 +57,8 @@ func setupRouters(cfg *config.Config, httpHandlers *factory2.HttpHandlerCollecti
 	}
 
 	r := mux.NewRouter()
-	r.Use(middleware2.RecoveryMiddleware)
-	r.Use(middleware2.CORSMiddleware(cfg.CORSConfig))
+	r.Use(middleware.RecoveryMiddleware)
+	r.Use(middleware.CORSMiddleware(cfg.CORSConfig))
 
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -74,7 +75,7 @@ func setupRouters(cfg *config.Config, httpHandlers *factory2.HttpHandlerCollecti
 	r.HandleFunc("/profiles/{username}", httpHandlers.ProfileHandler.GetProfile).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
-	apiPostRouter.Use(middleware2.ContentTypeMiddleware("application/json", "multipart/form-data"))
+	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
 
 	apiGetRouter := r.PathPrefix("/").Subrouter()
 	apiGetRouter.HandleFunc("/profiles/{username}/posts", httpHandlers.FeedHandler.FetchUserPosts).Methods(http.MethodGet)
@@ -85,8 +86,8 @@ func setupRouters(cfg *config.Config, httpHandlers *factory2.HttpHandlerCollecti
 
 	// Subrouter for protected routes
 	protectedPost := apiPostRouter.PathPrefix("/").Subrouter()
-	protectedPost.Use(middleware2.SessionMiddleware(serviceFactory.AuthService()))
-	protectedPost.Use(middleware2.CSRFMiddleware)
+	protectedPost.Use(middleware.SessionMiddleware(serviceFactory.AuthService()))
+	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", httpHandlers.PostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", httpHandlers.PostHandler.UpdatePost).Methods(http.MethodPut)
 	protectedPost.HandleFunc("/profile", httpHandlers.ProfileHandler.UpdateProfile).Methods(http.MethodPost)
@@ -95,7 +96,7 @@ func setupRouters(cfg *config.Config, httpHandlers *factory2.HttpHandlerCollecti
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", httpHandlers.MessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
-	protectedGet.Use(middleware2.SessionMiddleware(serviceFactory.AuthService()))
+	protectedGet.Use(middleware.SessionMiddleware(serviceFactory.AuthService()))
 	protectedGet.HandleFunc("/feed", httpHandlers.FeedHandler.GetFeed).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/recommendations", httpHandlers.FeedHandler.GetRecommendations).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", httpHandlers.MessageHandler.GetMessagesForChat).Methods(http.MethodGet)
@@ -105,12 +106,12 @@ func setupRouters(cfg *config.Config, httpHandlers *factory2.HttpHandlerCollecti
 	protectedGet.HandleFunc("/users/search", httpHandlers.SearchHandler.SearchSimilar).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
-	wsProtected.Use(middleware2.WebSocketMiddleware(wsHandlers.ConnManager, wsHandlers.PingHandler))
+	wsProtected.Use(middleware.WebSocketMiddleware(wsHandlers.ConnManager, wsHandlers.PingHandler))
 	wsProtected.HandleFunc("/ws", wsHandlers.MessageHandlerWS.HandleMessages).Methods(http.MethodGet)
 
 	apiDeleteRouter := r.PathPrefix("/").Subrouter()
-	apiDeleteRouter.Use(middleware2.SessionMiddleware(serviceFactory.AuthService()))
-	apiDeleteRouter.Use(middleware2.CSRFMiddleware)
+	apiDeleteRouter.Use(middleware.SessionMiddleware(serviceFactory.AuthService()))
+	apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", httpHandlers.PostHandler.DeletePost).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/friends", httpHandlers.FriendHandler.DeleteFriend).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/follow", httpHandlers.FriendHandler.Unfollow).Methods(http.MethodDelete)
