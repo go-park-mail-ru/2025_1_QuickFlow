@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"quickflow/internal/models"
 	postgres_models "quickflow/internal/repository/postgres/postgres-models"
@@ -37,7 +38,25 @@ const (
 	select type, avg(rating)
 	from feedback
 	group by type
-`
+	`
+
+	getNumMessagesSent = `
+	select count
+	from count_messages
+	where user_id = $1;
+	`
+
+	getNumPostsCreated = `
+	select count
+	from count_post
+	where user_id = $1;
+	`
+
+	getNumProfileChanges = `
+	select count
+	from count_profile
+	where user_id = $1;
+	`
 )
 
 type FeedbackRepository struct {
@@ -102,4 +121,34 @@ func (f *FeedbackRepository) GetAverageRatingType(ctx context.Context, feedbackT
 	}
 
 	return avg, nil
+}
+
+func (f *FeedbackRepository) GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error) {
+	var num int64
+	err := f.ConnPool.QueryRowContext(ctx, getNumMessagesSent, userId).Scan(&num)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to get feedback: %v", err))
+		return 0, fmt.Errorf("get feedback: %w", err)
+	}
+	return num, nil
+}
+
+func (f *FeedbackRepository) GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error) {
+	var num int64
+	err := f.ConnPool.QueryRowContext(ctx, getNumPostsCreated, userId).Scan(&num)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to get feedback: %v", err))
+		return 0, fmt.Errorf("get feedback: %w", err)
+	}
+	return num, nil
+}
+
+func (f *FeedbackRepository) GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error) {
+	var num int64
+	err := f.ConnPool.QueryRowContext(ctx, getNumProfileChanges, userId).Scan(&num)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to get feedback: %v", err))
+		return 0, fmt.Errorf("get feedback: %w", err)
+	}
+	return num, nil
 }
