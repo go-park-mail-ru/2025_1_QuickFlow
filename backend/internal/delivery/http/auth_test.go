@@ -1,135 +1,184 @@
-package http
+package http_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
+
+	"quickflow/internal/delivery/forms"
+	http2 "quickflow/internal/delivery/http"
+	"quickflow/internal/delivery/http/mocks"
+	"quickflow/internal/models"
 )
 
 func TestAuthHandler_SignUp(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userID := uuid.New()
-	session := models.Session{SessionId: uuid.New(), ExpireDate: time.Now().Add(time.Hour)}
+	mockUC := mocks.NewMockAuthUseCase(ctrl)
+	handler := http2.NewAuthHandler(mockUC, bluemonday.UGCPolicy())
 
-	tests := []struct {
-		name           string
-		inputForm      string
-		mockError      error
-		expectedStatus int
-	}{
+	type testCase struct {
+		name               string
+		inputBody          string
+		mockBehavior       func(mockUC *mocks.MockAuthUseCase)
+		expectedStatusCode int
+		responseContains   string
+	}
+
+	testTable := []testCase{
 		{
-			name: "Successful sign-up",
-			inputForm: `{
-				"username": "Timex1",
-				"firstname": "Matvey",
-				"lastname": "Mitrofanov",
-				"sex": 1,
-				"birth_date": "2000.01.01",
-				"password": "amoguS228!"
-			}`,
-			mockError:      nil,
-			expectedStatus: http.StatusOK,
+			name: "OK (Success)",
+			inputBody: toJSON(forms.SignUpForm{
+				Login:       "Timex",
+				Password:    "228Amogus!",
+				Name:        "John",
+				Surname:     "Doe",
+				Sex:         1,
+				DateOfBirth: "2000-01-01",
+			}),
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(uuid.New(), models.Session{
+						SessionId:  uuid.New(),
+						ExpireDate: time.Now().Add(time.Hour),
+					}, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			responseContains:   `"user_id"`,
 		},
 		{
-			name:           "Invalid JSON",
-			inputForm:      `invalid json`,
-			mockError:      nil,
-			expectedStatus: http.StatusBadRequest,
+			name:               "Bad JSON",
+			inputBody:          `{"Login": "broken",`,
+			mockBehavior:       func(mockUC *mocks.MockAuthUseCase) {},
+			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "User already exists",
-			inputForm: `{
-				"username": "Timex1",
-				"firstname": "Matvey",
-				"lastname": "Mitrofanov",
-				"sex": 1,
-				"birth_date": "2000.01.01",
-				"password": "amoguS228!"
-			}`,
-			mockError:      errors.New("user already exists"),
-			expectedStatus: http.StatusConflict,
+			name: "Validation Error (no password)",
+			inputBody: toJSON(forms.SignUpForm{
+				Login: "testUser1",
+			}),
+			mockBehavior:       func(mockUC *mocks.MockAuthUseCase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name: "Internal Error from CreateUser",
+			inputBody: toJSON(forms.SignUpForm{
+				Login:       "Timex",
+				Password:    "228Amogus!",
+				Name:        "John",
+				Surname:     "Doe",
+				Sex:         1,
+				DateOfBirth: "2000-01-01",
+			}),
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(uuid.Nil, models.Session{}, errors.New("fail"))
+			},
+			expectedStatusCode: http.StatusConflict,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockAuthUseCase := mocks.NewMockAuthUseCase(ctrl)
-			handler := NewAuthHandler(mockAuthUseCase)
+	for _, tc := range testTable {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockBehavior(mockUC)
 
-			mockAuthUseCase.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Return(userID, session, tt.mockError).AnyTimes()
+			req := httptest.NewRequest(http.MethodPost, "/api/signup", bytes.NewBufferString(tc.inputBody))
+			rr := httptest.NewRecorder()
 
-			req := httptest.NewRequest(http.MethodPost, "/signup", bytes.NewBufferString(tt.inputForm))
-			w := httptest.NewRecorder()
+			handler.SignUp(rr, req)
+			assert.Equal(t, tc.expectedStatusCode, rr.Code, "Статус код должен совпадать")
 
-			handler.SignUp(w, req)
-			resp := w.Result()
-			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+			if tc.responseContains != "" {
+				assert.Contains(t, rr.Body.String(), tc.responseContains)
+			}
 		})
 	}
+}
+
+func toJSON(v interface{}) string {
+	b, _ := json.Marshal(v)
+	return string(b)
 }
 
 func TestAuthHandler_Login(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	session := models.CreateSession()
+	mockUC := mocks.NewMockAuthUseCase(ctrl)
+	handler := http2.NewAuthHandler(mockUC, bluemonday.UGCPolicy())
 
-	tests := []struct {
-		name           string
-		inputJSON      string
-		mockError      error
-		expectedStatus int
-	}{
+	type testCase struct {
+		name               string
+		inputBody          string
+		mockBehavior       func(mockUC *mocks.MockAuthUseCase)
+		expectedStatusCode int
+		responseContains   string
+	}
+
+	testTable := []testCase{
 		{
-			name: "Successful login",
-			inputJSON: `{
-				"login": "testuser",
-				"password": "password123"
-			}`,
-			mockError:      nil,
-			expectedStatus: http.StatusOK,
+			name: "OK (Success)",
+			inputBody: toJSON(forms.AuthForm{
+				Login:    "Timex",
+				Password: "228Amogus!",
+			}),
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					AuthUser(gomock.Any(), gomock.Any()).
+					Return(models.Session{
+						SessionId:  uuid.New(),
+						ExpireDate: time.Now().Add(time.Hour),
+					}, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			responseContains:   "",
 		},
 		{
-			name:           "Invalid JSON",
-			inputJSON:      `invalid json`,
-			mockError:      nil,
-			expectedStatus: http.StatusBadRequest,
+			name:               "Bad JSON",
+			inputBody:          `{"Login":"broken",`,
+			mockBehavior:       func(mockUC *mocks.MockAuthUseCase) {},
+			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name: "Unauthorized user",
-			inputJSON: `{
-				"login": "nonexistentuser",
-				"password": "wrongpassword"
-			}`,
-			mockError:      errors.New("unauthorized"),
-			expectedStatus: http.StatusUnauthorized,
+			name: "Unauthorized",
+			inputBody: toJSON(forms.AuthForm{
+				Login:    "wrong",
+				Password: "wrong",
+			}),
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					AuthUser(gomock.Any(), gomock.Any()).
+					Return(models.Session{}, errors.New("fail"))
+			},
+			expectedStatusCode: http.StatusUnauthorized,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockAuthUseCase := mocks.NewMockAuthUseCase(ctrl)
-			handler := NewAuthHandler(mockAuthUseCase)
+	for _, tc := range testTable {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockBehavior(mockUC)
 
-			mockAuthUseCase.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(session, tt.mockError).AnyTimes()
+			req := httptest.NewRequest(http.MethodPost, "/api/login", bytes.NewBufferString(tc.inputBody))
+			rr := httptest.NewRecorder()
 
-			req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(tt.inputJSON))
-			w := httptest.NewRecorder()
+			handler.Login(rr, req)
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 
-			handler.Login(w, req)
-			resp := w.Result()
-			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+			if tc.responseContains != "" {
+				assert.Contains(t, rr.Body.String(), tc.responseContains)
+			}
 		})
 	}
 }
@@ -138,39 +187,75 @@ func TestAuthHandler_Logout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockAuthUseCase := mocks.NewMockAuthUseCase(ctrl)
-	handler := NewAuthHandler(mockAuthUseCase)
+	mockUC := mocks.NewMockAuthUseCase(ctrl)
+	handler := http2.NewAuthHandler(mockUC, bluemonday.UGCPolicy())
 
-	sessionID := uuid.New()
-	session := models.Session{SessionId: sessionID}
-	cookie := &http.Cookie{Name: "session", Value: sessionID.String()}
+	sessionID := uuid.New().String()
 
-	tests := []struct {
-		name           string
-		mockLookupErr  error
-		mockDeleteErr  error
-		expectedStatus int
-	}{
+	type testCase struct {
+		name               string
+		setCookie          bool
+		mockBehavior       func(mockUC *mocks.MockAuthUseCase)
+		expectedStatusCode int
+	}
+
+	testTable := []testCase{
 		{
-			name:           "Successful logout",
-			mockLookupErr:  nil,
-			mockDeleteErr:  nil,
-			expectedStatus: http.StatusOK,
+			name:      "OK (Success)",
+			setCookie: true,
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					LookupUserSession(gomock.Any(), models.Session{SessionId: uuid.MustParse(sessionID)}).
+					Return(models.User{}, nil)
+				mockUC.EXPECT().
+					DeleteUserSession(gomock.Any(), sessionID).
+					Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "No Cookie",
+			setCookie:          false,
+			mockBehavior:       func(mockUC *mocks.MockAuthUseCase) {},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:      "Lookup Error",
+			setCookie: true,
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					LookupUserSession(gomock.Any(), gomock.Any()).
+					Return(models.User{}, errors.New("not found"))
+			},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:      "Delete Error",
+			setCookie: true,
+			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
+				mockUC.EXPECT().
+					LookupUserSession(gomock.Any(), gomock.Any()).
+					Return(models.User{}, nil)
+				mockUC.EXPECT().
+					DeleteUserSession(gomock.Any(), sessionID).
+					Return(errors.New("fail"))
+			},
+			expectedStatusCode: http.StatusUnauthorized,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockAuthUseCase.EXPECT().LookupUserSession(gomock.Any(), session).Return(models.User{}, tt.mockLookupErr).AnyTimes()
-			mockAuthUseCase.EXPECT().DeleteUserSession(gomock.Any(), sessionID.String()).Return(tt.mockDeleteErr).AnyTimes()
+	for _, tc := range testTable {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockBehavior(mockUC)
 
-			req := httptest.NewRequest(http.MethodPost, "/logout", nil)
-			req.AddCookie(cookie)
-			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/api/logout", nil)
+			if tc.setCookie {
+				req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+			}
+			rr := httptest.NewRecorder()
 
-			handler.Logout(w, req)
-			resp := w.Result()
-			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+			handler.Logout(rr, req)
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
 	}
 }

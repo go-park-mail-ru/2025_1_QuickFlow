@@ -11,6 +11,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	uuid "github.com/google/uuid"
 )
 
 // MockPostUseCase is a mock of PostUseCase interface.
@@ -37,17 +38,32 @@ func (m *MockPostUseCase) EXPECT() *MockPostUseCaseMockRecorder {
 }
 
 // AddPost mocks base method.
-func (m *MockPostUseCase) AddPost(ctx context.Context, post models.Post) error {
+func (m *MockPostUseCase) AddPost(ctx context.Context, post models.Post) (models.Post, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddPost", ctx, post)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // AddPost indicates an expected call of AddPost.
 func (mr *MockPostUseCaseMockRecorder) AddPost(ctx, post interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPost", reflect.TypeOf((*MockPostUseCase)(nil).AddPost), ctx, post)
+}
+
+// DeletePost mocks base method.
+func (m *MockPostUseCase) DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePost", ctx, user, postId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePost indicates an expected call of DeletePost.
+func (mr *MockPostUseCaseMockRecorder) DeletePost(ctx, user, postId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePost", reflect.TypeOf((*MockPostUseCase)(nil).DeletePost), ctx, user, postId)
 }
 
 // FetchFeed mocks base method.
@@ -63,4 +79,49 @@ func (m *MockPostUseCase) FetchFeed(ctx context.Context, user models.User, numPo
 func (mr *MockPostUseCaseMockRecorder) FetchFeed(ctx, user, numPosts, timestamp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFeed", reflect.TypeOf((*MockPostUseCase)(nil).FetchFeed), ctx, user, numPosts, timestamp)
+}
+
+// FetchRecommendations mocks base method.
+func (m *MockPostUseCase) FetchRecommendations(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchRecommendations", ctx, user, numPosts, timestamp)
+	ret0, _ := ret[0].([]models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchRecommendations indicates an expected call of FetchRecommendations.
+func (mr *MockPostUseCaseMockRecorder) FetchRecommendations(ctx, user, numPosts, timestamp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchRecommendations", reflect.TypeOf((*MockPostUseCase)(nil).FetchRecommendations), ctx, user, numPosts, timestamp)
+}
+
+// FetchUserPosts mocks base method.
+func (m *MockPostUseCase) FetchUserPosts(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchUserPosts", ctx, user, numPosts, timestamp)
+	ret0, _ := ret[0].([]models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchUserPosts indicates an expected call of FetchUserPosts.
+func (mr *MockPostUseCaseMockRecorder) FetchUserPosts(ctx, user, numPosts, timestamp interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserPosts", reflect.TypeOf((*MockPostUseCase)(nil).FetchUserPosts), ctx, user, numPosts, timestamp)
+}
+
+// UpdatePost mocks base method.
+func (m *MockPostUseCase) UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (models.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePost", ctx, update, userId)
+	ret0, _ := ret[0].(models.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdatePost indicates an expected call of UpdatePost.
+func (mr *MockPostUseCaseMockRecorder) UpdatePost(ctx, update, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePost", reflect.TypeOf((*MockPostUseCase)(nil).UpdatePost), ctx, update, userId)
 }

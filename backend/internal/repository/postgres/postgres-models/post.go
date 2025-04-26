@@ -10,17 +10,19 @@ type PostPostgres struct {
 	Id           pgtype.UUID
 	CreatorId    pgtype.UUID
 	Desc         pgtype.Text
-	Pics         []pgtype.Text
-	CreatedAt    pgtype.Timestamp
+	ImagesURLs   []pgtype.Text
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 	LikeCount    pgtype.Int8
 	RepostCount  pgtype.Int8
 	CommentCount pgtype.Int8
+	IsRepost     pgtype.Bool
 }
 
 // ConvertPostToPostgres converts models.Post to PostPostgres.
 func ConvertPostToPostgres(post models.Post) PostPostgres {
 	var pics []pgtype.Text
-	for _, pic := range post.Pics {
+	for _, pic := range post.ImagesURL {
 		if pic != "" {
 			pics = append(pics, pgtype.Text{String: pic, Valid: true})
 		}
@@ -30,11 +32,13 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 		Id:           pgtype.UUID{Bytes: post.Id, Valid: true},
 		CreatorId:    pgtype.UUID{Bytes: post.CreatorId, Valid: true},
 		Desc:         convertStringToPostgresText(post.Desc),
-		Pics:         pics,
-		CreatedAt:    pgtype.Timestamp{Time: post.CreatedAt, Valid: true},
+		ImagesURLs:   pics,
+		CreatedAt:    pgtype.Timestamptz{Time: post.CreatedAt, Valid: true},
+		UpdatedAt:    pgtype.Timestamptz{Time: post.UpdatedAt, Valid: true},
 		LikeCount:    pgtype.Int8{Int64: int64(post.LikeCount), Valid: true},
 		RepostCount:  pgtype.Int8{Int64: int64(post.RepostCount), Valid: true},
 		CommentCount: pgtype.Int8{Int64: int64(post.CommentCount), Valid: true},
+		IsRepost:     pgtype.Bool{Bool: post.IsRepost, Valid: true},
 	}
 }
 
@@ -42,7 +46,7 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 func (p *PostPostgres) ToPost() models.Post {
 	var picsSlice []string
 
-	for _, pics := range p.Pics {
+	for _, pics := range p.ImagesURLs {
 		picsSlice = append(picsSlice, pics.String)
 	}
 
@@ -50,10 +54,12 @@ func (p *PostPostgres) ToPost() models.Post {
 		Id:           p.Id.Bytes,
 		CreatorId:    p.CreatorId.Bytes,
 		Desc:         p.Desc.String,
-		Pics:         picsSlice,
+		ImagesURL:    picsSlice,
 		CreatedAt:    p.CreatedAt.Time,
+		UpdatedAt:    p.UpdatedAt.Time,
 		LikeCount:    int(p.LikeCount.Int64),
 		RepostCount:  int(p.RepostCount.Int64),
 		CommentCount: int(p.CommentCount.Int64),
+		IsRepost:     p.IsRepost.Bool,
 	}
 }

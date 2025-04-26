@@ -1,10 +1,12 @@
 package forms
 
 import (
-	"github.com/google/uuid"
-	"quickflow/internal/models"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+
+	"quickflow/internal/models"
 )
 
 func TestPostOut_FromPost(t *testing.T) {
@@ -19,7 +21,7 @@ func TestPostOut_FromPost(t *testing.T) {
 				Id:           uuid.New(),
 				CreatorId:    uuid.New(),
 				Desc:         "Test Post Description",
-				Pics:         []string{"pic1.jpg", "pic2.jpg"},
+				ImagesURL:    []string{"pic1.jpg", "pic2.jpg"},
 				CreatedAt:    time.Date(2025, 3, 11, 15, 30, 0, 0, time.UTC),
 				LikeCount:    10,
 				RepostCount:  5,
@@ -28,7 +30,7 @@ func TestPostOut_FromPost(t *testing.T) {
 			expected: PostOut{
 				Desc:         "Test Post Description",
 				Pics:         []string{"pic1.jpg", "pic2.jpg"},
-				CreatedAt:    "2025-03-11 15:30:00", // Сформатированная дата
+				CreatedAt:    "2025-03-11T15:30:00Z", // Сформатированная дата
 				LikeCount:    10,
 				RepostCount:  5,
 				CommentCount: 3,
@@ -46,16 +48,16 @@ func TestPostOut_FromPost(t *testing.T) {
 			if postOut.Id != tt.post.Id.String() {
 				t.Errorf("FromPost() Id = %v, want %v", postOut.Id, tt.post.Id.String())
 			}
-			if postOut.CreatorId != tt.post.CreatorId.String() {
-				t.Errorf("FromPost() CreatorId = %v, want %v", postOut.CreatorId, tt.post.CreatorId.String())
+			if postOut.Creator.ID != tt.post.CreatorId.String() {
+				t.Errorf("FromPost() CreatorId = %v, want %v", postOut.Creator.ID, tt.post.CreatorId.String())
 			}
 
 			// Проверка остальных полей
 			if postOut.Desc != tt.expected.Desc {
-				t.Errorf("FromPost() Desc = %v, want %v", postOut.Desc, tt.expected.Desc)
+				t.Errorf("FromPost() Text = %v, want %v", postOut.Desc, tt.expected.Desc)
 			}
 			if !equalStringSlices(postOut.Pics, tt.expected.Pics) {
-				t.Errorf("FromPost() Pics = %v, want %v", postOut.Pics, tt.expected.Pics)
+				t.Errorf("FromPost() Files = %v, want %v", postOut.Pics, tt.expected.Pics)
 			}
 			if postOut.CreatedAt != tt.expected.CreatedAt {
 				t.Errorf("FromPost() CreatedAt = %v, want %v", postOut.CreatedAt, tt.expected.CreatedAt)

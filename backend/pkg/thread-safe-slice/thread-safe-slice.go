@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+var IndexOutOfRangeError = errors.New("index out of range")
+
 type ThreadSafeSlice[T any] struct {
 	mu    sync.RWMutex
 	items []T
@@ -13,6 +15,26 @@ type ThreadSafeSlice[T any] struct {
 // NewThreadSafeSlice creates a new thread-safe slice.
 func NewThreadSafeSlice[T any]() *ThreadSafeSlice[T] {
 	return &ThreadSafeSlice[T]{items: make([]T, 0)}
+}
+
+// NewThreadSafeSliceN creates a new thread-safe slice with a specified capacity.
+func NewThreadSafeSliceN[T any](n int) *ThreadSafeSlice[T] {
+	if n < 0 {
+		return &ThreadSafeSlice[T]{items: make([]T, 0)}
+	}
+	return &ThreadSafeSlice[T]{items: make([]T, n)}
+}
+
+func (s *ThreadSafeSlice[T]) SetByIdx(idx int, item T) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if idx < 0 || idx >= len(s.items) {
+		return IndexOutOfRangeError
+	}
+	s.items[idx] = item
+
+	return nil
 }
 
 // Add — добавляет элемент
@@ -51,4 +73,15 @@ func (s *ThreadSafeSlice[T]) Filter(predicate func(T) bool, limit int) []T {
 		}
 	}
 	return result
+}
+
+func (s *ThreadSafeSlice[T]) GetSliceCopy() []T {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	copySlice := make([]T, len(s.items))
+	for i, v := range s.items {
+		copySlice[i] = v
+	}
+	return copySlice
 }

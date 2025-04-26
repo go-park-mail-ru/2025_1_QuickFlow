@@ -3,14 +3,36 @@ package forms
 import (
 	"errors"
 	"net/url"
-	"quickflow/config"
-	"quickflow/internal/models"
 	"strconv"
+	"time"
+
+	"github.com/google/uuid"
+
+	time2 "quickflow/config/time"
+	"quickflow/internal/models"
 )
 
+type File struct {
+	Name string
+	Data []byte
+}
+
 type PostForm struct {
-	Desc string   `json:"text"`
-	Pics []string `json:"pics"`
+	Text     string         `json:"text"`
+	Images   []*models.File `json:"pics"`
+	IsRepost bool           `json:"is_repost"`
+}
+
+func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
+	var postModel models.Post
+	postModel.Desc = p.Text
+	postModel.CreatorId = userId
+	postModel.CreatedAt = time.Now()
+	postModel.UpdatedAt = time.Now()
+	postModel.Images = p.Images
+	postModel.IsRepost = p.IsRepost
+
+	return postModel
 }
 
 type FeedForm struct {
@@ -39,24 +61,69 @@ func (f *FeedForm) GetParams(values url.Values) error {
 	return nil
 }
 
+type PublicUserInfoOut struct {
+	ID        string              `json:"id"`
+	Username  string              `json:"username"`
+	AvatarURL string              `json:"avatar_url,omitempty"`
+	FirstName string              `json:"firstname"`
+	LastName  string              `json:"lastname"`
+	IsOnline  *bool               `json:"online,omitempty"`
+	Relation  models.UserRelation `json:"relation,omitempty"`
+}
+
+func PublicUserInfoToOut(info models.PublicUserInfo, relation models.UserRelation) PublicUserInfoOut {
+	return PublicUserInfoOut{
+		ID:        info.Id.String(),
+		Username:  info.Username,
+		FirstName: info.Firstname,
+		LastName:  info.Lastname,
+		AvatarURL: info.AvatarURL,
+		Relation:  relation,
+	}
+}
+
 type PostOut struct {
-	Id           string   `json:"id"`
-	CreatorId    string   `json:"creator_id"`
-	Desc         string   `json:"text"`
-	Pics         []string `json:"pics"`
-	CreatedAt    string   `json:"created_at"`
-	LikeCount    int      `json:"like_count"`
-	RepostCount  int      `json:"repost_count"`
-	CommentCount int      `json:"comment_count"`
+	Id           string            `json:"id"`
+	Creator      PublicUserInfoOut `json:"author"`
+	Desc         string            `json:"text"`
+	Pics         []string          `json:"pics"`
+	CreatedAt    string            `json:"created_at"`
+	UpdatedAt    string            `json:"updated_at"`
+	LikeCount    int               `json:"like_count"`
+	RepostCount  int               `json:"repost_count"`
+	CommentCount int               `json:"comment_count"`
+	IsRepost     bool              `json:"is_repost"`
 }
 
 func (p *PostOut) FromPost(post models.Post) {
+	var urls []string
+	for _, url := range post.ImagesURL {
+		urls = append(urls, url)
+	}
+
 	p.Id = post.Id.String()
-	p.CreatorId = post.CreatorId.String()
 	p.Desc = post.Desc
-	p.Pics = post.Pics
-	p.CreatedAt = post.CreatedAt.Format(config.TimeStampLayout)
+	p.Pics = urls
+	p.CreatedAt = post.CreatedAt.Format(time2.TimeStampLayout)
+	p.UpdatedAt = post.UpdatedAt.Format(time2.TimeStampLayout)
+	p.Creator.ID = post.CreatorId.String()
 	p.LikeCount = post.LikeCount
 	p.RepostCount = post.RepostCount
 	p.CommentCount = post.CommentCount
+	p.IsRepost = post.IsRepost
+}
+
+type UpdatePostForm struct {
+	Id     string         `json:"-"`
+	Text   string         `json:"text"`
+	Images []*models.File `json:"pics"`
+}
+
+func (p *UpdatePostForm) ToPostUpdateModel(postId uuid.UUID) (models.PostUpdate, error) {
+
+	return models.PostUpdate{
+		Id:    postId,
+		Desc:  p.Text,
+		Files: p.Images,
+	}, nil
 }
