@@ -64,4 +64,4 @@ ENV MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
 
 
 # 13. Указываем команду для запуска
-CMD ["/bin/bash", "-c", "/usr/local/bin/setup-minio-buckets.sh && ./main -config /quickflow_app/deploy/config/feeder/config.toml"]
+CMD ["/bin/bash", "-c", "/usr/local/bin/setup-minio-buckets.sh && ./main -server-config /quickflow_app/deploy/config/feeder/config.toml -cors-config /quickflow_app/deploy/config/cors/config.toml -minio-config /quickflow_app/deploy/config/minio/config.toml -validation-config /quickflow_app/deploy/config/validation/config.toml"]

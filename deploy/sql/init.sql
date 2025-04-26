@@ -173,5 +173,65 @@ create table if not exists user_follow(
                                           check (following_id != followed_id)
 );
 
+create table if not exists feedback(
+                                               id uuid primary key default gen_random_uuid(),
+                                               rating int not null,
+                                               respondent_id uuid references "user"(id) on delete set null,
+                                               text text,
+                                               type text not null,
+                                               created_at timestamptz not null default now(),
+                                               check (rating >= 0 and rating <= 10)
+);
+
+-- create table if not exists post_feedback(
+--                                             id uuid primary key default gen_random_uuid(),
+--                                             rating int not null,
+--                                             respondent_id uuid references "user"(id) on delete set null,
+--                                             text text,
+--                                             type text not null,
+--                                             created_at timestamptz not null default now(),
+--                                             check (rating >= 0 and rating <= 10)
+-- );
+--
+-- create table if not exists messenger_feedback(
+--                                             id uuid primary key default gen_random_uuid(),
+--                                             rating int not null,
+--                                             respondent_id uuid references "user"(id) on delete set null,
+--                                             text text,
+--                                             type text not null,
+--                                             created_at timestamptz not null default now(),
+--                                             check (rating >= 0 and rating <= 10)
+-- );
+--
+-- create table if not exists auth_feedback(
+--                                             id uuid primary key default gen_random_uuid(),
+--                                             rating int not null,
+--                                             respondent_id uuid references "user"(id) on delete set null,
+--                                             text text,
+--                                             type text not null,
+--                                             created_at timestamptz not null default now(),
+--                                             check (rating >= 0 and rating <= 10)
+-- );
+--
+-- create table if not exists profile_feedback(
+--                                             id uuid primary key default gen_random_uuid(),
+--                                             rating int not null,
+--                                             respondent_id uuid references "user"(id) on delete set null,
+--                                             text text,
+--                                             type text not null,
+--                                             created_at timestamptz not null default now(),
+--                                             check (rating >= 0 and rating <= 10)
+-- );
+--
+-- create table if not exists recommendation_feedback(
+--                                             id uuid primary key default gen_random_uuid(),
+--                                             rating int not null,
+--                                             respondent_id uuid references "user"(id) on delete set null,
+--                                             text text,
+--                                             type text not null,
+--                                             created_at timestamptz not null default now(),
+--                                             check (rating >= 0 and rating <= 10)
+-- );
+
 create extension if not exists pg_trgm;
 SET pg_trgm.similarity_threshold = 0.3;
