@@ -22,6 +22,9 @@ type FeedbackUseCase interface {
 	GetAllFeedback(ctx context.Context, ts time.Time, count int) (map[models.FeedbackType][]models.Feedback, error)
 	GetAverageRatings(ctx context.Context) (map[models.FeedbackType]float64, error)
 	GetAllFeedbackType(ctx context.Context, feedbackType models.FeedbackType, ts time.Time, count int) ([]models.Feedback, error)
+	GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error)
+	GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error)
+	GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error)
 }
 
 type FeedbackHandler struct {
@@ -139,4 +142,93 @@ func (f *FeedbackHandler) GetAllFeedbackType(w http.ResponseWriter, r *http.Requ
 		http2.WriteJSONError(w, "Failed to encode chats", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (f *FeedbackHandler) GetNumMessagesSent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while fetching messages")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Got GetUserChats request")
+	num, err := f.feedbackUseCase.GetNumMessagesSent(ctx, user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("GetNumMessagesSent error: %s", err.Error()))
+		http2.WriteJSONError(w, "GetNumMessagesSent error", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Got GetNumMessagesSent request")
+
+	type out struct {
+		Count int64 `json:"count"`
+	}
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[out]{Payload: out{Count: num}})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("GetNumMessagesSent error: %s", err.Error()))
+		http2.WriteJSONError(w, "GetNumMessagesSent error", http.StatusInternalServerError)
+		return
+	}
+
+}
+
+func (f *FeedbackHandler) GetNumPostsCreated(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while fetching messages")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	num, err := f.feedbackUseCase.GetNumPostsCreated(ctx, user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("GetNumPostsCreated error: %s", err.Error()))
+		http2.WriteJSONError(w, "GetNumPostsCreated error", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Got GetUserChats request")
+	type out struct {
+		Count int64 `json:"count"`
+	}
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[out]{Payload: out{Count: num}})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("GetNumMessagesSent error: %s", err.Error()))
+		http2.WriteJSONError(w, "GetNumMessagesSent error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (f *FeedbackHandler) GetNumProfileChanges(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while fetching messages")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Got GetUserChats request")
+	num, err := f.feedbackUseCase.GetNumProfileChanges(ctx, user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("GetNumProfileChanges error: %s", err.Error()))
+		http2.WriteJSONError(w, "GetNumProfileChanges error", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info(ctx, "Got GetUserChats request")
+	type out struct {
+		Count int64 `json:"count"`
+	}
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[out]{Payload: out{Count: num}})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("GetNumProfileChanges error: %s", err.Error()))
+		http2.WriteJSONError(w, "GetNumProfileChanges error", http.StatusInternalServerError)
+		return
+	}
+
 }
