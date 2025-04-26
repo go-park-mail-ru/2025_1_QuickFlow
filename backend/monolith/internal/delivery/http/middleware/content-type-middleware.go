@@ -2,11 +2,10 @@ package middleware
 
 import (
 	"net/http"
+	httpUtils "quickflow/monolith/utils/http"
 	"strings"
 
 	"github.com/gorilla/mux"
-
-	httpUtils "quickflow/utils/http"
 )
 
 func ContentTypeMiddleware(allowedTypes ...string) mux.MiddlewareFunc {

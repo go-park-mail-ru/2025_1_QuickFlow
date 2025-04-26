@@ -3,16 +3,15 @@ package minio
 import (
 	"context"
 	"fmt"
+	minioconfig "quickflow/monolith/config/minio"
+	"quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
+	threadsafeslice "quickflow/monolith/pkg/thread-safe-slice"
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/sync/errgroup"
-
-	minioconfig "quickflow/config/minio"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
-	threadsafeslice "quickflow/pkg/thread-safe-slice"
 )
 
 type MinioRepository struct {

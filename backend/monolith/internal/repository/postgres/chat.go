@@ -5,14 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/repository/postgres/postgres-models"
+	usecase2 "quickflow/monolith/internal/usecase"
+	"quickflow/monolith/pkg/logger"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-
-	"quickflow/internal/models"
-	pgmodels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
 )
 
 const (
@@ -69,15 +68,15 @@ func (c *ChatRepository) Close() {
 	c.ConnPool.Close()
 }
 
-func (c *ChatRepository) CreateChat(ctx context.Context, chat models.Chat) error {
+func (c *ChatRepository) CreateChat(ctx context.Context, chat models2.Chat) error {
 	switch chat.Type {
-	case models.ChatTypePrivate:
+	case models2.ChatTypePrivate:
 		_, err := c.ConnPool.ExecContext(ctx, insertChatQuery, chat.ID, nil, nil, chat.Type, chat.CreatedAt, chat.UpdatedAt)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to save private chat %v to database: %s", chat, err.Error()))
 			return err
 		}
-	case models.ChatTypeGroup:
+	case models2.ChatTypeGroup:
 		_, err := c.ConnPool.ExecContext(ctx, insertChatQuery, chat.ID, chat.Name, chat.AvatarURL, chat.Type, chat.CreatedAt, chat.UpdatedAt)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to save group chat %v to database: %s", chat, err.Error()))
@@ -85,14 +84,14 @@ func (c *ChatRepository) CreateChat(ctx context.Context, chat models.Chat) error
 		}
 	default:
 		logger.Error(ctx, fmt.Sprintf("Invalid chat type %v", chat.Type))
-		return usecase.ErrInvalidChatType
+		return usecase2.ErrInvalidChatType
 	}
 
 	return nil
 }
 
-func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error) {
-	var chats []models.Chat
+func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models2.Chat, error) {
+	var chats []models2.Chat
 	rows, err := c.ConnPool.QueryContext(ctx, getUserChatsQuery, userId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get user %v chats from database: %s", userId, err.Error()))
@@ -100,7 +99,7 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	}
 	defer rows.Close()
 
-	var chatPostgres pgmodels.ChatPostgres
+	var chatPostgres postgres_models.ChatPostgres
 
 	for rows.Next() {
 		err = rows.Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt, &chatPostgres.LastReadByMe)
@@ -139,15 +138,15 @@ func (c *ChatRepository) GetUserChats(ctx context.Context, userId uuid.UUID) ([]
 	return chats, nil
 }
 
-func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
-	var chatPostgres pgmodels.ChatPostgres
+func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models2.Chat, error) {
+	var chatPostgres postgres_models.ChatPostgres
 	err := c.ConnPool.QueryRowContext(ctx, getChatQuery, chatId).Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL, &chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Error(ctx, fmt.Sprintf("Chat with id %s not found", chatId))
-		return models.Chat{}, usecase.ErrNotFound
+		return models2.Chat{}, usecase2.ErrNotFound
 	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get chat %v from database: %s", chatId, err.Error()))
-		return models.Chat{}, err
+		return models2.Chat{}, err
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Fetched chat %v", chatPostgres))
@@ -155,24 +154,24 @@ func (c *ChatRepository) GetChat(ctx context.Context, chatId uuid.UUID) (models.
 	return *chatPostgres.ToChat(), nil
 }
 
-func (c *ChatRepository) GetPrivateChat(ctx context.Context, requester, companion uuid.UUID) (models.Chat, error) {
-	var chatPostgres pgmodels.ChatPostgres
-	err := c.ConnPool.QueryRowContext(ctx, getPrivateChatQuery, models.ChatTypePrivate, requester, companion).
+func (c *ChatRepository) GetPrivateChat(ctx context.Context, requester, companion uuid.UUID) (models2.Chat, error) {
+	var chatPostgres postgres_models.ChatPostgres
+	err := c.ConnPool.QueryRowContext(ctx, getPrivateChatQuery, models2.ChatTypePrivate, requester, companion).
 		Scan(&chatPostgres.Id, &chatPostgres.Name, &chatPostgres.AvatarURL,
 			&chatPostgres.Type, &chatPostgres.CreatedAt, &chatPostgres.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Error(ctx, fmt.Sprintf("Private chat between %s and %s not found", requester, companion))
-		return models.Chat{}, usecase.ErrNotFound
+		return models2.Chat{}, usecase2.ErrNotFound
 	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get private chat between %s and %s from database: %s", requester, companion, err.Error()))
-		return models.Chat{}, err
+		return models2.Chat{}, err
 	}
 
 	// get last read ts
 	err = c.ConnPool.QueryRowContext(ctx, getLastReadMessageQuery, chatPostgres.Id, companion).Scan(&chatPostgres.LastReadByMe)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get last read message from database: %s", err.Error()))
-		return models.Chat{}, err
+		return models2.Chat{}, err
 	}
 
 	// TODO LAST READ BY OTHER
@@ -226,8 +225,8 @@ func (c *ChatRepository) LeaveChat(ctx context.Context, chatId, userId uuid.UUID
 	return nil
 }
 
-func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
-	var users []models.User
+func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models2.User, error) {
+	var users []models2.User
 	rows, err := c.ConnPool.QueryContext(ctx, getChatParticipantsQuery, chatId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get chat %v participants from database: %s", chatId, err.Error()))
@@ -236,7 +235,7 @@ func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UU
 	defer rows.Close()
 
 	for rows.Next() {
-		var user pgmodels.UserPostgres
+		var user postgres_models.UserPostgres
 		err = rows.Scan(&user.Id, &user.Username)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan user from database for chat %v: %s", chatId, err.Error()))
@@ -247,7 +246,7 @@ func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UU
 
 	if len(users) == 0 {
 		logger.Error(ctx, fmt.Sprintf("No participants found for chat %v", chatId))
-		return nil, usecase.ErrNotFound
+		return nil, usecase2.ErrNotFound
 	}
 
 	if err = rows.Err(); err != nil {

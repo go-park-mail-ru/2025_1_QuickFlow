@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -37,10 +37,10 @@ func (m *MockChatUseCase) EXPECT() *MockChatUseCaseMockRecorder {
 }
 
 // CreateChat mocks base method.
-func (m *MockChatUseCase) CreateChat(ctx context.Context, chatInfo models.ChatCreationInfo) (models.Chat, error) {
+func (m *MockChatUseCase) CreateChat(ctx context.Context, chatInfo models2.ChatCreationInfo) (models2.Chat, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateChat", ctx, chatInfo)
-	ret0, _ := ret[0].(models.Chat)
+	ret0, _ := ret[0].(models2.Chat)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,10 +66,10 @@ func (mr *MockChatUseCaseMockRecorder) DeleteChat(ctx, chatId interface{}) *gomo
 }
 
 // GetChat mocks base method.
-func (m *MockChatUseCase) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
+func (m *MockChatUseCase) GetChat(ctx context.Context, chatId uuid.UUID) (models2.Chat, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChat", ctx, chatId)
-	ret0, _ := ret[0].(models.Chat)
+	ret0, _ := ret[0].(models2.Chat)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -81,10 +81,10 @@ func (mr *MockChatUseCaseMockRecorder) GetChat(ctx, chatId interface{}) *gomock.
 }
 
 // GetChatParticipants mocks base method.
-func (m *MockChatUseCase) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
+func (m *MockChatUseCase) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models2.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetChatParticipants", ctx, chatId)
-	ret0, _ := ret[0].([]models.User)
+	ret0, _ := ret[0].([]models2.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -96,10 +96,10 @@ func (mr *MockChatUseCaseMockRecorder) GetChatParticipants(ctx, chatId interface
 }
 
 // GetPrivateChat mocks base method.
-func (m *MockChatUseCase) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error) {
+func (m *MockChatUseCase) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models2.Chat, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPrivateChat", ctx, userId1, userId2)
-	ret0, _ := ret[0].(models.Chat)
+	ret0, _ := ret[0].(models2.Chat)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -111,10 +111,10 @@ func (mr *MockChatUseCaseMockRecorder) GetPrivateChat(ctx, userId1, userId2 inte
 }
 
 // GetUserChats mocks base method.
-func (m *MockChatUseCase) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error) {
+func (m *MockChatUseCase) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models2.Chat, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserChats", ctx, userId)
-	ret0, _ := ret[0].([]models.Chat)
+	ret0, _ := ret[0].([]models2.Chat)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

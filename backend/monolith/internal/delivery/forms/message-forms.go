@@ -3,13 +3,12 @@ package forms
 import (
 	"errors"
 	"net/url"
+	time2 "quickflow/monolith/config/time"
+	models2 "quickflow/monolith/internal/models"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/models"
 )
 
 type GetMessagesForm struct {
@@ -53,7 +52,7 @@ type MessageOut struct {
 	ChatId uuid.UUID         `json:"chat_id"`
 }
 
-func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut {
+func ToMessageOut(message models2.Message, info models2.PublicUserInfo) MessageOut {
 	return MessageOut{
 		ID:             message.ID,
 		Text:           message.Text,
@@ -66,7 +65,7 @@ func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut
 	}
 }
 
-func ToMessagesOut(messages []models.Message, usersInfo map[uuid.UUID]models.PublicUserInfo) []MessageOut {
+func ToMessagesOut(messages []models2.Message, usersInfo map[uuid.UUID]models2.PublicUserInfo) []MessageOut {
 	var messagesOut []MessageOut
 	for _, message := range messages {
 		messagesOut = append(messagesOut, MessageOut{
@@ -96,8 +95,8 @@ type MessageForm struct {
 	SenderId        uuid.UUID `json:"-"`
 }
 
-func (f *MessageForm) ToMessageModel() models.Message {
-	return models.Message{
+func (f *MessageForm) ToMessageModel() models2.Message {
+	return models2.Message{
 		ID:             uuid.New(),
 		Text:           f.Text,
 		CreatedAt:      time.Now(),

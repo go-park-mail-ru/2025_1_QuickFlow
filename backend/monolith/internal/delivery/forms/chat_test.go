@@ -3,12 +3,11 @@ package forms_test
 import (
 	"errors"
 	"net/url"
+	"quickflow/monolith/internal/delivery/forms"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/delivery/forms"
 )
 
 func TestGetChatsForm_GetParams(t *testing.T) {

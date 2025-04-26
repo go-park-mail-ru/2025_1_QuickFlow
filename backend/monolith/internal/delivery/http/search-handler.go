@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
+	forms2 "quickflow/monolith/internal/delivery/forms"
+	"quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
 )
 
 type SearchUseCase interface {
@@ -26,7 +25,7 @@ func NewSearchHandler(searchUseCase SearchUseCase) *SearchHandler {
 }
 
 func (s *SearchHandler) SearchSimilar(w http.ResponseWriter, r *http.Request) {
-	var searchForm forms.SearchForm
+	var searchForm forms2.SearchForm
 	err := searchForm.Unpack(r.URL.Query())
 	if err != nil {
 		logger.Error(r.Context(), "Failed to decode request body for user search: "+err.Error())
@@ -41,13 +40,13 @@ func (s *SearchHandler) SearchSimilar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var publicUsersInfoOut []forms.PublicUserInfoOut
+	var publicUsersInfoOut []forms2.PublicUserInfoOut
 	for _, user := range users {
-		publicUsersInfoOut = append(publicUsersInfoOut, forms.PublicUserInfoToOut(user, ""))
+		publicUsersInfoOut = append(publicUsersInfoOut, forms2.PublicUserInfoToOut(user, ""))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[[]forms.PublicUserInfoOut]{Payload: publicUsersInfoOut})
+	err = json.NewEncoder(w).Encode(forms2.PayloadWrapper[[]forms2.PublicUserInfoOut]{Payload: publicUsersInfoOut})
 	if err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return

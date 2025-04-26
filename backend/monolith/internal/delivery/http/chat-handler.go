@@ -6,25 +6,24 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	time2 "quickflow/monolith/config/time"
+	forms2 "quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/usecase"
+	"quickflow/monolith/pkg/logger"
+	http2 "quickflow/monolith/utils/http"
 	"time"
 
 	"github.com/google/uuid"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
-	http2 "quickflow/utils/http"
 )
 
 type ChatUseCase interface {
-	CreateChat(ctx context.Context, chatInfo models.ChatCreationInfo) (models.Chat, error)
-	GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error)
-	GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error)
-	GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error)
+	CreateChat(ctx context.Context, chatInfo models2.ChatCreationInfo) (models2.Chat, error)
+	GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models2.User, error)
+	GetUserChats(ctx context.Context, userId uuid.UUID) ([]models2.Chat, error)
+	GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models2.Chat, error)
 	DeleteChat(ctx context.Context, chatId uuid.UUID) error
-	GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error)
+	GetChat(ctx context.Context, chatId uuid.UUID) (models2.Chat, error)
 	JoinChat(ctx context.Context, chatId, userId uuid.UUID) error
 	LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error
 }
@@ -60,14 +59,14 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger.Info(ctx, "Got GetUserChats request")
 
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching messages")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
 		return
 	}
 
-	var chatForm forms.GetChatsForm
+	var chatForm forms2.GetChatsForm
 	err := chatForm.GetParams(r.URL.Query())
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse query params: %v", err))
@@ -96,7 +95,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 		senders = append(senders, chat.LastMessage.SenderID)
 	}
 
-	var publicInfos map[uuid.UUID]models.PublicUserInfo
+	var publicInfos map[uuid.UUID]models2.PublicUserInfo
 	if len(senders) != 0 {
 		publicInfos, err = c.profileUseCase.GetPublicUsersInfo(ctx, senders)
 		if err != nil {
@@ -105,20 +104,20 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	lastMessageSenderInfo := make(map[uuid.UUID]models.PublicUserInfo)
+	lastMessageSenderInfo := make(map[uuid.UUID]models2.PublicUserInfo)
 	for _, info := range publicInfos {
 		lastMessageSenderInfo[info.Id] = info
 	}
 
 	// Convert chats to output format
 	var (
-		privateChatsOnlineStatus = make(map[uuid.UUID]forms.PrivateChatInfo)
+		privateChatsOnlineStatus = make(map[uuid.UUID]forms2.PrivateChatInfo)
 		isOnline                 bool
 		username                 string
 		lastSeen                 time.Time
 	)
 	for _, chat := range chats {
-		if chat.Type != models.ChatTypePrivate {
+		if chat.Type != models2.ChatTypePrivate {
 			continue
 		}
 
@@ -146,13 +145,13 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 			username = otherUserInfo.Username
 		}
 
-		privateChatsOnlineStatus[chat.ID] = forms.PrivateChatInfo{
+		privateChatsOnlineStatus[chat.ID] = forms2.PrivateChatInfo{
 			Username: username,
-			Activity: forms.Activity{IsOnline: isOnline, LastSeen: lastSeen.Format(time2.TimeStampLayout)},
+			Activity: forms2.Activity{IsOnline: isOnline, LastSeen: lastSeen.Format(time2.TimeStampLayout)},
 		}
 	}
 
-	chatsOut := forms.ToChatsOut(chats, lastMessageSenderInfo, privateChatsOnlineStatus)
+	chatsOut := forms2.ToChatsOut(chats, lastMessageSenderInfo, privateChatsOnlineStatus)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(chatsOut)
 	if err != nil {

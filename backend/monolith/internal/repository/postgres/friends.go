@@ -5,13 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"quickflow/monolith/internal/models"
+	postgresModels "quickflow/monolith/internal/repository/postgres/postgres-models"
+	"quickflow/monolith/pkg/logger"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
-
-	"quickflow/internal/models"
-	postgresModels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/pkg/logger"
 )
 
 const (

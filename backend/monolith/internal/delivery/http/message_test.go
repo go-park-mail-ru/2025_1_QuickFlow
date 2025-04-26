@@ -7,6 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	http2 "quickflow/monolith/internal/delivery/http"
+	mocks2 "quickflow/monolith/internal/delivery/http/mocks"
+	models2 "quickflow/monolith/internal/models"
+	usecase2 "quickflow/monolith/internal/usecase"
 	"testing"
 	"time"
 
@@ -15,11 +19,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
-
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
 )
 
 func TestMessageHandler_GetMessagesForChat(t *testing.T) {
@@ -29,32 +28,32 @@ func TestMessageHandler_GetMessagesForChat(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		chatID             string
 		queryParams        map[string]string
-		mockBehavior       func(mockMessageUC *mocks.MockMessageUseCase, mockProfileUC *mocks.MockProfileUseCase)
+		mockBehavior       func(mockMessageUC *mocks2.MockMessageUseCase, mockProfileUC *mocks2.MockProfileUseCase)
 		expectedStatusCode int
 	}{
 		{
 			name:    "OK",
-			ctxUser: &models.User{Id: userID, Username: "testuser"},
+			ctxUser: &models2.User{Id: userID, Username: "testuser"},
 			chatID:  chatID.String(),
 			queryParams: map[string]string{
 				"messages_count": "10",
 				"ts":             testTime.Format("2006-01-02T15:04:05Z07:00"),
 			},
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, mockProfileUC *mocks.MockProfileUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, mockProfileUC *mocks2.MockProfileUseCase) {
 				// Возвращаем тестовое сообщение с известным senderID
 				testSenderID := uuid.New()
 				mockMessageUC.EXPECT().
 					GetMessagesForChat(gomock.Any(), chatID, userID, 10, gomock.Any()).
-					Return([]models.Message{
+					Return([]models2.Message{
 						{SenderID: testSenderID},
 					}, nil)
 
 				mockProfileUC.EXPECT().
 					GetPublicUsersInfo(gomock.Any(), []uuid.UUID{testSenderID}).
-					Return(map[uuid.UUID]models.PublicUserInfo{
+					Return(map[uuid.UUID]models2.PublicUserInfo{
 						testSenderID: {Id: testSenderID},
 					}, nil)
 			},
@@ -62,50 +61,50 @@ func TestMessageHandler_GetMessagesForChat(t *testing.T) {
 		},
 		{
 			name:    "Invalid chat ID",
-			ctxUser: &models.User{Id: userID, Username: "testuser"},
+			ctxUser: &models2.User{Id: userID, Username: "testuser"},
 			chatID:  "invalid",
 			queryParams: map[string]string{
 				"messages_count": "10",
 			},
-			mockBehavior:       func(_ *mocks.MockMessageUseCase, _ *mocks.MockProfileUseCase) {},
+			mockBehavior:       func(_ *mocks2.MockMessageUseCase, _ *mocks2.MockProfileUseCase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:    "Not participant",
-			ctxUser: &models.User{Id: userID, Username: "testuser"},
+			ctxUser: &models2.User{Id: userID, Username: "testuser"},
 			chatID:  chatID.String(),
 			queryParams: map[string]string{
 				"messages_count": "10",
 			},
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, _ *mocks.MockProfileUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, _ *mocks2.MockProfileUseCase) {
 				mockMessageUC.EXPECT().
 					GetMessagesForChat(gomock.Any(), chatID, userID, 10, gomock.Any()).
-					Return(nil, usecase.ErrNotParticipant)
+					Return(nil, usecase2.ErrNotParticipant)
 			},
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
 			name:    "Invalid num messages",
-			ctxUser: &models.User{Id: userID, Username: "testuser"},
+			ctxUser: &models2.User{Id: userID, Username: "testuser"},
 			chatID:  chatID.String(),
 			queryParams: map[string]string{
 				"messages_count": "0",
 			},
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, _ *mocks.MockProfileUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, _ *mocks2.MockProfileUseCase) {
 				mockMessageUC.EXPECT().
 					GetMessagesForChat(gomock.Any(), chatID, userID, 0, gomock.Any()).
-					Return(nil, usecase.ErrInvalidNumMessages)
+					Return(nil, usecase2.ErrInvalidNumMessages)
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:    "Internal error",
-			ctxUser: &models.User{Id: userID, Username: "testuser"},
+			ctxUser: &models2.User{Id: userID, Username: "testuser"},
 			chatID:  chatID.String(),
 			queryParams: map[string]string{
 				"messages_count": "10",
 			},
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, _ *mocks.MockProfileUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, _ *mocks2.MockProfileUseCase) {
 				mockMessageUC.EXPECT().
 					GetMessagesForChat(gomock.Any(), chatID, userID, 10, gomock.Any()).
 					Return(nil, errors.New("internal error"))
@@ -119,9 +118,9 @@ func TestMessageHandler_GetMessagesForChat(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockMessageUC := mocks.NewMockMessageUseCase(ctrl)
-			mockAuthUC := mocks.NewMockAuthUseCase(ctrl)
-			mockProfileUC := mocks.NewMockProfileUseCase(ctrl)
+			mockMessageUC := mocks2.NewMockMessageUseCase(ctrl)
+			mockAuthUC := mocks2.NewMockAuthUseCase(ctrl)
+			mockProfileUC := mocks2.NewMockProfileUseCase(ctrl)
 			policy := bluemonday.NewPolicy()
 
 			handler := http2.NewMessageHandler(mockMessageUC, mockAuthUC, mockProfileUC, policy)
@@ -157,24 +156,24 @@ func TestMessageHandler_SendMessageToUsername(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		username           string
 		requestBody        string
-		mockBehavior       func(mockMessageUC *mocks.MockMessageUseCase, mockAuthUC *mocks.MockAuthUseCase)
+		mockBehavior       func(mockMessageUC *mocks2.MockMessageUseCase, mockAuthUC *mocks2.MockAuthUseCase)
 		expectedStatusCode int
 	}{
 		{
 			name:     "OK",
-			ctxUser:  &models.User{Id: userID, Username: "sender"},
+			ctxUser:  &models2.User{Id: userID, Username: "sender"},
 			username: username,
 			requestBody: fmt.Sprintf(`{
 				"text": "%s",
 				"attachment_urls": []
 			}`, messageText),
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, mockAuthUC *mocks.MockAuthUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, mockAuthUC *mocks2.MockAuthUseCase) {
 				mockAuthUC.EXPECT().
 					GetUserByUsername(gomock.Any(), username).
-					Return(models.User{Id: recipientID}, nil)
+					Return(models2.User{Id: recipientID}, nil)
 				mockMessageUC.EXPECT().
 					SaveMessage(gomock.Any(), gomock.Any()).
 					Return(uuid.New(), nil)
@@ -183,48 +182,48 @@ func TestMessageHandler_SendMessageToUsername(t *testing.T) {
 		},
 		{
 			name:               "Empty username",
-			ctxUser:            &models.User{Id: userID, Username: "sender"},
+			ctxUser:            &models2.User{Id: userID, Username: "sender"},
 			username:           "",
 			requestBody:        `{}`,
-			mockBehavior:       func(mockMessageUC *mocks.MockMessageUseCase, mockAuthUC *mocks.MockAuthUseCase) {},
+			mockBehavior:       func(mockMessageUC *mocks2.MockMessageUseCase, mockAuthUC *mocks2.MockAuthUseCase) {},
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
 			name:     "User not found",
-			ctxUser:  &models.User{Id: userID, Username: "sender"},
+			ctxUser:  &models2.User{Id: userID, Username: "sender"},
 			username: username,
 			requestBody: fmt.Sprintf(`{
 				"text": "%s"
 			}`, messageText),
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, mockAuthUC *mocks.MockAuthUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, mockAuthUC *mocks2.MockAuthUseCase) {
 				mockAuthUC.EXPECT().
 					GetUserByUsername(gomock.Any(), username).
-					Return(models.User{}, usecase.ErrNotFound)
+					Return(models2.User{}, usecase2.ErrNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
 			name:        "Invalid JSON",
-			ctxUser:     &models.User{Id: userID, Username: "sender"},
+			ctxUser:     &models2.User{Id: userID, Username: "sender"},
 			username:    username,
 			requestBody: `{`,
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, mockAuthUC *mocks.MockAuthUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, mockAuthUC *mocks2.MockAuthUseCase) {
 				mockAuthUC.EXPECT().
-					GetUserByUsername(gomock.Any(), gomock.Any()).Return(models.User{}, nil)
+					GetUserByUsername(gomock.Any(), gomock.Any()).Return(models2.User{}, nil)
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:     "Save message error",
-			ctxUser:  &models.User{Id: userID, Username: "sender"},
+			ctxUser:  &models2.User{Id: userID, Username: "sender"},
 			username: username,
 			requestBody: fmt.Sprintf(`{
 				"text": "%s"
 			}`, messageText),
-			mockBehavior: func(mockMessageUC *mocks.MockMessageUseCase, mockAuthUC *mocks.MockAuthUseCase) {
+			mockBehavior: func(mockMessageUC *mocks2.MockMessageUseCase, mockAuthUC *mocks2.MockAuthUseCase) {
 				mockAuthUC.EXPECT().
 					GetUserByUsername(gomock.Any(), username).
-					Return(models.User{Id: recipientID}, nil)
+					Return(models2.User{Id: recipientID}, nil)
 				mockMessageUC.EXPECT().
 					SaveMessage(gomock.Any(), gomock.Any()).
 					Return(uuid.Nil, errors.New("save error"))
@@ -238,9 +237,9 @@ func TestMessageHandler_SendMessageToUsername(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockMessageUC := mocks.NewMockMessageUseCase(ctrl)
-			mockAuthUC := mocks.NewMockAuthUseCase(ctrl)
-			mockProfileUC := mocks.NewMockProfileUseCase(ctrl)
+			mockMessageUC := mocks2.NewMockMessageUseCase(ctrl)
+			mockAuthUC := mocks2.NewMockAuthUseCase(ctrl)
+			mockProfileUC := mocks2.NewMockProfileUseCase(ctrl)
 			policy := bluemonday.NewPolicy()
 
 			handler := http2.NewMessageHandler(mockMessageUC, mockAuthUC, mockProfileUC, policy)

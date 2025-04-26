@@ -5,13 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/repository/postgres/postgres-models"
+	"quickflow/monolith/internal/usecase"
+	"quickflow/monolith/utils/validation"
 
 	"github.com/google/uuid"
-
-	"quickflow/internal/models"
-	pgmodels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/internal/usecase"
-	"quickflow/utils/validation"
 )
 
 const (
@@ -77,9 +76,9 @@ func (u *PostgresUserRepository) IsExists(ctx context.Context, login string) (bo
 }
 
 // SaveUser saves user to the repository.
-func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models.User) (uuid.UUID, error) {
+func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models2.User) (uuid.UUID, error) {
 
-	userPostgres := pgmodels.ConvertUserToPostgres(user)
+	userPostgres := postgres_models.ConvertUserToPostgres(user)
 
 	_, err := u.connPool.ExecContext(ctx, insertUserQuery,
 		userPostgres.Id, userPostgres.Username,
@@ -93,59 +92,59 @@ func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models.User)
 }
 
 // GetUser returns user by login and password.
-func (u *PostgresUserRepository) GetUser(ctx context.Context, loginData models.LoginData) (models.User, error) {
-	var userPostgres pgmodels.UserPostgres
+func (u *PostgresUserRepository) GetUser(ctx context.Context, loginData models2.LoginData) (models2.User, error) {
+	var userPostgres postgres_models.UserPostgres
 
 	err := u.connPool.QueryRowContext(ctx, getUserByUsername, loginData.Login).Scan(
 		&userPostgres.Id, &userPostgres.Username,
 		&userPostgres.Password, &userPostgres.Salt)
 	if err != nil {
-		return models.User{}, errors.New("user not found")
+		return models2.User{}, errors.New("user not found")
 	}
 
 	if !validation.CheckPassword(loginData.Password, userPostgres.Password.String, userPostgres.Salt.String) {
-		return models.User{}, errors.New("incorrect login or password")
+		return models2.User{}, errors.New("incorrect login or password")
 	}
 
 	return userPostgres.ConvertToUser(), nil
 }
 
 // GetUserByUId returns user by id.
-func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.UUID) (models.User, error) {
-	var userPostgres pgmodels.UserPostgres
+func (u *PostgresUserRepository) GetUserByUId(ctx context.Context, userId uuid.UUID) (models2.User, error) {
+	var userPostgres postgres_models.UserPostgres
 
 	err := u.connPool.QueryRowContext(ctx, getUserByUIdQuery,
 		userId).Scan(&userPostgres.Id, &userPostgres.Username,
 		&userPostgres.Password, &userPostgres.Salt)
 	if err != nil {
-		return models.User{}, errors.New("user not found")
+		return models2.User{}, errors.New("user not found")
 	}
 
 	return userPostgres.ConvertToUser(), nil
 }
 
-func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
-	var user pgmodels.UserPostgres
+func (u *PostgresUserRepository) GetUserByUsername(ctx context.Context, username string) (models2.User, error) {
+	var user postgres_models.UserPostgres
 	err := u.connPool.QueryRowContext(ctx, getUserByUsername, username).Scan(&user.Id, &user.Username, &user.Password, &user.Salt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return models.User{}, usecase.ErrNotFound
+		return models2.User{}, usecase.ErrNotFound
 	} else if err != nil {
-		return models.User{}, err
+		return models2.User{}, err
 	}
 
 	return user.ConvertToUser(), nil
 }
 
-func (u *PostgresUserRepository) SearchSimilar(ctx context.Context, toSearch string, postsCount uint) ([]models.PublicUserInfo, error) {
+func (u *PostgresUserRepository) SearchSimilar(ctx context.Context, toSearch string, postsCount uint) ([]models2.PublicUserInfo, error) {
 	rows, err := u.connPool.QueryContext(ctx, searchSimilarUsersQuery, toSearch, postsCount)
 	if err != nil {
 		return nil, fmt.Errorf("u.connPool.Query: %w", err)
 	}
 	defer rows.Close()
 
-	var users []models.PublicUserInfo
+	var users []models2.PublicUserInfo
 	for rows.Next() {
-		var user pgmodels.PublicUserInfoPostgres
+		var user postgres_models.PublicUserInfoPostgres
 		err = rows.Scan(&user.Id, &user.Username, &user.Firstname, &user.Lastname, &user.AvatarURL)
 		if err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)

@@ -5,6 +5,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
+	"quickflow/monolith/internal/delivery/http/mocks"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -12,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"quickflow/config/cors"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 )
 
 func TestContentTypeMiddleware(t *testing.T) {
@@ -81,16 +81,16 @@ func TestSessionMiddleware(t *testing.T) {
 	middlewareFunc := SessionMiddleware(mockAuthService)
 
 	handler := middlewareFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, _ := r.Context().Value("user").(models.User)
+		user, _ := r.Context().Value("user").(models2.User)
 		assert.NotNil(t, user)
 		w.WriteHeader(http.StatusOK)
 	}))
 
 	t.Run("Valid Session", func(t *testing.T) {
 		sessionID := uuid.New()
-		user := models.User{Id: uuid.New()}
+		user := models2.User{Id: uuid.New()}
 
-		mockAuthService.EXPECT().LookupUserSession(gomock.Any(), models.Session{SessionId: sessionID}).Return(user, nil).Times(1)
+		mockAuthService.EXPECT().LookupUserSession(gomock.Any(), models2.Session{SessionId: sessionID}).Return(user, nil).Times(1)
 
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		r.AddCookie(&http.Cookie{Name: "session", Value: sessionID.String()})
@@ -120,7 +120,7 @@ func TestSessionMiddleware(t *testing.T) {
 	t.Run("Failed Authorization", func(t *testing.T) {
 		sessionID := uuid.New()
 
-		mockAuthService.EXPECT().LookupUserSession(gomock.Any(), models.Session{SessionId: sessionID}).Return(models.User{}, errors.New("auth error")).Times(1)
+		mockAuthService.EXPECT().LookupUserSession(gomock.Any(), models2.Session{SessionId: sessionID}).Return(models2.User{}, errors.New("auth error")).Times(1)
 
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		r.AddCookie(&http.Cookie{Name: "session", Value: sessionID.String()})

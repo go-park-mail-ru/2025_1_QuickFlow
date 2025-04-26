@@ -2,14 +2,13 @@ package middleware
 
 import (
     "net/http"
+    "quickflow/monolith/config/cors"
+    http2 "quickflow/monolith/utils/http"
     "strings"
-
-    "quickflow/config/cors"
-    http2 "quickflow/utils/http"
 )
 
 // CORSMiddleware adds CORS headers to the response.
-func CORSMiddleware(config *cors_config.CORSConfig) func(http.Handler) http.Handler {
+func CORSMiddleware(config *cors_config.cors_config) func(http.Handler) http.Handler {
     if config == nil {
         return func(next http.Handler) http.Handler {
             return next

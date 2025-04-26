@@ -7,33 +7,32 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"quickflow/monolith/internal/delivery/forms"
+	http2 "quickflow/monolith/internal/delivery/http"
+	mocks2 "quickflow/monolith/internal/delivery/http/mocks"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/usecase"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
 )
 
 func TestChatHandler_GetUserChats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockChatUC := mocks.NewMockChatUseCase(ctrl)
-	mockProfileUC := mocks.NewMockProfileUseCase(ctrl)
-	mockWS := mocks.NewMockIWebSocketManager(ctrl)
+	mockChatUC := mocks2.NewMockChatUseCase(ctrl)
+	mockProfileUC := mocks2.NewMockProfileUseCase(ctrl)
+	mockWS := mocks2.NewMockIWebSocketManager(ctrl)
 
 	handler := http2.NewChatHandler(mockChatUC, mockProfileUC, mockWS)
 
 	type testCase struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		queryParams        string
 		mockBehavior       func()
 		expectedStatusCode int
@@ -60,7 +59,7 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 		},
 		{
 			name:               "Invalid query parameters",
-			ctxUser:            &models.User{Id: myUserID, Username: "testuser"},
+			ctxUser:            &models2.User{Id: myUserID, Username: "testuser"},
 			queryParams:        "chats_count=notanumber",
 			mockBehavior:       func() {},
 			expectedStatusCode: http.StatusBadRequest,
@@ -70,7 +69,7 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 		},
 		{
 			name:        "User has no chats",
-			ctxUser:     &models.User{Id: myUserID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: myUserID, Username: "testuser"},
 			queryParams: "chats_count=10",
 			mockBehavior: func() {
 				mockChatUC.EXPECT().
@@ -84,7 +83,7 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 		},
 		{
 			name:        "Internal error in GetUserChats",
-			ctxUser:     &models.User{Id: myUserID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: myUserID, Username: "testuser"},
 			queryParams: "chats_count=10",
 			mockBehavior: func() {
 				mockChatUC.EXPECT().
@@ -98,20 +97,20 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 		},
 		{
 			name:        "Internal error in GetPublicUsersInfo",
-			ctxUser:     &models.User{Id: myUserID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: myUserID, Username: "testuser"},
 			queryParams: "chats_count=10",
 			mockBehavior: func() {
-				chat1 := models.Chat{
+				chat1 := models2.Chat{
 					ID:   chatID1,
-					Type: models.ChatTypePrivate,
-					LastMessage: models.Message{
+					Type: models2.ChatTypePrivate,
+					LastMessage: models2.Message{
 						ID:       uuid.New(),
 						SenderID: otherUser1,
 					},
 				}
 				mockChatUC.EXPECT().
 					GetUserChats(gomock.Any(), myUserID).
-					Return([]models.Chat{chat1}, nil)
+					Return([]models2.Chat{chat1}, nil)
 
 				mockProfileUC.EXPECT().
 					GetPublicUsersInfo(gomock.Any(), []uuid.UUID{otherUser1}).
@@ -124,34 +123,34 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 		},
 		{
 			name:        "Success - two chats (branch with last message & branch with getOtherPrivateChatParticipant)",
-			ctxUser:     &models.User{Id: myUserID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: myUserID, Username: "testuser"},
 			queryParams: "chats_count=10",
 			mockBehavior: func() {
-				chat1 := models.Chat{
+				chat1 := models2.Chat{
 					ID:   chatID1,
-					Type: models.ChatTypePrivate,
-					LastMessage: models.Message{
+					Type: models2.ChatTypePrivate,
+					LastMessage: models2.Message{
 						ID:       uuid.New(), // ненулевой ID
 						SenderID: otherUser1,
 					},
 				}
-				chat2 := models.Chat{
+				chat2 := models2.Chat{
 					ID:          chatID2,
-					Type:        models.ChatTypePrivate,
-					LastMessage: models.Message{}, // все поля — нули
+					Type:        models2.ChatTypePrivate,
+					LastMessage: models2.Message{}, // все поля — нули
 				}
 				mockChatUC.EXPECT().
 					GetUserChats(gomock.Any(), myUserID).
-					Return([]models.Chat{chat1, chat2}, nil)
+					Return([]models2.Chat{chat1, chat2}, nil)
 
-				publicInfo1 := models.PublicUserInfo{
+				publicInfo1 := models2.PublicUserInfo{
 					Id:       otherUser1,
 					Username: "other1",
 					LastSeen: fakeNow.Add(-5 * time.Minute),
 				}
 				mockProfileUC.EXPECT().
 					GetPublicUsersInfo(gomock.Any(), gomock.Eq([]uuid.UUID{otherUser1, uuid.Nil})).
-					Return(map[uuid.UUID]models.PublicUserInfo{
+					Return(map[uuid.UUID]models2.PublicUserInfo{
 						otherUser1: publicInfo1,
 					}, nil)
 
@@ -161,12 +160,12 @@ func TestChatHandler_GetUserChats(t *testing.T) {
 
 				mockChatUC.EXPECT().
 					GetChatParticipants(gomock.Any(), chatID2).
-					Return([]models.User{
+					Return([]models2.User{
 						{Id: myUserID},
 						{Id: otherUser2},
 					}, nil)
 
-				publicInfo2 := models.PublicUserInfo{
+				publicInfo2 := models2.PublicUserInfo{
 					Id:       otherUser2,
 					Username: "other2",
 					LastSeen: fakeNow.Add(-10 * time.Minute),

@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -37,10 +37,10 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 }
 
 // GetUser mocks base method.
-func (m *MockUserRepository) GetUser(ctx context.Context, authData models.LoginData) (models.User, error) {
+func (m *MockUserRepository) GetUser(ctx context.Context, authData models2.LoginData) (models2.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUser", ctx, authData)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models2.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,10 +52,10 @@ func (mr *MockUserRepositoryMockRecorder) GetUser(ctx, authData interface{}) *go
 }
 
 // GetUserByUId mocks base method.
-func (m *MockUserRepository) GetUserByUId(ctx context.Context, uid uuid.UUID) (models.User, error) {
+func (m *MockUserRepository) GetUserByUId(ctx context.Context, uid uuid.UUID) (models2.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByUId", ctx, uid)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models2.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -67,10 +67,10 @@ func (mr *MockUserRepositoryMockRecorder) GetUserByUId(ctx, uid interface{}) *go
 }
 
 // GetUserByUsername mocks base method.
-func (m *MockUserRepository) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
+func (m *MockUserRepository) GetUserByUsername(ctx context.Context, username string) (models2.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models2.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -97,7 +97,7 @@ func (mr *MockUserRepositoryMockRecorder) IsExists(ctx, login interface{}) *gomo
 }
 
 // SaveUser mocks base method.
-func (m *MockUserRepository) SaveUser(ctx context.Context, user models.User) (uuid.UUID, error) {
+func (m *MockUserRepository) SaveUser(ctx context.Context, user models2.User) (uuid.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveUser", ctx, user)
 	ret0, _ := ret[0].(uuid.UUID)
@@ -112,10 +112,10 @@ func (mr *MockUserRepositoryMockRecorder) SaveUser(ctx, user interface{}) *gomoc
 }
 
 // SearchSimilar mocks base method.
-func (m *MockUserRepository) SearchSimilar(ctx context.Context, toSearch string, postsCount uint) ([]models.PublicUserInfo, error) {
+func (m *MockUserRepository) SearchSimilar(ctx context.Context, toSearch string, postsCount uint) ([]models2.PublicUserInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SearchSimilar", ctx, toSearch, postsCount)
-	ret0, _ := ret[0].([]models.PublicUserInfo)
+	ret0, _ := ret[0].([]models2.PublicUserInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -179,7 +179,7 @@ func (mr *MockSessionRepositoryMockRecorder) IsExists(ctx, sessionId interface{}
 }
 
 // LookupUserSession mocks base method.
-func (m *MockSessionRepository) LookupUserSession(ctx context.Context, session models.Session) (uuid.UUID, error) {
+func (m *MockSessionRepository) LookupUserSession(ctx context.Context, session models2.Session) (uuid.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LookupUserSession", ctx, session)
 	ret0, _ := ret[0].(uuid.UUID)
@@ -194,7 +194,7 @@ func (mr *MockSessionRepositoryMockRecorder) LookupUserSession(ctx, session inte
 }
 
 // SaveSession mocks base method.
-func (m *MockSessionRepository) SaveSession(ctx context.Context, userId uuid.UUID, session models.Session) error {
+func (m *MockSessionRepository) SaveSession(ctx context.Context, userId uuid.UUID, session models2.Session) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveSession", ctx, userId, session)
 	ret0, _ := ret[0].(error)

@@ -3,15 +3,14 @@ package forms_test
 import (
 	"errors"
 	"net/url"
+	"quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
 )
 
 func TestPostForm_ToPostModel(t *testing.T) {
@@ -22,7 +21,7 @@ func TestPostForm_ToPostModel(t *testing.T) {
 	}
 
 	// Simulate the form having images (empty in this case)
-	postForm.Images = []*models.File{
+	postForm.Images = []*models2.File{
 		{Name: "image1.jpg", Reader: strings.NewReader("hi")},
 	}
 
@@ -90,7 +89,7 @@ func TestFeedForm_GetParams(t *testing.T) {
 func TestPublicUserInfoToOut(t *testing.T) {
 	userID := uuid.New()
 	// Create a mock PublicUserInfo
-	publicUserInfo := models.PublicUserInfo{
+	publicUserInfo := models2.PublicUserInfo{
 		Id:        userID,
 		Username:  "user1",
 		Firstname: "John",
@@ -98,7 +97,7 @@ func TestPublicUserInfoToOut(t *testing.T) {
 		AvatarURL: "http://example.com/avatar.jpg",
 	}
 
-	relation := models.RelationFriend
+	relation := models2.RelationFriend
 
 	publicUserOut := forms.PublicUserInfoToOut(publicUserInfo, relation)
 
@@ -107,7 +106,7 @@ func TestPublicUserInfoToOut(t *testing.T) {
 	assert.Equal(t, publicUserOut.FirstName, "John")
 	assert.Equal(t, publicUserOut.LastName, "Doe")
 	assert.Equal(t, publicUserOut.AvatarURL, "http://example.com/avatar.jpg")
-	assert.Equal(t, publicUserOut.Relation, models.RelationFriend)
+	assert.Equal(t, publicUserOut.Relation, models2.RelationFriend)
 }
 
 func TestPostOut_FromPost(t *testing.T) {
@@ -115,7 +114,7 @@ func TestPostOut_FromPost(t *testing.T) {
 	postID := uuid.New()
 
 	now := time.Now()
-	post := models.Post{
+	post := models2.Post{
 		Id:        postID,
 		CreatorId: userID,
 		Desc:      "Sample post",
@@ -142,7 +141,7 @@ func TestUpdatePostForm_ToPostUpdateModel(t *testing.T) {
 	postID := uuid.New()
 	updateForm := forms.UpdatePostForm{
 		Text: "Updated post",
-		Images: []*models.File{
+		Images: []*models2.File{
 			{Name: "image1.jpg", Reader: strings.NewReader("hi")},
 		},
 	}

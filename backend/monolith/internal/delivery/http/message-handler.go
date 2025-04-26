@@ -5,19 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	time2 "quickflow/monolith/config/time"
+	"quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
+	usecase2 "quickflow/monolith/internal/usecase"
+	"quickflow/monolith/pkg/logger"
+	"quickflow/monolith/pkg/sanitizer"
+	http2 "quickflow/monolith/utils/http"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
-	"quickflow/pkg/sanitizer"
-	http2 "quickflow/utils/http"
 )
 
 type MessageHandler struct {
@@ -54,7 +53,7 @@ func NewMessageHandler(messageUseCase MessageUseCase, authUseCase AuthUseCase, p
 func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	// extracting user from context
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching messages")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -86,11 +85,11 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 
 	messages, err := m.messageUseCase.GetMessagesForChat(ctx, chatId, user.Id, messageForm.MessagesCount, messageForm.Ts)
 	switch {
-	case errors.Is(err, usecase.ErrNotParticipant):
+	case errors.Is(err, usecase2.ErrNotParticipant):
 		logger.Info(ctx, fmt.Sprintf("User %s is not a participant in chat %s", user.Username, chatId))
 		http2.WriteJSONError(w, "user is not a participant in chat", http.StatusForbidden)
 		return
-	case errors.Is(err, usecase.ErrInvalidNumMessages):
+	case errors.Is(err, usecase2.ErrInvalidNumMessages):
 		logger.Info(ctx, fmt.Sprintf("Invalid number of messages requested: %d", messageForm.MessagesCount))
 		http2.WriteJSONError(w, "numMessages must be greater than 0", http.StatusBadRequest)
 		return
@@ -107,7 +106,7 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 		senderIds = append(senderIds, message.SenderID)
 	}
 
-	publicInfo := make(map[uuid.UUID]models.PublicUserInfo)
+	publicInfo := make(map[uuid.UUID]models2.PublicUserInfo)
 	if len(senderIds) != 0 {
 		publicInfo, err = m.profileUseCase.GetPublicUsersInfo(ctx, senderIds)
 		if err != nil {
@@ -150,7 +149,7 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 // @Router /api/messages/{username} [post]
 func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while sending message")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -166,7 +165,7 @@ func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Re
 	}
 
 	userRecipient, err := m.authUseCase.GetUserByUsername(ctx, username)
-	if errors.Is(err, usecase.ErrNotFound) {
+	if errors.Is(err, usecase2.ErrNotFound) {
 		logger.Info(ctx, fmt.Sprintf("User %s not found", username))
 		http2.WriteJSONError(w, "user not found", http.StatusNotFound)
 		return

@@ -2,8 +2,7 @@ package postgres_models
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
-
-	"quickflow/internal/models"
+	"quickflow/monolith/internal/models"
 )
 
 type ChatPostgres struct {

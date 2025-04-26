@@ -6,25 +6,24 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
+	usecase2 "quickflow/monolith/internal/usecase"
+	"quickflow/monolith/pkg/logger"
+	"quickflow/monolith/pkg/sanitizer"
+	http2 "quickflow/monolith/utils/http"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
-
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
-	"quickflow/pkg/sanitizer"
-	http2 "quickflow/utils/http"
 )
 
 type ProfileUseCase interface {
-	GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error)
-	UpdateProfile(ctx context.Context, newProfile models.Profile) error
-	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
-	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error)
+	GetUserInfoByUserName(ctx context.Context, username string) (models2.Profile, error)
+	UpdateProfile(ctx context.Context, newProfile models2.Profile) error
+	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models2.PublicUserInfo, error)
+	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models2.PublicUserInfo, error)
 	UpdateLastSeen(ctx context.Context, userId uuid.UUID) error
 }
 
@@ -68,7 +67,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, fmt.Sprintf("Request profile of %s", userRequested))
 
 	profileInfo, err := p.profileUC.GetUserInfoByUserName(ctx, userRequested)
-	if errors.Is(err, usecase.ErrNotFound) {
+	if errors.Is(err, usecase2.ErrNotFound) {
 		logger.Info(ctx, fmt.Sprintf("Profile of %s not found", userRequested))
 		http2.WriteJSONError(w, "profile not found", http.StatusNotFound)
 		return
@@ -81,7 +80,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	_, isOnline := p.connService.IsConnected(profileInfo.UserId)
 
-	var relation = models.RelationNone
+	var relation = models2.RelationNone
 	var chatId *uuid.UUID
 	if session, err := r.Cookie("session"); err == nil {
 		// parse session
@@ -93,7 +92,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// lookup user by session
-		user, err := p.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid})
+		user, err := p.authUseCase.LookupUserSession(r.Context(), models2.Session{SessionId: sessionUuid})
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Failed to lookup user by session: %s", err.Error()))
 			http2.WriteJSONError(w, "Failed to authorize user", http.StatusUnauthorized)
@@ -110,7 +109,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 		// get chat id
 		chat, err := p.chatUseCase.GetPrivateChat(ctx, user.Id, profileInfo.UserId)
-		if err != nil && !errors.Is(err, usecase.ErrNotFound) {
+		if err != nil && !errors.Is(err, usecase2.ErrNotFound) {
 			logger.Error(ctx, fmt.Sprintf("Failed to get chat id: %s", err.Error()))
 			http2.WriteJSONError(w, "Failed to get chat id", http.StatusInternalServerError)
 			return
@@ -148,7 +147,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Router /api/profile [post]
 func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while updating profile")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -243,15 +242,15 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	profile.UserId = user.Id
 	err = p.profileUC.UpdateProfile(ctx, profile)
-	if errors.Is(err, usecase.ErrNotFound) {
+	if errors.Is(err, usecase2.ErrNotFound) {
 		logger.Error(ctx, fmt.Sprintf("Profile of %s not found", user.Username))
 		http2.WriteJSONError(w, "profile not found", http.StatusNotFound)
 		return
-	} else if errors.Is(err, usecase.ErrInvalidProfileInfo) {
+	} else if errors.Is(err, usecase2.ErrInvalidProfileInfo) {
 		logger.Error(ctx, fmt.Sprintf("Invalid profile info: %s", err.Error()))
 		http2.WriteJSONError(w, "invalid profile info", http.StatusBadRequest)
 		return
-	} else if errors.Is(err, usecase.ErrAlreadyExists) {
+	} else if errors.Is(err, usecase2.ErrAlreadyExists) {
 		logger.Error(ctx, fmt.Sprintf("Profile of %s already exists", user.Username))
 		http2.WriteJSONError(w, "profile already exists", http.StatusBadRequest)
 		return

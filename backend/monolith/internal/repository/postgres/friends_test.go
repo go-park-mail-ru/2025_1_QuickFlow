@@ -3,13 +3,12 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"quickflow/monolith/internal/models"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/models"
 )
 
 func TestGetFriendsPublicInfo(t *testing.T) {

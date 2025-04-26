@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/utils/validation"
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
-
-	"quickflow/internal/models"
-	"quickflow/utils/validation"
 )
 
 var (
@@ -18,13 +17,13 @@ var (
 )
 
 type ProfileRepository interface {
-	SaveProfile(ctx context.Context, profile models.Profile) error
-	GetProfile(ctx context.Context, userId uuid.UUID) (models.Profile, error)
-	UpdateProfileTextInfo(ctx context.Context, newProfile models.Profile) error
+	SaveProfile(ctx context.Context, profile models2.Profile) error
+	GetProfile(ctx context.Context, userId uuid.UUID) (models2.Profile, error)
+	UpdateProfileTextInfo(ctx context.Context, newProfile models2.Profile) error
 	UpdateProfileAvatar(ctx context.Context, id uuid.UUID, url string) error
 	UpdateProfileCover(ctx context.Context, id uuid.UUID, url string) error
-	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error)
-	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models.PublicUserInfo, error)
+	GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models2.PublicUserInfo, error)
+	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models2.PublicUserInfo, error)
 	UpdateLastSeen(ctx context.Context, userId uuid.UUID) error
 }
 
@@ -44,33 +43,33 @@ func NewProfileService(profileRepo ProfileRepository, userRepo UserRepository, f
 }
 
 // GetUserInfo gets user profile information.
-func (p *ProfileService) GetUserInfo(ctx context.Context, userId uuid.UUID) (models.Profile, error) {
+func (p *ProfileService) GetUserInfo(ctx context.Context, userId uuid.UUID) (models2.Profile, error) {
 	profile, err := p.profileRepo.GetProfile(ctx, userId)
 	if err != nil {
-		return models.Profile{}, fmt.Errorf("p.profileRepo.GetProfile: %w", err)
+		return models2.Profile{}, fmt.Errorf("p.profileRepo.GetProfile: %w", err)
 	}
 
 	return profile, nil
 }
 
-func (p *ProfileService) GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error) {
+func (p *ProfileService) GetUserInfoByUserName(ctx context.Context, username string) (models2.Profile, error) {
 	user, err := p.userRepo.GetUserByUsername(ctx, username)
 	if errors.Is(err, ErrNotFound) {
-		return models.Profile{}, err
+		return models2.Profile{}, err
 	} else if err != nil {
-		return models.Profile{}, fmt.Errorf("p.userRepo.GetUserByUsername: %w", err)
+		return models2.Profile{}, fmt.Errorf("p.userRepo.GetUserByUsername: %w", err)
 	}
 
 	profile, err := p.profileRepo.GetProfile(ctx, user.Id)
 	if err != nil {
-		return models.Profile{}, fmt.Errorf("p.profileRepo.GetProfile: %w", err)
+		return models2.Profile{}, fmt.Errorf("p.profileRepo.GetProfile: %w", err)
 	}
 
 	return profile, nil
 }
 
 // UpdateProfile updates profile in the repository.
-func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Profile) error {
+func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models2.Profile) error {
 	if newProfile.BasicInfo != nil {
 		if validation.ValidateProfile(newProfile.BasicInfo.Name, newProfile.BasicInfo.Surname) != nil {
 			return ErrInvalidProfileInfo
@@ -130,18 +129,18 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile models.Pr
 	return nil
 }
 
-func (p *ProfileService) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
+func (p *ProfileService) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models2.PublicUserInfo, error) {
 	if userId == uuid.Nil {
-		return models.PublicUserInfo{}, ErrInvalidUserId
+		return models2.PublicUserInfo{}, ErrInvalidUserId
 	}
 	publicInfo, err := p.profileRepo.GetPublicUserInfo(ctx, userId)
 	if err != nil {
-		return models.PublicUserInfo{}, fmt.Errorf("p.profileRepo.GetPublicUserInfo: %w", err)
+		return models2.PublicUserInfo{}, fmt.Errorf("p.profileRepo.GetPublicUserInfo: %w", err)
 	}
 	return publicInfo, nil
 }
 
-func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error) {
+func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models2.PublicUserInfo, error) {
 	if len(userIds) == 0 {
 		return nil, fmt.Errorf("userIds is empty")
 	}
@@ -151,7 +150,7 @@ func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.
 		return nil, fmt.Errorf("p.profileRepo.GetPublicUsersInfo: %w", err)
 	}
 
-	userInfoMap := make(map[uuid.UUID]models.PublicUserInfo)
+	userInfoMap := make(map[uuid.UUID]models2.PublicUserInfo)
 	for _, userInfo := range publicInfo {
 		userInfoMap[userInfo.Id] = userInfo
 	}

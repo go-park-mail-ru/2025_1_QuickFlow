@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 	time "time"
 
@@ -38,10 +38,10 @@ func (m *MockPostUseCase) EXPECT() *MockPostUseCaseMockRecorder {
 }
 
 // AddPost mocks base method.
-func (m *MockPostUseCase) AddPost(ctx context.Context, post models.Post) (models.Post, error) {
+func (m *MockPostUseCase) AddPost(ctx context.Context, post models2.Post) (models2.Post, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddPost", ctx, post)
-	ret0, _ := ret[0].(models.Post)
+	ret0, _ := ret[0].(models2.Post)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -53,7 +53,7 @@ func (mr *MockPostUseCaseMockRecorder) AddPost(ctx, post interface{}) *gomock.Ca
 }
 
 // DeletePost mocks base method.
-func (m *MockPostUseCase) DeletePost(ctx context.Context, user models.User, postId uuid.UUID) error {
+func (m *MockPostUseCase) DeletePost(ctx context.Context, user models2.User, postId uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeletePost", ctx, user, postId)
 	ret0, _ := ret[0].(error)
@@ -67,10 +67,10 @@ func (mr *MockPostUseCaseMockRecorder) DeletePost(ctx, user, postId interface{})
 }
 
 // FetchFeed mocks base method.
-func (m *MockPostUseCase) FetchFeed(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (m *MockPostUseCase) FetchFeed(ctx context.Context, user models2.User, numPosts int, timestamp time.Time) ([]models2.Post, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchFeed", ctx, user, numPosts, timestamp)
-	ret0, _ := ret[0].([]models.Post)
+	ret0, _ := ret[0].([]models2.Post)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -82,10 +82,10 @@ func (mr *MockPostUseCaseMockRecorder) FetchFeed(ctx, user, numPosts, timestamp 
 }
 
 // FetchRecommendations mocks base method.
-func (m *MockPostUseCase) FetchRecommendations(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (m *MockPostUseCase) FetchRecommendations(ctx context.Context, user models2.User, numPosts int, timestamp time.Time) ([]models2.Post, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchRecommendations", ctx, user, numPosts, timestamp)
-	ret0, _ := ret[0].([]models.Post)
+	ret0, _ := ret[0].([]models2.Post)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -97,10 +97,10 @@ func (mr *MockPostUseCaseMockRecorder) FetchRecommendations(ctx, user, numPosts,
 }
 
 // FetchUserPosts mocks base method.
-func (m *MockPostUseCase) FetchUserPosts(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (m *MockPostUseCase) FetchUserPosts(ctx context.Context, user models2.User, numPosts int, timestamp time.Time) ([]models2.Post, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchUserPosts", ctx, user, numPosts, timestamp)
-	ret0, _ := ret[0].([]models.Post)
+	ret0, _ := ret[0].([]models2.Post)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -112,10 +112,10 @@ func (mr *MockPostUseCaseMockRecorder) FetchUserPosts(ctx, user, numPosts, times
 }
 
 // UpdatePost mocks base method.
-func (m *MockPostUseCase) UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (models.Post, error) {
+func (m *MockPostUseCase) UpdatePost(ctx context.Context, update models2.PostUpdate, userId uuid.UUID) (models2.Post, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdatePost", ctx, update, userId)
-	ret0, _ := ret[0].(models.Post)
+	ret0, _ := ret[0].(models2.Post)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

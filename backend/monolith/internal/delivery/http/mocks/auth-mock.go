@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -37,10 +37,10 @@ func (m *MockAuthUseCase) EXPECT() *MockAuthUseCaseMockRecorder {
 }
 
 // AuthUser mocks base method.
-func (m *MockAuthUseCase) AuthUser(ctx context.Context, authData models.LoginData) (models.Session, error) {
+func (m *MockAuthUseCase) AuthUser(ctx context.Context, authData models2.LoginData) (models2.Session, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AuthUser", ctx, authData)
-	ret0, _ := ret[0].(models.Session)
+	ret0, _ := ret[0].(models2.Session)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,11 +52,11 @@ func (mr *MockAuthUseCaseMockRecorder) AuthUser(ctx, authData interface{}) *gomo
 }
 
 // CreateUser mocks base method.
-func (m *MockAuthUseCase) CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error) {
+func (m *MockAuthUseCase) CreateUser(ctx context.Context, user models2.User, profile models2.Profile) (uuid.UUID, models2.Session, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", ctx, user, profile)
 	ret0, _ := ret[0].(uuid.UUID)
-	ret1, _ := ret[1].(models.Session)
+	ret1, _ := ret[1].(models2.Session)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -82,10 +82,10 @@ func (mr *MockAuthUseCaseMockRecorder) DeleteUserSession(ctx, session interface{
 }
 
 // GetUserByUsername mocks base method.
-func (m *MockAuthUseCase) GetUserByUsername(ctx context.Context, username string) (models.User, error) {
+func (m *MockAuthUseCase) GetUserByUsername(ctx context.Context, username string) (models2.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models2.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -97,10 +97,10 @@ func (mr *MockAuthUseCaseMockRecorder) GetUserByUsername(ctx, username interface
 }
 
 // LookupUserSession mocks base method.
-func (m *MockAuthUseCase) LookupUserSession(ctx context.Context, session models.Session) (models.User, error) {
+func (m *MockAuthUseCase) LookupUserSession(ctx context.Context, session models2.Session) (models2.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LookupUserSession", ctx, session)
-	ret0, _ := ret[0].(models.User)
+	ret0, _ := ret[0].(models2.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

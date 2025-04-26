@@ -2,29 +2,28 @@ package forms
 
 import (
 	"errors"
+	time2 "quickflow/monolith/config/time"
+	models2 "quickflow/monolith/internal/models"
 	"time"
 
 	"github.com/google/uuid"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/models"
 )
 
 type ProfileInfo struct {
 	Username      string     `json:"username,omitempty"`
 	Name          string     `json:"firstname"`
-	Surname       string     `json:"lastname"`
-	Sex           models.Sex `json:"sex"`
-	DateOfBirth   string     `json:"birth_date"`
+	Surname     string      `json:"lastname"`
+	Sex         models2.Sex `json:"sex"`
+	DateOfBirth string      `json:"birth_date"`
 	Bio           string     `json:"bio"`
 	AvatarUrl     string     `json:"avatar_url,omitempty"`
 	BackgroundUrl string     `json:"cover_url,omitempty"`
 }
 
 type ProfileForm struct {
-	Id         string       `json:"id,omitempty"`
-	Avatar     *models.File `json:"-"`
-	Background *models.File `json:"-"`
+	Id         string        `json:"id,omitempty"`
+	Avatar     *models2.File `json:"-"`
+	Background *models2.File `json:"-"`
 
 	ProfileInfo         *ProfileInfo             `json:"profile"`
 	ContactInfo         *ContactInfo             `json:"contact_info,omitempty"`
@@ -32,27 +31,27 @@ type ProfileForm struct {
 	UniversityEducation *UniversityEducationForm `json:"university,omitempty"`
 	LastSeen            string                   `json:"last_seen,omitempty"`
 	IsOnline            *bool                    `json:"online,omitempty"`
-	Relation            models.UserRelation      `json:"relation,omitempty"`
+	Relation            models2.UserRelation     `json:"relation,omitempty"`
 	ChatId              *uuid.UUID               `json:"chat_id,omitempty"`
 }
 
-func (f *ProfileForm) FormToModel() (models.Profile, error) {
+func (f *ProfileForm) FormToModel() (models2.Profile, error) {
 
-	var contactInfo *models.ContactInfo
+	var contactInfo *models2.ContactInfo
 	if f.ContactInfo != nil {
-		contactInfo = &models.ContactInfo{
+		contactInfo = &models2.ContactInfo{
 			City:  f.ContactInfo.City,
 			Email: f.ContactInfo.Email,
 			Phone: f.ContactInfo.Phone,
 		}
 	}
 
-	var basicInfo *models.BasicInfo
+	var basicInfo *models2.BasicInfo
 	var err error
 	if f.ProfileInfo != nil {
 		basicInfo, err = ProfileInfoToModel(*f.ProfileInfo)
 		if err != nil {
-			return models.Profile{}, err
+			return models2.Profile{}, err
 		}
 	}
 
@@ -61,7 +60,7 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 	//	return models.Profile{}, errors.New("invalid user id")
 	//}
 
-	return models.Profile{
+	return models2.Profile{
 		//UserId:     id,
 		Username:   f.ProfileInfo.Username,
 		BasicInfo:  basicInfo,
@@ -74,7 +73,7 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 	}, nil
 }
 
-func ModelToForm(profile models.Profile, username string, isOnline bool, relation models.UserRelation, uuid *uuid.UUID) ProfileForm {
+func ModelToForm(profile models2.Profile, username string, isOnline bool, relation models2.UserRelation, uuid *uuid.UUID) ProfileForm {
 	profileForm := ProfileForm{
 		Id:                  profile.UserId.String(),
 		ProfileInfo:         BasicInfoToForm(*profile.BasicInfo, username),
@@ -97,7 +96,7 @@ type ContactInfo struct {
 	Phone string `json:"phone,omitempty"`
 }
 
-func ContactInfoToForm(contactInfo *models.ContactInfo) *ContactInfo {
+func ContactInfoToForm(contactInfo *models2.ContactInfo) *ContactInfo {
 	if contactInfo == nil {
 		return nil
 	}
@@ -126,7 +125,7 @@ type Activity struct {
 	IsOnline bool   `json:"online,omitempty"`
 }
 
-func SchoolEducationToForm(sch *models.SchoolEducation) *SchoolEducationForm {
+func SchoolEducationToForm(sch *models2.SchoolEducation) *SchoolEducationForm {
 	if sch == nil {
 		return nil
 	}
@@ -137,7 +136,7 @@ func SchoolEducationToForm(sch *models.SchoolEducation) *SchoolEducationForm {
 	}
 }
 
-func UniversityEducationToForm(uni *models.UniversityEducation) *UniversityEducationForm {
+func UniversityEducationToForm(uni *models2.UniversityEducation) *UniversityEducationForm {
 	if uni == nil {
 		return nil
 	}
@@ -150,23 +149,23 @@ func UniversityEducationToForm(uni *models.UniversityEducation) *UniversityEduca
 	}
 }
 
-func SchoolFormToModel(sch *SchoolEducationForm) *models.SchoolEducation {
+func SchoolFormToModel(sch *SchoolEducationForm) *models2.SchoolEducation {
 	if sch == nil {
 		return nil
 	}
 
-	return &models.SchoolEducation{
+	return &models2.SchoolEducation{
 		City:   sch.SchoolCity,
 		School: sch.SchoolName,
 	}
 }
 
-func UniversityFormToModel(uniForm *UniversityEducationForm) *models.UniversityEducation {
+func UniversityFormToModel(uniForm *UniversityEducationForm) *models2.UniversityEducation {
 	if uniForm == nil {
 		return nil
 	}
 
-	return &models.UniversityEducation{
+	return &models2.UniversityEducation{
 		City:           uniForm.UniversityCity,
 		University:     uniForm.UniversityName,
 		Faculty:        uniForm.UniversityFaculty,
@@ -174,7 +173,7 @@ func UniversityFormToModel(uniForm *UniversityEducationForm) *models.UniversityE
 	}
 }
 
-func BasicInfoToForm(info models.BasicInfo, username string) *ProfileInfo {
+func BasicInfoToForm(info models2.BasicInfo, username string) *ProfileInfo {
 	return &ProfileInfo{
 		Username:      username,
 		Name:          info.Name,
@@ -187,12 +186,12 @@ func BasicInfoToForm(info models.BasicInfo, username string) *ProfileInfo {
 	}
 }
 
-func ProfileInfoToModel(info ProfileInfo) (*models.BasicInfo, error) {
+func ProfileInfoToModel(info ProfileInfo) (*models2.BasicInfo, error) {
 	date, err := time.Parse(time2.DateLayout, info.DateOfBirth)
 	if err != nil {
 		return nil, errors.New("incorrect date format")
 	}
-	return &models.BasicInfo{
+	return &models2.BasicInfo{
 		Name:          info.Name,
 		Surname:       info.Surname,
 		Sex:           info.Sex,

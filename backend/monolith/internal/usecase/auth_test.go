@@ -3,38 +3,37 @@ package usecase_test
 import (
 	"context"
 	"errors"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/usecase"
+	mocks2 "quickflow/monolith/internal/usecase/mocks"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
-	"quickflow/internal/usecase/mocks"
 )
 
 func TestAuthService_CreateUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := mocks.NewMockUserRepository(ctrl)
-	sessionRepo := mocks.NewMockSessionRepository(ctrl)
-	profileRepo := mocks.NewMockProfileRepository(ctrl)
+	userRepo := mocks2.NewMockUserRepository(ctrl)
+	sessionRepo := mocks2.NewMockSessionRepository(ctrl)
+	profileRepo := mocks2.NewMockProfileRepository(ctrl)
 
 	authService := usecase.NewAuthService(userRepo, sessionRepo, profileRepo)
 
 	ctx := context.Background()
-	testUser := models.User{Username: "testuser", Password: "password"}
-	testProfile := models.Profile{}
+	testUser := models2.User{Username: "testuser", Password: "password"}
+	testProfile := models2.Profile{}
 	testUserId := uuid.New()
 
 	tests := []struct {
 		name         string
-		mockSetup    func()
-		user         models.User
-		profile      models.Profile
-		expectedErr  error
+		mockSetup   func()
+		user        models2.User
+		profile     models2.Profile
+		expectedErr error
 		expectedUser bool
 	}{
 		{
@@ -122,21 +121,21 @@ func TestAuthService_AuthUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := mocks.NewMockUserRepository(ctrl)
-	sessionRepo := mocks.NewMockSessionRepository(ctrl)
-	profileRepo := mocks.NewMockProfileRepository(ctrl)
+	userRepo := mocks2.NewMockUserRepository(ctrl)
+	sessionRepo := mocks2.NewMockSessionRepository(ctrl)
+	profileRepo := mocks2.NewMockProfileRepository(ctrl)
 
 	authService := usecase.NewAuthService(userRepo, sessionRepo, profileRepo)
 
 	ctx := context.Background()
-	testUser := models.User{Id: uuid.New(), Username: "testuser", Password: "password"}
-	testAuthData := models.LoginData{Login: "testuser", Password: "password"}
+	testUser := models2.User{Id: uuid.New(), Username: "testuser", Password: "password"}
+	testAuthData := models2.LoginData{Login: "testuser", Password: "password"}
 
 	tests := []struct {
 		name         string
-		mockSetup    func()
-		authData     models.LoginData
-		expectedErr  error
+		mockSetup   func()
+		authData    models2.LoginData
+		expectedErr error
 		expectedSess bool
 	}{
 		{
@@ -153,7 +152,7 @@ func TestAuthService_AuthUser(t *testing.T) {
 		{
 			name: "User not found",
 			mockSetup: func() {
-				userRepo.EXPECT().GetUser(ctx, testAuthData).Return(models.User{}, usecase.ErrNotFound)
+				userRepo.EXPECT().GetUser(ctx, testAuthData).Return(models2.User{}, usecase.ErrNotFound)
 			},
 			authData:     testAuthData,
 			expectedErr:  errors.New("a.userRepo.GetUser: not found"),
@@ -197,7 +196,7 @@ func TestAuthService_AuthUser(t *testing.T) {
 			if tt.expectedSess {
 				assert.NotEqual(t, uuid.Nil, session.SessionId)
 			} else {
-				assert.Equal(t, models.Session{}, session)
+				assert.Equal(t, models2.Session{}, session)
 			}
 		})
 	}
@@ -207,20 +206,20 @@ func TestAuthService_LookupUserSession(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := mocks.NewMockUserRepository(ctrl)
-	sessionRepo := mocks.NewMockSessionRepository(ctrl)
-	profileRepo := mocks.NewMockProfileRepository(ctrl)
+	userRepo := mocks2.NewMockUserRepository(ctrl)
+	sessionRepo := mocks2.NewMockSessionRepository(ctrl)
+	profileRepo := mocks2.NewMockProfileRepository(ctrl)
 
 	authService := usecase.NewAuthService(userRepo, sessionRepo, profileRepo)
 
 	ctx := context.Background()
-	testUser := models.User{Id: uuid.New(), Username: "testuser"}
-	testSession := models.Session{SessionId: uuid.New()}
+	testUser := models2.User{Id: uuid.New(), Username: "testuser"}
+	testSession := models2.Session{SessionId: uuid.New()}
 
 	tests := []struct {
 		name        string
 		mockSetup   func()
-		session     models.Session
+		session     models2.Session
 		expectedErr error
 	}{
 		{
@@ -244,7 +243,7 @@ func TestAuthService_LookupUserSession(t *testing.T) {
 			name: "User not found",
 			mockSetup: func() {
 				sessionRepo.EXPECT().LookupUserSession(ctx, testSession).Return(testUser.Id, nil)
-				userRepo.EXPECT().GetUserByUId(ctx, testUser.Id).Return(models.User{}, usecase.ErrNotFound)
+				userRepo.EXPECT().GetUserByUId(ctx, testUser.Id).Return(models2.User{}, usecase.ErrNotFound)
 			},
 			session:     testSession,
 			expectedErr: errors.New("a.userRepo.GetUserByUId: not found"),
@@ -271,9 +270,9 @@ func TestAuthService_DeleteUserSession(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := mocks.NewMockUserRepository(ctrl)
-	sessionRepo := mocks.NewMockSessionRepository(ctrl)
-	profileRepo := mocks.NewMockProfileRepository(ctrl)
+	userRepo := mocks2.NewMockUserRepository(ctrl)
+	sessionRepo := mocks2.NewMockSessionRepository(ctrl)
+	profileRepo := mocks2.NewMockProfileRepository(ctrl)
 
 	authService := usecase.NewAuthService(userRepo, sessionRepo, profileRepo)
 
@@ -323,14 +322,14 @@ func TestAuthService_GetUserByUsername(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	userRepo := mocks.NewMockUserRepository(ctrl)
-	sessionRepo := mocks.NewMockSessionRepository(ctrl)
-	profileRepo := mocks.NewMockProfileRepository(ctrl)
+	userRepo := mocks2.NewMockUserRepository(ctrl)
+	sessionRepo := mocks2.NewMockSessionRepository(ctrl)
+	profileRepo := mocks2.NewMockProfileRepository(ctrl)
 
 	authService := usecase.NewAuthService(userRepo, sessionRepo, profileRepo)
 
 	ctx := context.Background()
-	testUser := models.User{Id: uuid.New(), Username: "testuser"}
+	testUser := models2.User{Id: uuid.New(), Username: "testuser"}
 	username := "testuser"
 
 	tests := []struct {
@@ -350,7 +349,7 @@ func TestAuthService_GetUserByUsername(t *testing.T) {
 		{
 			name: "User not found",
 			mockSetup: func() {
-				userRepo.EXPECT().GetUserByUsername(ctx, username).Return(models.User{}, usecase.ErrNotFound)
+				userRepo.EXPECT().GetUserByUsername(ctx, username).Return(models2.User{}, usecase.ErrNotFound)
 			},
 			username:    username,
 			expectedErr: errors.New("a.userRepo.GetUserByUId: not found"),

@@ -1,12 +1,11 @@
 package ws
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-
-    http2 "quickflow/internal/delivery/http"
-    "quickflow/internal/models"
+	"context"
+	"encoding/json"
+	"fmt"
+	http2 "quickflow/monolith/internal/delivery/http"
+	"quickflow/monolith/internal/models"
 )
 
 // WebSocketRouter - Внутренний роутер для обработки команд, передаваемых через WebSocket

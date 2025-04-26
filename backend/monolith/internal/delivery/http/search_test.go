@@ -6,17 +6,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	forms2 "quickflow/monolith/internal/delivery/forms"
+	http2 "quickflow/monolith/internal/delivery/http"
+	"quickflow/monolith/internal/delivery/http/mocks"
+	"quickflow/monolith/internal/models"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 )
 
 func TestSearchHandler_SearchSimilar(t *testing.T) {
@@ -62,7 +61,7 @@ func TestSearchHandler_SearchSimilar(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, body []byte) {
-				var response forms.PayloadWrapper[[]forms.PublicUserInfoOut]
+				var response forms2.PayloadWrapper[[]forms2.PublicUserInfoOut]
 				err := json.Unmarshal(body, &response)
 				require.NoError(t, err)
 				require.Len(t, response.Payload, 2)
@@ -125,7 +124,7 @@ func TestSearchHandler_SearchSimilar(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, body []byte) {
-				var response forms.PayloadWrapper[[]forms.PublicUserInfoOut]
+				var response forms2.PayloadWrapper[[]forms2.PublicUserInfoOut]
 				err := json.Unmarshal(body, &response)
 				require.NoError(t, err)
 				assert.Empty(t, response.Payload)
@@ -145,7 +144,7 @@ func TestSearchHandler_SearchSimilar(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, body []byte) {
-				var response forms.PayloadWrapper[[]forms.PublicUserInfoOut]
+				var response forms2.PayloadWrapper[[]forms2.PublicUserInfoOut]
 				err := json.Unmarshal(body, &response)
 				require.NoError(t, err)
 				require.Len(t, response.Payload, 1)
@@ -185,7 +184,7 @@ func TestSearchForm_Unpack(t *testing.T) {
 	tests := []struct {
 		name        string
 		values      url.Values
-		expected    forms.SearchForm
+		expected    forms2.SearchForm
 		expectError bool
 	}{
 		{
@@ -194,7 +193,7 @@ func TestSearchForm_Unpack(t *testing.T) {
 				"string":      []string{"test"},
 				"users_count": []string{"10"},
 			},
-			expected: forms.SearchForm{
+			expected: forms2.SearchForm{
 				ToSearch:   "test",
 				UsersCount: 10,
 			},
@@ -228,7 +227,7 @@ func TestSearchForm_Unpack(t *testing.T) {
 				"string":      []string{""},
 				"users_count": []string{"10"},
 			},
-			expected: forms.SearchForm{
+			expected: forms2.SearchForm{
 				ToSearch:   "",
 				UsersCount: 10,
 			},
@@ -238,7 +237,7 @@ func TestSearchForm_Unpack(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var form forms.SearchForm
+			var form forms2.SearchForm
 			err := form.Unpack(tt.values)
 
 			if tt.expectError {

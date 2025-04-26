@@ -2,31 +2,30 @@ package usecase
 
 import (
 	"context"
+	models2 "quickflow/monolith/internal/models"
+	mocks2 "quickflow/monolith/internal/usecase/mocks"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/models"
-	"quickflow/internal/usecase/mocks"
 )
 
 func TestCreateChat_InvalidChatCreationInfo(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockChatRepo := mocks.NewMockChatRepository(ctrl)
-	mockFileRepo := mocks.NewMockFileRepository(ctrl)
-	mockProfileRepo := mocks.NewMockProfileRepository(ctrl)
-	mockMessageRepo := mocks.NewMockMessageRepository(ctrl)
+	mockChatRepo := mocks2.NewMockChatRepository(ctrl)
+	mockFileRepo := mocks2.NewMockFileRepository(ctrl)
+	mockProfileRepo := mocks2.NewMockProfileRepository(ctrl)
+	mockMessageRepo := mocks2.NewMockMessageRepository(ctrl)
 
 	usecase := NewChatUseCase(mockChatRepo, mockFileRepo, mockProfileRepo, mockMessageRepo)
 
 	// Создаем неправильные данные для чата (например, имя пустое)
-	chatInfo := models.ChatCreationInfo{
-		Type:   models.ChatTypeGroup,
+	chatInfo := models2.ChatCreationInfo{
+		Type:   models2.ChatTypeGroup,
 		Name:   "",
 		Avatar: nil,
 	}
@@ -37,23 +36,23 @@ func TestCreateChat_InvalidChatCreationInfo(t *testing.T) {
 	// Проверяем ошибку
 	chat, err := usecase.CreateChat(context.Background(), chatInfo)
 	assert.EqualError(t, err, ErrInvalidChatCreationInfo.Error())
-	assert.Equal(t, models.Chat{}, chat)
+	assert.Equal(t, models2.Chat{}, chat)
 }
 
 func TestCreateChat_GroupChat(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockChatRepo := mocks.NewMockChatRepository(ctrl)
-	mockFileRepo := mocks.NewMockFileRepository(ctrl)
-	mockProfileRepo := mocks.NewMockProfileRepository(ctrl)
-	mockMessageRepo := mocks.NewMockMessageRepository(ctrl)
+	mockChatRepo := mocks2.NewMockChatRepository(ctrl)
+	mockFileRepo := mocks2.NewMockFileRepository(ctrl)
+	mockProfileRepo := mocks2.NewMockProfileRepository(ctrl)
+	mockMessageRepo := mocks2.NewMockMessageRepository(ctrl)
 
 	usecase := NewChatUseCase(mockChatRepo, mockFileRepo, mockProfileRepo, mockMessageRepo)
 
 	// Создаем данные для нового группового чата
-	chatInfo := models.ChatCreationInfo{
-		Type:   models.ChatTypeGroup,
+	chatInfo := models2.ChatCreationInfo{
+		Type:   models2.ChatTypeGroup,
 		Name:   "Group Chat",
 		Avatar: nil,
 	}
@@ -76,33 +75,33 @@ func TestGetUserChats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockChatRepo := mocks.NewMockChatRepository(ctrl)
-	mockFileRepo := mocks.NewMockFileRepository(ctrl)
-	mockProfileRepo := mocks.NewMockProfileRepository(ctrl)
-	mockMessageRepo := mocks.NewMockMessageRepository(ctrl)
+	mockChatRepo := mocks2.NewMockChatRepository(ctrl)
+	mockFileRepo := mocks2.NewMockFileRepository(ctrl)
+	mockProfileRepo := mocks2.NewMockProfileRepository(ctrl)
+	mockMessageRepo := mocks2.NewMockMessageRepository(ctrl)
 
 	usecase := NewChatUseCase(mockChatRepo, mockFileRepo, mockProfileRepo, mockMessageRepo)
 
 	userId := uuid.New()
 
 	// Мокируем репозиторий, чтобы вернуть список чатов
-	mockChatRepo.EXPECT().GetUserChats(gomock.Any(), userId).Return([]models.Chat{
-		{ID: uuid.New(), Type: models.ChatTypeGroup, Name: "Group Chat", CreatedAt: time.Now(), LastMessage: models.Message{Text: "hi"}},
-		{ID: uuid.New(), Type: models.ChatTypePrivate, CreatedAt: time.Now()},
+	mockChatRepo.EXPECT().GetUserChats(gomock.Any(), userId).Return([]models2.Chat{
+		{ID: uuid.New(), Type: models2.ChatTypeGroup, Name: "Group Chat", CreatedAt: time.Now(), LastMessage: models2.Message{Text: "hi"}},
+		{ID: uuid.New(), Type: models2.ChatTypePrivate, CreatedAt: time.Now()},
 	}, nil)
 
 	// Мокируем получение участников чата для приватного чата
-	mockChatRepo.EXPECT().GetChatParticipants(gomock.Any(), gomock.Any()).Return([]models.User{
+	mockChatRepo.EXPECT().GetChatParticipants(gomock.Any(), gomock.Any()).Return([]models2.User{
 		{Id: userId},
 	}, nil)
 
 	// Мокируем получение информации о публичных пользователях
-	mockProfileRepo.EXPECT().GetPublicUsersInfo(gomock.Any(), gomock.Any()).Return([]models.PublicUserInfo{
+	mockProfileRepo.EXPECT().GetPublicUsersInfo(gomock.Any(), gomock.Any()).Return([]models2.PublicUserInfo{
 		{Id: userId, Firstname: "John", Lastname: "Doe", AvatarURL: "http://example.com/avatar.jpg"},
 	}, nil)
 
 	// Мокируем последние сообщения чата
-	mockMessageRepo.EXPECT().GetLastChatMessage(gomock.Any(), gomock.Any()).Return(&models.Message{Text: "Hello!"}, nil)
+	mockMessageRepo.EXPECT().GetLastChatMessage(gomock.Any(), gomock.Any()).Return(&models2.Message{Text: "Hello!"}, nil)
 
 	// Проверяем результат
 	chats, err := usecase.GetUserChats(context.Background(), userId)

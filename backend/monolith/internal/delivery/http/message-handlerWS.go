@@ -7,29 +7,28 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"quickflow/monolith/internal/delivery/forms"
+	forms2 "quickflow/monolith/internal/delivery/ws/forms"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
+	http2 "quickflow/monolith/utils/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/microcosm-cc/bluemonday"
-
-	"quickflow/internal/delivery/forms"
-	forms2 "quickflow/internal/delivery/ws/forms"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
-	http2 "quickflow/utils/http"
 )
 
 type MessageUseCase interface {
-	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
-	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
-	SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error)
+	GetMessageById(ctx context.Context, messageId uuid.UUID) (models2.Message, error)
+	GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models2.Message, error)
+	SaveMessage(ctx context.Context, message models2.Message) (uuid.UUID, error)
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
 	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
 }
 
-type CommandHandler func(ctx context.Context, user models.User, payload json.RawMessage) error
+type CommandHandler func(ctx context.Context, user models2.User, payload json.RawMessage) error
 
 // IWebSocketConnectionManager интерфейс для управления соединениями
 type IWebSocketConnectionManager interface {
@@ -40,7 +39,7 @@ type IWebSocketConnectionManager interface {
 
 type IWebSocketRouter interface {
 	RegisterHandler(command string, handler CommandHandler)
-	Route(ctx context.Context, command string, user models.User, payload json.RawMessage) error
+	Route(ctx context.Context, command string, user models2.User, payload json.RawMessage) error
 }
 
 // MessageListenerWS Обработчик сообщений
@@ -74,7 +73,7 @@ func NewMessageListenerWS(profileUseCase ProfileUseCase, webSocketManager IWebSo
 func (m *MessageListenerWS) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 	// Извлекаем пользователя из контекста
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while handling messages")
 		return

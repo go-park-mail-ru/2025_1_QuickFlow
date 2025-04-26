@@ -4,13 +4,12 @@ import (
     "context"
     "errors"
     "fmt"
+    models2 "quickflow/monolith/internal/models"
+    "quickflow/monolith/utils/validation"
     "time"
 
     "github.com/google/uuid"
     "golang.org/x/sync/errgroup"
-
-    "quickflow/internal/models"
-    "quickflow/utils/validation"
 )
 
 var (
@@ -20,11 +19,11 @@ var (
 )
 
 type ChatRepository interface {
-    CreateChat(ctx context.Context, chat models.Chat) error
-    GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error)
-    GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error)
-    GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error)
-    GetPrivateChat(ctx context.Context, senderId, receiverId uuid.UUID) (models.Chat, error)
+    CreateChat(ctx context.Context, chat models2.Chat) error
+    GetUserChats(ctx context.Context, userId uuid.UUID) ([]models2.Chat, error)
+    GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models2.User, error)
+    GetChat(ctx context.Context, chatId uuid.UUID) (models2.Chat, error)
+    GetPrivateChat(ctx context.Context, senderId, receiverId uuid.UUID) (models2.Chat, error)
     Exists(ctx context.Context, chatId uuid.UUID) (bool, error)
     DeleteChat(ctx context.Context, chatId uuid.UUID) error
     IsParticipant(ctx context.Context, chatId, userId uuid.UUID) (bool, error)
@@ -49,28 +48,28 @@ func NewChatUseCase(charRepo ChatRepository, fileRepo FileRepository, profileRep
 }
 
 // CreateChat создает новый чат
-func (c *ChatService) CreateChat(ctx context.Context, chatInfo models.ChatCreationInfo) (models.Chat, error) {
+func (c *ChatService) CreateChat(ctx context.Context, chatInfo models2.ChatCreationInfo) (models2.Chat, error) {
     // validation
     if err := validation.ValidateChatCreationInfo(chatInfo); err != nil {
-        return models.Chat{}, ErrInvalidChatCreationInfo
+        return models2.Chat{}, ErrInvalidChatCreationInfo
     }
 
-    var chat models.Chat
+    var chat models2.Chat
     switch chatInfo.Type {
-    case models.ChatTypePrivate:
-        chat = models.Chat{
+    case models2.ChatTypePrivate:
+        chat = models2.Chat{
             Type:      chatInfo.Type,
             ID:        uuid.New(),
             AvatarURL: "",
             CreatedAt: time.Now(),
             UpdatedAt: time.Now(),
         }
-    case models.ChatTypeGroup:
+    case models2.ChatTypeGroup:
         imageURL, err := c.fileRepo.UploadFile(ctx, chatInfo.Avatar)
         if err != nil {
-            return models.Chat{}, ErrUploadFile
+            return models2.Chat{}, ErrUploadFile
         }
-        chat = models.Chat{
+        chat = models2.Chat{
             Type:      chatInfo.Type,
             ID:        uuid.New(),
             Name:      chatInfo.Name,
@@ -81,24 +80,24 @@ func (c *ChatService) CreateChat(ctx context.Context, chatInfo models.ChatCreati
     }
 
     if err := c.chatRepo.CreateChat(ctx, chat); err != nil {
-        return models.Chat{}, fmt.Errorf("c.chatRepo.CreateChat: %w", err)
+        return models2.Chat{}, fmt.Errorf("c.chatRepo.CreateChat: %w", err)
     }
 
     return chat, nil
 }
 
-func (c *ChatService) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models.Chat, error) {
+func (c *ChatService) GetUserChats(ctx context.Context, userId uuid.UUID) ([]models2.Chat, error) {
     chats, err := c.chatRepo.GetUserChats(ctx, userId)
     if err != nil {
         return nil, fmt.Errorf("c.chatRepo.GetUserChats: %w", err)
     }
 
     g, ctx := errgroup.WithContext(ctx)
-    chatsCopy := make([]models.Chat, len(chats))
+    chatsCopy := make([]models2.Chat, len(chats))
     for i := range chats {
         i := i
 
-        if chats[i].Type != models.ChatTypePrivate {
+        if chats[i].Type != models2.ChatTypePrivate {
             chatsCopy[i] = chats[i]
             continue
         }
@@ -119,7 +118,7 @@ func (c *ChatService) GetUserChats(ctx context.Context, userId uuid.UUID) ([]mod
             var (
                 name      string
                 avatarURL string
-                lastMsg   *models.Message
+                lastMsg   *models2.Message
             )
 
             innerGroup.Go(func() error {
@@ -170,10 +169,10 @@ func (c *ChatService) GetUserChats(ctx context.Context, userId uuid.UUID) ([]mod
     return chatsCopy, nil
 }
 
-func (c *ChatService) GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error) {
+func (c *ChatService) GetChat(ctx context.Context, chatId uuid.UUID) (models2.Chat, error) {
     chat, err := c.chatRepo.GetChat(ctx, chatId)
     if err != nil {
-        return models.Chat{}, fmt.Errorf("c.chatRepo.GetChat: %w", err)
+        return models2.Chat{}, fmt.Errorf("c.chatRepo.GetChat: %w", err)
     }
     return chat, nil
 }
@@ -241,7 +240,7 @@ func (c *ChatService) LeaveChat(ctx context.Context, chatId, userId uuid.UUID) e
     return nil
 }
 
-func (c *ChatService) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models.User, error) {
+func (c *ChatService) GetChatParticipants(ctx context.Context, chatId uuid.UUID) ([]models2.User, error) {
     participants, err := c.chatRepo.GetChatParticipants(ctx, chatId)
     if err != nil {
         return nil, fmt.Errorf("c.chatRepo.GetChatParticipants: %w", err)
@@ -249,10 +248,10 @@ func (c *ChatService) GetChatParticipants(ctx context.Context, chatId uuid.UUID)
     return participants, nil
 }
 
-func (c *ChatService) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models.Chat, error) {
+func (c *ChatService) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.UUID) (models2.Chat, error) {
     chat, err := c.chatRepo.GetPrivateChat(ctx, userId1, userId2)
     if err != nil {
-        return models.Chat{}, fmt.Errorf("c.chatRepo.GetPrivateChat: %w", err)
+        return models2.Chat{}, fmt.Errorf("c.chatRepo.GetPrivateChat: %w", err)
     }
     return chat, nil
 }

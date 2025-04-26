@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
@@ -10,57 +11,55 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/models"
 )
 
 func TestSaveProfile(t *testing.T) {
 	tests := []struct {
 		name    string
-		profile models.Profile
+		profile models2.Profile
 		mock    func(mock sqlmock.Sqlmock)
 		wantErr bool
 	}{
 		{
 			name: "Successful save profile",
-			profile: models.Profile{
+			profile: models2.Profile{
 				UserId: uuid.New(),
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Bio:           "Test bio",
 					AvatarUrl:     "http://avatar.url",
 					BackgroundUrl: "http://background.url",
 					Name:          "John",
 					Surname:       "Doe",
-					Sex:           models.MALE,
+					Sex:           models2.MALE,
 					DateOfBirth:   time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			mock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectExec(`insert into profile`).WithArgs(
 					sqlmock.AnyArg(), "Test bio", "http://avatar.url", "http://background.url",
-					"John", "Doe", models.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
+					"John", "Doe", models2.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 				).WillReturnResult(sqlmock.NewResult(1, 1))
 			},
 			wantErr: false,
 		},
 		{
 			name: "Failed to save profile",
-			profile: models.Profile{
+			profile: models2.Profile{
 				UserId: uuid.New(),
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Bio:           "Test bio",
 					AvatarUrl:     "http://avatar.url",
 					BackgroundUrl: "http://background.url",
 					Name:          "John",
 					Surname:       "Doe",
-					Sex:           models.MALE,
+					Sex:           models2.MALE,
 					DateOfBirth:   time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			mock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectExec(`insert into profile`).WithArgs(
 					sqlmock.AnyArg(), "Test bio", "http://avatar.url", "http://background.url",
-					"John", "Doe", models.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
+					"John", "Doe", models2.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 				).WillReturnError(fmt.Errorf("insert failed"))
 			},
 			wantErr: true,
@@ -97,7 +96,7 @@ func TestGetProfile(t *testing.T) {
 		name    string
 		userId  uuid.UUID
 		mock    func(mock sqlmock.Sqlmock)
-		want    models.Profile
+		want    models2.Profile
 		wantErr bool
 	}{
 		{
@@ -107,7 +106,7 @@ func TestGetProfile(t *testing.T) {
 				// Мокаем запрос для получения профиля
 				mock.ExpectQuery(`select id, bio, profile_avatar`).WithArgs(sqlmock.AnyArg()).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "bio", "profile_avatar", "profile_background", "firstname", "lastname", "sex", "birth_date", "school_id", "contact_info_id", "last_seen"}).
-						AddRow(uuid_, "Test bio", "http://avatar.url", "http://background.url", "John", "Doe", models.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
+						AddRow(uuid_, "Test bio", "http://avatar.url", "http://background.url", "John", "Doe", models2.MALE, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 							pgtype.UUID{Valid: false}, pgtype.UUID{Valid: false}, time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC)))
 
 				// Добавляем мок для запроса получения образования
@@ -115,18 +114,18 @@ func TestGetProfile(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"name", "city", "faculty", "graduation_year"}).
 						AddRow("University Name", "City", "Faculty Name", 2021))
 			},
-			want: models.Profile{
+			want: models2.Profile{
 				UserId: uuid_,
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Bio:           "Test bio",
 					AvatarUrl:     "http://avatar.url",
 					BackgroundUrl: "http://background.url",
 					Name:          "John",
 					Surname:       "Doe",
-					Sex:           models.MALE,
+					Sex:           models2.MALE,
 					DateOfBirth:   time.Date(1990, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
-				UniversityEducation: &models.UniversityEducation{
+				UniversityEducation: &models2.UniversityEducation{
 					University:     "University Name",
 					City:           "City",
 					Faculty:        "Faculty Name",
@@ -143,7 +142,7 @@ func TestGetProfile(t *testing.T) {
 				mock.ExpectQuery(`select id, bio, profile_avatar`).WithArgs(sqlmock.AnyArg()).
 					WillReturnError(fmt.Errorf("select failed"))
 			},
-			want:    models.Profile{},
+			want:    models2.Profile{},
 			wantErr: true,
 		},
 	}
@@ -177,28 +176,28 @@ func TestGetProfile(t *testing.T) {
 func TestUpdateProfileTextInfo(t *testing.T) {
 	tests := []struct {
 		name    string
-		profile models.Profile
+		profile models2.Profile
 		mock    func(mock sqlmock.Sqlmock)
 		wantErr bool
 	}{
 		{
 			name: "Successfully update profile",
-			profile: models.Profile{
+			profile: models2.Profile{
 				UserId: uuid.New(),
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Bio:           "Updated bio",
 					AvatarUrl:     "http://updated-avatar.url",
 					BackgroundUrl: "http://updated-background.url",
 					Name:          "Updated John",
 					Surname:       "Updated Doe",
-					Sex:           models.MALE,
+					Sex:           models2.MALE,
 					DateOfBirth:   time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			mock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 				mock.ExpectExec(`update profile set bio`).WithArgs(
-					sqlmock.AnyArg(), "Updated bio", "Updated John", "Updated Doe", models.MALE, time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
+					sqlmock.AnyArg(), "Updated bio", "Updated John", "Updated Doe", models2.MALE, time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
 				).WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
@@ -206,22 +205,22 @@ func TestUpdateProfileTextInfo(t *testing.T) {
 		},
 		{
 			name: "Failed to update profile",
-			profile: models.Profile{
+			profile: models2.Profile{
 				UserId: uuid.New(),
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Bio:           "Updated bio",
 					AvatarUrl:     "http://updated-avatar.url",
 					BackgroundUrl: "http://updated-background.url",
 					Name:          "Updated John",
 					Surname:       "Updated Doe",
-					Sex:           models.MALE,
+					Sex:           models2.MALE,
 					DateOfBirth:   time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			mock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectBegin()
 				mock.ExpectExec(`update profile set bio`).WithArgs(
-					sqlmock.AnyArg(), "Updated bio", "Updated John", "Updated Doe", models.MALE, time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
+					sqlmock.AnyArg(), "Updated bio", "Updated John", "Updated Doe", models2.MALE, time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC),
 				).WillReturnError(fmt.Errorf("update failed"))
 			},
 			wantErr: true,

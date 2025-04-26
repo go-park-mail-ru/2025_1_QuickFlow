@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -37,10 +37,10 @@ func (m *MockProfileUseCase) EXPECT() *MockProfileUseCaseMockRecorder {
 }
 
 // GetPublicUserInfo mocks base method.
-func (m *MockProfileUseCase) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
+func (m *MockProfileUseCase) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models2.PublicUserInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPublicUserInfo", ctx, userId)
-	ret0, _ := ret[0].(models.PublicUserInfo)
+	ret0, _ := ret[0].(models2.PublicUserInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,10 +52,10 @@ func (mr *MockProfileUseCaseMockRecorder) GetPublicUserInfo(ctx, userId interfac
 }
 
 // GetPublicUsersInfo mocks base method.
-func (m *MockProfileUseCase) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error) {
+func (m *MockProfileUseCase) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]models2.PublicUserInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPublicUsersInfo", ctx, userIds)
-	ret0, _ := ret[0].(map[uuid.UUID]models.PublicUserInfo)
+	ret0, _ := ret[0].(map[uuid.UUID]models2.PublicUserInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -67,10 +67,10 @@ func (mr *MockProfileUseCaseMockRecorder) GetPublicUsersInfo(ctx, userIds interf
 }
 
 // GetUserInfoByUserName mocks base method.
-func (m *MockProfileUseCase) GetUserInfoByUserName(ctx context.Context, username string) (models.Profile, error) {
+func (m *MockProfileUseCase) GetUserInfoByUserName(ctx context.Context, username string) (models2.Profile, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserInfoByUserName", ctx, username)
-	ret0, _ := ret[0].(models.Profile)
+	ret0, _ := ret[0].(models2.Profile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -96,7 +96,7 @@ func (mr *MockProfileUseCaseMockRecorder) UpdateLastSeen(ctx, userId interface{}
 }
 
 // UpdateProfile mocks base method.
-func (m *MockProfileUseCase) UpdateProfile(ctx context.Context, newProfile models.Profile) error {
+func (m *MockProfileUseCase) UpdateProfile(ctx context.Context, newProfile models2.Profile) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateProfile", ctx, newProfile)
 	ret0, _ := ret[0].(error)

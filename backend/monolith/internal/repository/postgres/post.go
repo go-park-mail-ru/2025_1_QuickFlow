@@ -4,14 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
+	pgmodels "quickflow/monolith/internal/repository/postgres/postgres-models"
+	"quickflow/monolith/pkg/logger"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-
-	"quickflow/internal/models"
-	pgmodels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/pkg/logger"
 )
 
 const getPostsQuery = `
@@ -88,7 +87,7 @@ func (p *PostgresPostRepository) Close() {
 }
 
 // AddPost adds post to the repository.
-func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) error {
+func (p *PostgresPostRepository) AddPost(ctx context.Context, post models2.Post) error {
 	postPostgres := pgmodels.ConvertPostToPostgres(post)
 	_, err := p.connPool.ExecContext(ctx, insertPostQuery,
 		postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
@@ -134,7 +133,7 @@ func (p *PostgresPostRepository) BelongsTo(ctx context.Context, userId uuid.UUID
 	return id == userId, nil
 }
 
-func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error) {
+func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) (models2.Post, error) {
 	row := p.connPool.QueryRowContext(ctx, getPostsQuery, postId)
 	var postPostgres pgmodels.PostPostgres
 	err := row.Scan(
@@ -143,13 +142,13 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 		&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get post %v from database: %s", postId, err.Error()))
-		return models.Post{}, fmt.Errorf("unable to get post from database: %w", err)
+		return models2.Post{}, fmt.Errorf("unable to get post from database: %w", err)
 	}
 
 	pics, err := p.connPool.QueryContext(ctx, getPhotosQuery, postId)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get post pictures %v from database: %s", postId, err.Error()))
-		return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
+		return models2.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
 	}
 
 	for pics.Next() {
@@ -157,7 +156,7 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 		err = pics.Scan(&pic)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
-			return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
+			return models2.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
 		}
 
 		postPostgres.ImagesURLs = append(postPostgres.ImagesURLs, pic)
@@ -167,7 +166,7 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 	return postPostgres.ToPost(), nil
 }
 
-func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models2.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getUserPostsOlder, id, timestamp, numPosts)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
@@ -176,7 +175,7 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 	}
 	defer rows.Close()
 
-	var result []models.Post
+	var result []models2.Post
 	for rows.Next() {
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
@@ -211,7 +210,7 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 	return result, nil
 }
 
-func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models2.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getRecommendationsForUserOlder, timestamp, numPosts)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
@@ -220,7 +219,7 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 	}
 	defer rows.Close()
 
-	var result []models.Post
+	var result []models2.Post
 	for rows.Next() {
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
@@ -255,9 +254,9 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 	return result, nil
 }
 
-func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models2.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
-		models.RelationFriend, models.RelationFollowedBy, models.RelationFollowing)
+		models2.RelationFriend, models2.RelationFollowedBy, models2.RelationFollowing)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			uid, numPosts, timestamp, err.Error()))
@@ -265,7 +264,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 	}
 	defer rows.Close()
 
-	var result []models.Post
+	var result []models2.Post
 	for rows.Next() {
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(

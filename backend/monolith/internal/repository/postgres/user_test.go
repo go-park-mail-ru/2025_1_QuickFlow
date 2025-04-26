@@ -8,20 +8,20 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 )
 
 func TestSaveUser(t *testing.T) {
 	tests := []struct {
-		name    string
-		user    models.User
-		mock    func(mock sqlmock.Sqlmock)
+		name string
+		user models2.User
+		mock func(mock sqlmock.Sqlmock)
 		wantErr bool
 	}{
 		{
 			name: "Successful save user",
-			user: models.User{
+			user: models2.User{
 				Id:       uuid.New(),
 				Username: "johndoe",
 				Password: "password123",
@@ -37,7 +37,7 @@ func TestSaveUser(t *testing.T) {
 		},
 		{
 			name: "Failed to save user",
-			user: models.User{
+			user: models2.User{
 				Id:       uuid.New(),
 				Username: "johndoe",
 				Password: "password123",
@@ -82,14 +82,14 @@ func TestGetUser(t *testing.T) {
 	uuid_new := uuid.New()
 	tests := []struct {
 		name      string
-		loginData models.LoginData
+		loginData models2.LoginData
 		mock      func(mock sqlmock.Sqlmock)
-		want      models.User
+		want      models2.User
 		wantErr   bool
 	}{
 		{
 			name: "Successfully get user",
-			loginData: models.LoginData{
+			loginData: models2.LoginData{
 				Login:    "johndoe",
 				Password: "hashed_password",
 			},
@@ -100,7 +100,7 @@ func TestGetUser(t *testing.T) {
 						AddRow(uuid_new, "johndoe", hex.EncodeToString(hash[:]), "salt123"))
 
 			},
-			want: models.User{
+			want: models2.User{
 				Id:       uuid_new,
 				Username: "johndoe",
 				Password: hex.EncodeToString(hash[:]),
@@ -110,7 +110,7 @@ func TestGetUser(t *testing.T) {
 		},
 		{
 			name: "Failed to get user (incorrect password)",
-			loginData: models.LoginData{
+			loginData: models2.LoginData{
 				Login:    "johndoe",
 				Password: "wrongpassword",
 			},
@@ -120,12 +120,12 @@ func TestGetUser(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "username", "psw_hash", "salt"}).
 						AddRow(uuid.New(), "johndoe", "hashed_password", "salt123"))
 			},
-			want:    models.User{},
+			want:    models2.User{},
 			wantErr: true,
 		},
 		{
 			name: "Failed to get user (user not found)",
-			loginData: models.LoginData{
+			loginData: models2.LoginData{
 				Login:    "nonexistentuser",
 				Password: "password123",
 			},
@@ -134,7 +134,7 @@ func TestGetUser(t *testing.T) {
 					WithArgs("nonexistentuser").
 					WillReturnError(fmt.Errorf("user not found"))
 			},
-			want:    models.User{},
+			want:    models2.User{},
 			wantErr: true,
 		},
 	}
@@ -171,7 +171,7 @@ func TestGetUserByUId(t *testing.T) {
 		name    string
 		userId  uuid.UUID
 		mock    func(mock sqlmock.Sqlmock)
-		want    models.User
+		want    models2.User
 		wantErr bool
 	}{
 		{
@@ -183,7 +183,7 @@ func TestGetUserByUId(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "username", "psw_hash", "salt"}).
 						AddRow(uuid_, "johndoe", "hashed_password", "salt123")) // Данные в мок-результате
 			},
-			want: models.User{
+			want: models2.User{
 				Id:       uuid_,
 				Username: "johndoe",
 				Password: "hashed_password",
@@ -199,7 +199,7 @@ func TestGetUserByUId(t *testing.T) {
 					WithArgs(uuid_).
 					WillReturnError(fmt.Errorf("user not found"))
 			},
-			want:    models.User{},
+			want:    models2.User{},
 			wantErr: true,
 		},
 	}
@@ -236,7 +236,7 @@ func TestSearchSimilar(t *testing.T) {
 		toSearch   string
 		postsCount uint
 		mock       func(mock sqlmock.Sqlmock)
-		want       []models.PublicUserInfo
+		want       []models2.PublicUserInfo
 		wantErr    bool
 	}{
 		{
@@ -249,7 +249,7 @@ func TestSearchSimilar(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id", "username", "firstname", "lastname", "profile_avatar"}).
 						AddRow(uuid_, "johndoe", "John", "Doe", "http://avatar.url"))
 			},
-			want: []models.PublicUserInfo{
+			want: []models2.PublicUserInfo{
 				{
 					Id:        uuid_,
 					Username:  "johndoe",

@@ -3,13 +3,12 @@ package forms
 import (
 	"errors"
 	"net/url"
+	time2 "quickflow/monolith/config/time"
+	models2 "quickflow/monolith/internal/models"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/models"
 )
 
 type File struct {
@@ -18,13 +17,13 @@ type File struct {
 }
 
 type PostForm struct {
-	Text     string         `json:"text"`
-	Images   []*models.File `json:"pics"`
-	IsRepost bool           `json:"is_repost"`
+	Text     string          `json:"text"`
+	Images   []*models2.File `json:"pics"`
+	IsRepost bool            `json:"is_repost"`
 }
 
-func (p *PostForm) ToPostModel(userId uuid.UUID) models.Post {
-	var postModel models.Post
+func (p *PostForm) ToPostModel(userId uuid.UUID) models2.Post {
+	var postModel models2.Post
 	postModel.Desc = p.Text
 	postModel.CreatorId = userId
 	postModel.CreatedAt = time.Now()
@@ -67,11 +66,11 @@ type PublicUserInfoOut struct {
 	AvatarURL string              `json:"avatar_url,omitempty"`
 	FirstName string              `json:"firstname"`
 	LastName  string              `json:"lastname"`
-	IsOnline  *bool               `json:"online,omitempty"`
-	Relation  models.UserRelation `json:"relation,omitempty"`
+	IsOnline *bool                `json:"online,omitempty"`
+	Relation models2.UserRelation `json:"relation,omitempty"`
 }
 
-func PublicUserInfoToOut(info models.PublicUserInfo, relation models.UserRelation) PublicUserInfoOut {
+func PublicUserInfoToOut(info models2.PublicUserInfo, relation models2.UserRelation) PublicUserInfoOut {
 	return PublicUserInfoOut{
 		ID:        info.Id.String(),
 		Username:  info.Username,
@@ -83,9 +82,9 @@ func PublicUserInfoToOut(info models.PublicUserInfo, relation models.UserRelatio
 }
 
 type PostOut struct {
-	Id           string            `json:"id"`
-	Creator      PublicUserInfoOut `json:"author"`
-	Desc         string            `json:"text"`
+	Id      string            `json:"id"`
+	Creator PublicUserInfoOut `json:"author"`
+	Desc    string            `json:"text"`
 	Pics         []string          `json:"pics"`
 	CreatedAt    string            `json:"created_at"`
 	UpdatedAt    string            `json:"updated_at"`
@@ -95,7 +94,7 @@ type PostOut struct {
 	IsRepost     bool              `json:"is_repost"`
 }
 
-func (p *PostOut) FromPost(post models.Post) {
+func (p *PostOut) FromPost(post models2.Post) {
 	var urls []string
 	for _, url := range post.ImagesURL {
 		urls = append(urls, url)
@@ -115,13 +114,13 @@ func (p *PostOut) FromPost(post models.Post) {
 
 type UpdatePostForm struct {
 	Id     string         `json:"-"`
-	Text   string         `json:"text"`
-	Images []*models.File `json:"pics"`
+	Text   string          `json:"text"`
+	Images []*models2.File `json:"pics"`
 }
 
-func (p *UpdatePostForm) ToPostUpdateModel(postId uuid.UUID) (models.PostUpdate, error) {
+func (p *UpdatePostForm) ToPostUpdateModel(postId uuid.UUID) (models2.PostUpdate, error) {
 
-	return models.PostUpdate{
+	return models2.PostUpdate{
 		Id:    postId,
 		Desc:  p.Text,
 		Files: p.Images,

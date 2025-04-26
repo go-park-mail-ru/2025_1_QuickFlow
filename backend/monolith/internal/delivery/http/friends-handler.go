@@ -5,24 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
+	http2 "quickflow/monolith/utils/http"
 
 	"github.com/google/uuid"
-
-	"quickflow/internal/delivery/forms"
-
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
-	http2 "quickflow/utils/http"
 )
 
 type FriendsUseCase interface {
-	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, bool, int, error)
+	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models2.FriendInfo, bool, int, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	Unfollow(ctx context.Context, userID string, friendID string) error
 	DeleteFriend(ctx context.Context, user string, friend string) error
 	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
-	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error)
+	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models2.UserRelation, error)
 }
 
 type FriendHandler struct {
@@ -49,7 +47,7 @@ func NewFriendHandler(friendsUseCase FriendsUseCase, connService IWebSocketConne
 func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching friends")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -108,7 +106,7 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 func (f *FriendHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching friends")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -154,7 +152,7 @@ func (f *FriendHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request
 func (f *FriendHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching friends")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -185,7 +183,7 @@ func (f *FriendHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Reque
 func (f *FriendHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching friends")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -216,7 +214,7 @@ func (f *FriendHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 func (f *FriendHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
 
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching friends")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)

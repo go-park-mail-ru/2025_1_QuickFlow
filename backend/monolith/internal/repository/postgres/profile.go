@@ -5,15 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
+	pgmodels "quickflow/monolith/internal/repository/postgres/postgres-models"
+	"quickflow/monolith/internal/usecase"
+	"quickflow/monolith/pkg/logger"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-
-	"quickflow/internal/models"
-	pgmodels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
 )
 
 const InsertProfileQuery = `
@@ -109,7 +108,7 @@ func (p *PostgresProfileRepository) Close() {
 }
 
 // SaveProfile сохраняет профиль пользователя в базе данных.
-func (p *PostgresProfileRepository) SaveProfile(ctx context.Context, profile models.Profile) error {
+func (p *PostgresProfileRepository) SaveProfile(ctx context.Context, profile models2.Profile) error {
 	_, err := p.connPool.ExecContext(ctx, InsertProfileQuery, profile.UserId, profile.BasicInfo.Bio,
 		profile.BasicInfo.AvatarUrl, profile.BasicInfo.BackgroundUrl,
 		profile.BasicInfo.Name, profile.BasicInfo.Surname, profile.BasicInfo.Sex,
@@ -121,7 +120,7 @@ func (p *PostgresProfileRepository) SaveProfile(ctx context.Context, profile mod
 }
 
 // GetProfile получает профиль пользователя из базы данных по его идентификатору.
-func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.UUID) (models.Profile, error) {
+func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.UUID) (models2.Profile, error) {
 	var schoolId, contactInfoId pgtype.Int4
 
 	var profile pgmodels.ProfilePostgres
@@ -129,14 +128,14 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 		&profile.BackgroundUrl, &profile.Name, &profile.Surname, &profile.Sex, &profile.DateOfBirth, &schoolId,
 		&contactInfoId, &profile.LastSeen)
 	if err != nil {
-		return models.Profile{}, fmt.Errorf("unable to get profile: %w", err)
+		return models2.Profile{}, fmt.Errorf("unable to get profile: %w", err)
 	}
 
 	if schoolId.Valid {
 		profile.SchoolEducation = &pgmodels.SchoolEducation{}
 		err := p.connPool.QueryRowContext(ctx, GetSchoolQuery, schoolId).Scan(&profile.SchoolEducation.City, &profile.SchoolEducation.School)
 		if err != nil {
-			return models.Profile{}, fmt.Errorf("unable to get school: %w", err)
+			return models2.Profile{}, fmt.Errorf("unable to get school: %w", err)
 		}
 	}
 
@@ -150,7 +149,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 	if errors.Is(err, sql.ErrNoRows) {
 		profile.UniversityEducation = nil
 	} else if err != nil {
-		return models.Profile{}, fmt.Errorf("unable to get university education: %w", err)
+		return models2.Profile{}, fmt.Errorf("unable to get university education: %w", err)
 	}
 
 	if contactInfoId.Valid {
@@ -158,7 +157,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 		err := p.connPool.QueryRowContext(ctx, GetContactInfoQuery, contactInfoId).Scan(&profile.ContactInfo.City, &profile.ContactInfo.Email,
 			&profile.ContactInfo.Phone)
 		if err != nil {
-			return models.Profile{}, fmt.Errorf("unable to get contact info: %w", err)
+			return models2.Profile{}, fmt.Errorf("unable to get contact info: %w", err)
 		}
 	}
 
@@ -166,7 +165,7 @@ func (p *PostgresProfileRepository) GetProfile(ctx context.Context, userId uuid.
 }
 
 // UpdateProfileTextInfo обновляет текстовую информацию профиля в базе данных.
-func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, newProfile models.Profile) error {
+func (p *PostgresProfileRepository) UpdateProfileTextInfo(ctx context.Context, newProfile models2.Profile) error {
 	tx, err := p.connPool.Begin()
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("failed to begin transaction: %v", err))
@@ -265,18 +264,18 @@ func (p *PostgresProfileRepository) UpdateProfileCover(ctx context.Context, id u
 	return nil
 }
 
-func (p *PostgresProfileRepository) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
+func (p *PostgresProfileRepository) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models2.PublicUserInfo, error) {
 	var publicInfo pgmodels.PublicUserInfoPostgres
 	err := p.connPool.QueryRowContext(ctx, GetPublicUserInfoQuery, userId).Scan(
 		&publicInfo.Id, &publicInfo.Firstname, &publicInfo.Lastname,
 		&publicInfo.AvatarURL, &publicInfo.Username, &publicInfo.LastSeen)
 	if err != nil {
-		return models.PublicUserInfo{}, fmt.Errorf("unable to get public user info: %w", err)
+		return models2.PublicUserInfo{}, fmt.Errorf("unable to get public user info: %w", err)
 	}
 	return publicInfo.ConvertToPublicUserInfo(), nil
 }
 
-func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models.PublicUserInfo, error) {
+func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models2.PublicUserInfo, error) {
 	if len(userIds) == 0 {
 		return nil, nil
 	}
@@ -289,7 +288,7 @@ func (p *PostgresProfileRepository) GetPublicUsersInfo(ctx context.Context, user
 	}
 	defer rows.Close()
 
-	var publicInfos []models.PublicUserInfo
+	var publicInfos []models2.PublicUserInfo
 	for rows.Next() {
 		var publicInfo pgmodels.PublicUserInfoPostgres
 		err := rows.Scan(
@@ -312,7 +311,7 @@ func (p *PostgresProfileRepository) UpdateLastSeen(ctx context.Context, userId u
 	return nil
 }
 
-func updateContactInfo(ctx context.Context, tx *sql.Tx, contactInfo models.ContactInfo) (pgtype.Int4, error) {
+func updateContactInfo(ctx context.Context, tx *sql.Tx, contactInfo models2.ContactInfo) (pgtype.Int4, error) {
 	var contactInfoID pgtype.Int4
 
 	err := tx.QueryRowContext(ctx, `SELECT id FROM contact_info WHERE phone_number = $1 AND email = $2`,
@@ -340,7 +339,7 @@ func updateContactInfo(ctx context.Context, tx *sql.Tx, contactInfo models.Conta
 	return contactInfoID, nil
 }
 
-func updateSchoolInfo(ctx context.Context, tx *sql.Tx, education models.SchoolEducation) (pgtype.Int4, error) {
+func updateSchoolInfo(ctx context.Context, tx *sql.Tx, education models2.SchoolEducation) (pgtype.Int4, error) {
 	var schoolID pgtype.Int4
 	err := tx.QueryRowContext(ctx, `SELECT id FROM school WHERE city = $1 AND name = $2`,
 		education.City, education.School).Scan(&schoolID)
@@ -358,7 +357,7 @@ func updateSchoolInfo(ctx context.Context, tx *sql.Tx, education models.SchoolEd
 	return schoolID, nil
 }
 
-func updateUniversityInfo(ctx context.Context, tx *sql.Tx, profileId uuid.UUID, education models.UniversityEducation) error {
+func updateUniversityInfo(ctx context.Context, tx *sql.Tx, profileId uuid.UUID, education models2.UniversityEducation) error {
 	var universityID, facultyID pgtype.Int4
 
 	err := tx.QueryRowContext(ctx, InsertOrGetUniversityQuery,

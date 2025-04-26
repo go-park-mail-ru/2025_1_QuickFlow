@@ -5,20 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	time2 "quickflow/monolith/config/time"
+	"quickflow/monolith/internal/delivery/forms"
+	"quickflow/monolith/internal/delivery/http"
+	forms2 "quickflow/monolith/internal/delivery/ws/forms"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
+	"quickflow/monolith/utils/validation"
 	"sync"
 	"time"
 
-	time2 "quickflow/config/time"
-
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	forms2 "quickflow/internal/delivery/ws/forms"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
-	"quickflow/utils/validation"
 )
 
 type WSConnectionManager struct {
@@ -59,12 +57,12 @@ func (wm *WSConnectionManager) IsConnected(userId uuid.UUID) (*websocket.Conn, b
 
 type InternalWSMessageHandler struct {
 	WSConnectionManager *WSConnectionManager
-	MessageUseCase      http2.MessageUseCase
-	profileUseCase      http2.ProfileUseCase
-	ChatUseCase         http2.ChatUseCase
+	MessageUseCase      http.MessageUseCase
+	profileUseCase      http.ProfileUseCase
+	ChatUseCase         http.ChatUseCase
 }
 
-func NewInternalWSMessageHandler(wsConnManager *WSConnectionManager, messageUseCase http2.MessageUseCase, profileUseCase http2.ProfileUseCase, chatUseCase http2.ChatUseCase) *InternalWSMessageHandler {
+func NewInternalWSMessageHandler(wsConnManager *WSConnectionManager, messageUseCase http.MessageUseCase, profileUseCase http.ProfileUseCase, chatUseCase http.ChatUseCase) *InternalWSMessageHandler {
 	return &InternalWSMessageHandler{
 		WSConnectionManager: wsConnManager,
 		MessageUseCase:      messageUseCase,
@@ -73,7 +71,7 @@ func NewInternalWSMessageHandler(wsConnManager *WSConnectionManager, messageUseC
 	}
 }
 
-func (m *InternalWSMessageHandler) Handle(ctx context.Context, user models.User, payload json.RawMessage) error {
+func (m *InternalWSMessageHandler) Handle(ctx context.Context, user models2.User, payload json.RawMessage) error {
 	var messageForm forms.MessageForm
 	if err := json.Unmarshal(payload, &messageForm); err != nil {
 		return fmt.Errorf("failed to unmarshal payload: %w", err)
@@ -144,7 +142,7 @@ func (m *InternalWSMessageHandler) SendMessageToUser(_ context.Context, userId u
 }
 
 // SendMessageToChat sends a message to all participants in a chat
-func (m *InternalWSMessageHandler) sendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo, chatParticipants []models.User) error {
+func (m *InternalWSMessageHandler) sendMessageToChat(ctx context.Context, message models2.Message, publicSenderInfo models2.PublicUserInfo, chatParticipants []models2.User) error {
 	for _, user := range chatParticipants {
 		err := m.SendMessageToUser(ctx, user.Id, forms.ToMessageOut(message, publicSenderInfo))
 		if err != nil {
@@ -155,7 +153,7 @@ func (m *InternalWSMessageHandler) sendMessageToChat(ctx context.Context, messag
 	return nil
 }
 
-func (m *InternalWSMessageHandler) MarkMessageRead(ctx context.Context, user models.User, jsonPayload json.RawMessage) error {
+func (m *InternalWSMessageHandler) MarkMessageRead(ctx context.Context, user models2.User, jsonPayload json.RawMessage) error {
 	var payload forms2.MarkReadPayload
 
 	if err := json.Unmarshal(jsonPayload, &payload); err != nil {

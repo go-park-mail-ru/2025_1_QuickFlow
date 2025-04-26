@@ -5,19 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	forms2 "quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/usecase"
+	"quickflow/monolith/pkg/logger"
+	"quickflow/monolith/pkg/sanitizer"
+	http2 "quickflow/monolith/utils/http"
 	"strconv"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
-
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
-	"quickflow/pkg/logger"
-	"quickflow/pkg/sanitizer"
-	http2 "quickflow/utils/http"
 )
 
 type PostHandler struct {
@@ -50,7 +49,7 @@ func NewPostHandler(postUseCase PostUseCase, profileUseCase ProfileUseCase, poli
 func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
 	ctx := r.Context()
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while adding post")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -66,7 +65,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// parsing JSON
-	var postForm forms.PostForm
+	var postForm forms2.PostForm
 	postForm.Text = r.FormValue("text")
 	isRepostString := r.FormValue("is_repost")
 
@@ -109,7 +108,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info(ctx, "Successfully added post")
 
-	var postOut forms.PostOut
+	var postOut forms2.PostOut
 	postOut.FromPost(post)
 	publicUserInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, user.Id)
 	if err != nil {
@@ -117,10 +116,10 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get public user info", http.StatusInternalServerError)
 		return
 	}
-	postOut.Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+	postOut.Creator = forms2.PublicUserInfoToOut(publicUserInfo, models2.RelationSelf)
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
+	err = json.NewEncoder(w).Encode(forms2.PayloadWrapper[forms2.PostOut]{Payload: postOut})
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode post: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode post", http.StatusInternalServerError)
@@ -142,7 +141,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
 	ctx := r.Context()
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while deleting post")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -198,7 +197,7 @@ func (p *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	// extracting user from context
 	ctx := r.Context()
-	user, ok := ctx.Value("user").(models.User)
+	user, ok := ctx.Value("user").(models2.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while updating post")
 		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
@@ -220,7 +219,7 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var updatePostForm forms.UpdatePostForm
+	var updatePostForm forms2.UpdatePostForm
 	updatePostForm.Text = r.FormValue("text")
 
 	if utf8.RuneCountInString(updatePostForm.Text) > 4000 {
@@ -265,7 +264,7 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Successfully updated post %s", postIdString))
-	var postOut forms.PostOut
+	var postOut forms2.PostOut
 	postOut.FromPost(post)
 	publicUserInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, user.Id)
 	if err != nil {
@@ -273,9 +272,9 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get public user info", http.StatusInternalServerError)
 		return
 	}
-	postOut.Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+	postOut.Creator = forms2.PublicUserInfoToOut(publicUserInfo, models2.RelationSelf)
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
+	err = json.NewEncoder(w).Encode(forms2.PayloadWrapper[forms2.PostOut]{Payload: postOut})
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode post: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode post", http.StatusInternalServerError)

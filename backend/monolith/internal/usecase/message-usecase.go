@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/utils/validation"
 	"time"
 
 	"github.com/google/uuid"
-
-	"quickflow/internal/models"
-	"quickflow/utils/validation"
 )
 
 var (
@@ -18,11 +17,11 @@ var (
 )
 
 type MessageRepository interface {
-	GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error)
-	GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error)
-	GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models.Message, error)
+	GetMessageById(ctx context.Context, messageId uuid.UUID) (models2.Message, error)
+	GetMessagesForChatOlder(ctx context.Context, chatId uuid.UUID, numMessages int, timestamp time.Time) ([]models2.Message, error)
+	GetLastChatMessage(ctx context.Context, chatId uuid.UUID) (*models2.Message, error)
 
-	SaveMessage(ctx context.Context, message models.Message) error
+	SaveMessage(ctx context.Context, message models2.Message) error
 
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 
@@ -44,7 +43,7 @@ func NewMessageService(messageRepo MessageRepository, fileRepo FileRepository, c
 	}
 }
 
-func (m *MessageService) GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models.Message, error) {
+func (m *MessageService) GetMessagesForChat(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, numMessages int, timestamp time.Time) ([]models2.Message, error) {
 	// validation
 	if numMessages <= 0 {
 		return nil, ErrInvalidNumMessages
@@ -67,7 +66,7 @@ func (m *MessageService) GetMessagesForChat(ctx context.Context, chatId uuid.UUI
 	return messages, nil
 }
 
-func (m *MessageService) SaveMessage(ctx context.Context, message models.Message) (uuid.UUID, error) {
+func (m *MessageService) SaveMessage(ctx context.Context, message models2.Message) (uuid.UUID, error) {
 	// validate
 	err := validation.ValidateMessage(message)
 	if err != nil {
@@ -82,8 +81,8 @@ func (m *MessageService) SaveMessage(ctx context.Context, message models.Message
 
 		chat, err := m.chatRepo.GetPrivateChat(ctx, message.SenderID, message.ReceiverID)
 		if errors.Is(err, ErrNotFound) {
-			newChat := models.Chat{
-				Type:      models.ChatTypePrivate,
+			newChat := models2.Chat{
+				Type:      models2.ChatTypePrivate,
 				ID:        uuid.New(),
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
@@ -181,15 +180,15 @@ func (m *MessageService) GetLastReadTs(ctx context.Context, chatId, userId uuid.
 	return ts, nil
 }
 
-func (m *MessageService) GetMessageById(ctx context.Context, messageId uuid.UUID) (models.Message, error) {
+func (m *MessageService) GetMessageById(ctx context.Context, messageId uuid.UUID) (models2.Message, error) {
 	// validate
 	if messageId == uuid.Nil {
-		return models.Message{}, fmt.Errorf("messageId is empty")
+		return models2.Message{}, fmt.Errorf("messageId is empty")
 	}
 
 	message, err := m.messageRepo.GetMessageById(ctx, messageId)
 	if err != nil {
-		return models.Message{}, fmt.Errorf("m.messageRepo.GetMessageById: %w", err)
+		return models2.Message{}, fmt.Errorf("m.messageRepo.GetMessageById: %w", err)
 	}
 	return message, nil
 }

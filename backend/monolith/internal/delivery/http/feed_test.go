@@ -7,31 +7,30 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	time2 "quickflow/monolith/config/time"
+	"quickflow/monolith/internal/delivery/forms"
+	http2 "quickflow/monolith/internal/delivery/http"
+	mocks2 "quickflow/monolith/internal/delivery/http/mocks"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 )
 
 func TestFeedHandler_GetFeed(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockPostUseCase := mocks.NewMockPostUseCase(ctrl)
-	mockAuthUseCase := mocks.NewMockAuthUseCase(ctrl)
-	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
-	mockProfileUC := mocks.NewMockProfileUseCase(ctrl)
+	mockPostUseCase := mocks2.NewMockPostUseCase(ctrl)
+	mockAuthUseCase := mocks2.NewMockAuthUseCase(ctrl)
+	mockFriendsUseCase := mocks2.NewMockFriendsUseCase(ctrl)
+	mockProfileUC := mocks2.NewMockProfileUseCase(ctrl)
 	handler := http2.NewFeedHandler(mockAuthUseCase, mockPostUseCase, mockProfileUC, mockFriendsUseCase)
 
-	user := models.User{Id: uuid.New()}
+	user := models2.User{Id: uuid.New()}
 	now := time.Now()
 	nowStr := now.Format(time2.TimeStampLayout)
 
@@ -50,22 +49,22 @@ func TestFeedHandler_GetFeed(t *testing.T) {
 				"ts":          []string{nowStr},
 			},
 			mockSetup: func(t *testing.T) {
-				post1 := models.Post{CreatorId: uuid.New(), Desc: "Post 1"}
-				post2 := models.Post{CreatorId: uuid.New(), Desc: "Post 2"}
+				post1 := models2.Post{CreatorId: uuid.New(), Desc: "Post 1"}
+				post2 := models2.Post{CreatorId: uuid.New(), Desc: "Post 2"}
 
 				mockPostUseCase.EXPECT().
 					FetchFeed(gomock.Any(), user, 2, gomock.Any()).
-					Return([]models.Post{post1, post2}, nil)
+					Return([]models2.Post{post1, post2}, nil)
 
 				// Use gomock.Any() for the UUID slice since we can't predict the order
 				mockProfileUC.EXPECT().
 					GetPublicUsersInfo(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]models.PublicUserInfo, error) {
+					DoAndReturn(func(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]models2.PublicUserInfo, error) {
 						// Verify we got exactly 2 unique UUIDs
 						assert.Len(t, ids, 2)
 						assert.NotEqual(t, ids[0], ids[1])
 
-						return map[uuid.UUID]models.PublicUserInfo{
+						return map[uuid.UUID]models2.PublicUserInfo{
 							ids[0]: {Id: ids[0]},
 							ids[1]: {Id: ids[1]},
 						}, nil
@@ -74,7 +73,7 @@ func TestFeedHandler_GetFeed(t *testing.T) {
 				// Expect two relation checks with any UUID
 				mockFriendsUseCase.EXPECT().
 					GetUserRelation(gomock.Any(), user.Id, gomock.Any()).
-					Return(models.RelationNone, nil).
+					Return(models2.RelationNone, nil).
 					Times(2)
 			},
 			expectedStatus: http.StatusOK,

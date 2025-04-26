@@ -3,13 +3,12 @@ package forms
 import (
 	"errors"
 	"net/url"
+	time2 "quickflow/monolith/config/time"
+	models2 "quickflow/monolith/internal/models"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/models"
 )
 
 type GetChatsForm struct {
@@ -62,13 +61,13 @@ func (g *GetChatsForm) GetParams(values url.Values) error {
 	return nil
 }
 
-func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.PublicUserInfo, privateChatsOnlineStatus map[uuid.UUID]PrivateChatInfo) []ChatOut {
+func ToChatsOut(chats []models2.Chat, lastMessageSenderInfo map[uuid.UUID]models2.PublicUserInfo, privateChatsOnlineStatus map[uuid.UUID]PrivateChatInfo) []ChatOut {
 	var chatsOut []ChatOut
 	var chatType string
 	for _, chat := range chats {
-		if chat.Type == models.ChatTypePrivate {
+		if chat.Type == models2.ChatTypePrivate {
 			chatType = "private"
-		} else if chat.Type == models.ChatTypeGroup {
+		} else if chat.Type == models2.ChatTypeGroup {
 			chatType = "group"
 		} else {
 			chatType = "unknown"
@@ -93,7 +92,7 @@ func ToChatsOut(chats []models.Chat, lastMessageSenderInfo map[uuid.UUID]models.
 			chatOut.LastMessage = &msg
 		}
 
-		if chat.Type == models.ChatTypePrivate && privateChatsOnlineStatus != nil {
+		if chat.Type == models2.ChatTypePrivate && privateChatsOnlineStatus != nil {
 			if profileInfo, exists := privateChatsOnlineStatus[chat.ID]; exists {
 				chatOut.IsOnline = &profileInfo.Activity.IsOnline
 				if !profileInfo.Activity.IsOnline {

@@ -1,20 +1,19 @@
 package forms
 
 import (
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/models"
 )
 
 func TestProfileForm_FormToModel(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   ProfileForm
-		want    models.Profile
+		want    models2.Profile
 		wantErr bool
 	}{
 		{
@@ -25,7 +24,7 @@ func TestProfileForm_FormToModel(t *testing.T) {
 					Username:    "testuser",
 					Name:        "John",
 					Surname:     "Doe",
-					Sex:         models.MALE,
+					Sex:         models2.MALE,
 					DateOfBirth: "1990-01-01",
 					Bio:         "Test bio",
 				},
@@ -45,25 +44,25 @@ func TestProfileForm_FormToModel(t *testing.T) {
 					GraduationYear:    2025,
 				},
 			},
-			want: models.Profile{
+			want: models2.Profile{
 				UserId: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Name:        "John",
 					Surname:     "Doe",
-					Sex:         models.MALE,
+					Sex:         models2.MALE,
 					DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 					Bio:         "Test bio",
 				},
-				ContactInfo: &models.ContactInfo{
+				ContactInfo: &models2.ContactInfo{
 					City:  "CityName",
 					Email: "test@example.com",
 					Phone: "123456789",
 				},
-				SchoolEducation: &models.SchoolEducation{
+				SchoolEducation: &models2.SchoolEducation{
 					City:   "SchoolCity",
 					School: "TestSchool",
 				},
-				UniversityEducation: &models.UniversityEducation{
+				UniversityEducation: &models2.UniversityEducation{
 					City:           "UniCity",
 					University:     "TestUniversity",
 					Faculty:        "FacultyName",
@@ -79,12 +78,12 @@ func TestProfileForm_FormToModel(t *testing.T) {
 					Username:    "testuser",
 					Name:        "John",
 					Surname:     "Doe",
-					Sex:         models.MALE,
+					Sex:         models2.MALE,
 					DateOfBirth: "invalid-date", // Некорректный формат даты
 					Bio:         "Test bio",
 				},
 			},
-			want:    models.Profile{},
+			want:    models2.Profile{},
 			wantErr: true,
 		},
 		{
@@ -92,7 +91,7 @@ func TestProfileForm_FormToModel(t *testing.T) {
 			input: ProfileForm{
 				Id: "123e4567-e89b-12d3-a456-426614174000",
 			},
-			want: models.Profile{
+			want: models2.Profile{
 				UserId: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000"),
 			},
 			wantErr: false,
@@ -115,33 +114,33 @@ func TestModelToForm(t *testing.T) {
 	var bl = true
 	tests := []struct {
 		name     string
-		input    models.Profile
+		input    models2.Profile
 		isOnline bool
-		relation models.UserRelation
+		relation models2.UserRelation
 		chatId   *uuid.UUID
 		want     ProfileForm
 	}{
 		{
 			name: "Valid Profile to ProfileForm",
-			input: models.Profile{
+			input: models2.Profile{
 				UserId: uuid.MustParse("5b0cc8ec-ee84-4974-8381-612d18b9c6e3"), // Используем фиксированный UUID
-				BasicInfo: &models.BasicInfo{
+				BasicInfo: &models2.BasicInfo{
 					Name:        "John",
 					Surname:     "Doe",
-					Sex:         models.MALE,
+					Sex:         models2.MALE,
 					DateOfBirth: time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
 					Bio:         "Test bio",
 				},
-				ContactInfo: &models.ContactInfo{
+				ContactInfo: &models2.ContactInfo{
 					City:  "CityName",
 					Email: "test@example.com",
 					Phone: "123456789",
 				},
-				SchoolEducation: &models.SchoolEducation{
+				SchoolEducation: &models2.SchoolEducation{
 					City:   "SchoolCity",
 					School: "TestSchool",
 				},
-				UniversityEducation: &models.UniversityEducation{
+				UniversityEducation: &models2.UniversityEducation{
 					City:           "UniCity",
 					University:     "TestUniversity",
 					Faculty:        "FacultyName",
@@ -150,7 +149,7 @@ func TestModelToForm(t *testing.T) {
 				LastSeen: time.Now(),
 			},
 			isOnline: true,
-			relation: models.RelationNone,
+			relation: models2.RelationNone,
 			chatId:   nil,
 			want: ProfileForm{
 				Id: "5b0cc8ec-ee84-4974-8381-612d18b9c6e3", // Используем фиксированный UUID
@@ -158,7 +157,7 @@ func TestModelToForm(t *testing.T) {
 					Username:    "testuser",
 					Name:        "John",
 					Surname:     "Doe",
-					Sex:         models.MALE,
+					Sex:         models2.MALE,
 					DateOfBirth: "1990-01-01",
 					Bio:         "Test bio",
 				},
@@ -178,7 +177,7 @@ func TestModelToForm(t *testing.T) {
 					GraduationYear:    2025,
 				},
 				IsOnline: &bl,
-				Relation: models.RelationNone,
+				Relation: models2.RelationNone,
 				ChatId:   nil,
 			},
 		},

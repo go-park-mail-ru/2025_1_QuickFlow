@@ -3,39 +3,38 @@ package usecase_test
 import (
 	"context"
 	"errors"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/usecase"
+	"quickflow/monolith/internal/usecase/mocks"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
-	"quickflow/internal/usecase/mocks"
 )
 
 func TestPostService_AddPost(t *testing.T) {
 	tests := []struct {
 		name           string
-		post           models.Post
+		post           models2.Post
 		uploadFilesErr error
 		addPostErr     error
-		expectedPost   models.Post
+		expectedPost   models2.Post
 		expectedErr    error
 	}{
 		{
 			name: "success",
-			post: models.Post{
+			post: models2.Post{
 				Desc: "Hi",
 			},
-			expectedPost: models.Post{
+			expectedPost: models2.Post{
 				Desc: "Hi",
 			},
 			expectedErr: nil,
 		},
 		{
 			name:        "add post error",
-			post:        models.Post{Images: []*models.File{}},
+			post:        models2.Post{Images: []*models2.File{}},
 			addPostErr:  errors.New("add post error"),
 			expectedErr: errors.New("p.postRepo.AddPost: add post error"),
 		},
@@ -79,9 +78,9 @@ func TestPostService_AddPost(t *testing.T) {
 
 func TestPostService_DeletePost(t *testing.T) {
 	tests := []struct {
-		name            string
-		user            models.User
-		postId          uuid.UUID
+		name   string
+		user   models2.User
+		postId uuid.UUID
 		belongsTo       bool
 		deletePostErr   error
 		getPostFilesErr error
@@ -90,21 +89,21 @@ func TestPostService_DeletePost(t *testing.T) {
 	}{
 		{
 			name:        "success",
-			user:        models.User{Id: uuid.New(), Username: "testuser"},
+			user:        models2.User{Id: uuid.New(), Username: "testuser"},
 			postId:      uuid.New(),
 			belongsTo:   true,
 			expectedErr: nil,
 		},
 		{
 			name:        "post does not belong to user",
-			user:        models.User{Id: uuid.New(), Username: "testuser"},
+			user:        models2.User{Id: uuid.New(), Username: "testuser"},
 			postId:      uuid.New(),
 			belongsTo:   false,
 			expectedErr: usecase.ErrPostDoesNotBelongToUser,
 		},
 		{
 			name:          "delete file error",
-			user:          models.User{Id: uuid.New(), Username: "testuser"},
+			user:          models2.User{Id: uuid.New(), Username: "testuser"},
 			postId:        uuid.New(),
 			belongsTo:     true,
 			deleteFileErr: errors.New("delete file error"),

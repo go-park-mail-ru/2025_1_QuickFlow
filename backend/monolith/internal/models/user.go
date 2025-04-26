@@ -1,11 +1,10 @@
 package models
 
 import (
+	"quickflow/monolith/utils"
 	"time"
 
 	"github.com/google/uuid"
-
-	"quickflow/utils"
 )
 
 type Sex int

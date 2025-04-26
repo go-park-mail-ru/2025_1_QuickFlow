@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	"quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"

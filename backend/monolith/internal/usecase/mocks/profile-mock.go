@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -37,10 +37,10 @@ func (m *MockProfileRepository) EXPECT() *MockProfileRepositoryMockRecorder {
 }
 
 // GetProfile mocks base method.
-func (m *MockProfileRepository) GetProfile(ctx context.Context, userId uuid.UUID) (models.Profile, error) {
+func (m *MockProfileRepository) GetProfile(ctx context.Context, userId uuid.UUID) (models2.Profile, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProfile", ctx, userId)
-	ret0, _ := ret[0].(models.Profile)
+	ret0, _ := ret[0].(models2.Profile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,10 +52,10 @@ func (mr *MockProfileRepositoryMockRecorder) GetProfile(ctx, userId interface{})
 }
 
 // GetPublicUserInfo mocks base method.
-func (m *MockProfileRepository) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models.PublicUserInfo, error) {
+func (m *MockProfileRepository) GetPublicUserInfo(ctx context.Context, userId uuid.UUID) (models2.PublicUserInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPublicUserInfo", ctx, userId)
-	ret0, _ := ret[0].(models.PublicUserInfo)
+	ret0, _ := ret[0].(models2.PublicUserInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -67,10 +67,10 @@ func (mr *MockProfileRepositoryMockRecorder) GetPublicUserInfo(ctx, userId inter
 }
 
 // GetPublicUsersInfo mocks base method.
-func (m *MockProfileRepository) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models.PublicUserInfo, error) {
+func (m *MockProfileRepository) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]models2.PublicUserInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPublicUsersInfo", ctx, userIds)
-	ret0, _ := ret[0].([]models.PublicUserInfo)
+	ret0, _ := ret[0].([]models2.PublicUserInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -82,7 +82,7 @@ func (mr *MockProfileRepositoryMockRecorder) GetPublicUsersInfo(ctx, userIds int
 }
 
 // SaveProfile mocks base method.
-func (m *MockProfileRepository) SaveProfile(ctx context.Context, profile models.Profile) error {
+func (m *MockProfileRepository) SaveProfile(ctx context.Context, profile models2.Profile) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveProfile", ctx, profile)
 	ret0, _ := ret[0].(error)
@@ -138,7 +138,7 @@ func (mr *MockProfileRepositoryMockRecorder) UpdateProfileCover(ctx, id, url int
 }
 
 // UpdateProfileTextInfo mocks base method.
-func (m *MockProfileRepository) UpdateProfileTextInfo(ctx context.Context, newProfile models.Profile) error {
+func (m *MockProfileRepository) UpdateProfileTextInfo(ctx context.Context, newProfile models2.Profile) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateProfileTextInfo", ctx, newProfile)
 	ret0, _ := ret[0].(error)

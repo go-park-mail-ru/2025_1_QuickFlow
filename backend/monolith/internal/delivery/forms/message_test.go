@@ -3,6 +3,8 @@ package forms_test
 import (
 	"errors"
 	"net/url"
+	forms2 "quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
@@ -10,14 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
 )
 
 func TestGetMessagesForm_GetParams(t *testing.T) {
 	tests := []struct {
 		name          string
 		values        url.Values
-		expectedForm  forms.GetMessagesForm
+		expectedForm  forms2.GetMessagesForm
 		expectedError error
 	}{
 		{
@@ -26,7 +27,7 @@ func TestGetMessagesForm_GetParams(t *testing.T) {
 				"messages_count": []string{"10"},
 				"ts":             []string{"2025-04-16T00:00:00Z"},
 			},
-			expectedForm: forms.GetMessagesForm{
+			expectedForm: forms2.GetMessagesForm{
 				MessagesCount: 10,
 				Ts:            time.Date(2025, 4, 16, 0, 0, 0, 0, time.UTC),
 			},
@@ -37,7 +38,7 @@ func TestGetMessagesForm_GetParams(t *testing.T) {
 			values: url.Values{
 				"ts": []string{"2025-04-16T00:00:00Z"},
 			},
-			expectedForm:  forms.GetMessagesForm{},
+			expectedForm:  forms2.GetMessagesForm{},
 			expectedError: errors.New("messages_count parameter missing"),
 		},
 		{
@@ -46,14 +47,14 @@ func TestGetMessagesForm_GetParams(t *testing.T) {
 				"messages_count": []string{"invalid"},
 				"ts":             []string{"2025-04-16T00:00:00Z"},
 			},
-			expectedForm:  forms.GetMessagesForm{},
+			expectedForm:  forms2.GetMessagesForm{},
 			expectedError: errors.New("failed to parse messages_count"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var form forms.GetMessagesForm
+			var form forms2.GetMessagesForm
 			err := form.GetParams(tt.values)
 			if tt.expectedError != nil {
 				assert.EqualError(t, err, tt.expectedError.Error())
@@ -75,7 +76,7 @@ func TestToMessageOut(t *testing.T) {
 	now := time.Now()
 
 	// Create a mock message
-	message := models.Message{
+	message := models2.Message{
 		ID:             messageID,
 		Text:           "Hello!",
 		CreatedAt:      now,
@@ -87,7 +88,7 @@ func TestToMessageOut(t *testing.T) {
 	}
 
 	// Create a mock user info
-	userInfo := models.PublicUserInfo{
+	userInfo := models2.PublicUserInfo{
 		Id:        userID,
 		Username:  "user1",
 		Firstname: "John",
@@ -95,7 +96,7 @@ func TestToMessageOut(t *testing.T) {
 		AvatarURL: "http://example.com/avatar.jpg",
 	}
 
-	messageOut := forms.ToMessageOut(message, userInfo)
+	messageOut := forms2.ToMessageOut(message, userInfo)
 
 	assert.Equal(t, messageOut.ID, messageID)
 	assert.Equal(t, messageOut.Text, "Hello!")
@@ -112,7 +113,7 @@ func TestToMessagesOut(t *testing.T) {
 	now := time.Now()
 
 	// Create a mock message
-	messages := []models.Message{
+	messages := []models2.Message{
 		{
 			ID:             messageID,
 			Text:           "Hello!",
@@ -126,7 +127,7 @@ func TestToMessagesOut(t *testing.T) {
 	}
 
 	// Create a mock user info
-	usersInfo := map[uuid.UUID]models.PublicUserInfo{
+	usersInfo := map[uuid.UUID]models2.PublicUserInfo{
 		userID: {
 			Id:        userID,
 			Username:  "user1",
@@ -136,7 +137,7 @@ func TestToMessagesOut(t *testing.T) {
 		},
 	}
 
-	messagesOut := forms.ToMessagesOut(messages, usersInfo)
+	messagesOut := forms2.ToMessagesOut(messages, usersInfo)
 
 	assert.Len(t, messagesOut, 1)
 	assert.Equal(t, messagesOut[0].ID, messageID)
@@ -150,7 +151,7 @@ func TestMessageForm_ToMessageModel(t *testing.T) {
 	receiverID := uuid.New()
 	chatID := uuid.New()
 
-	messageForm := forms.MessageForm{
+	messageForm := forms2.MessageForm{
 		Text:            "Sample message",
 		AttachmentsUrls: []string{"http://example.com/image.jpg"},
 		ReceiverId:      receiverID,
@@ -173,7 +174,7 @@ func TestMessageRequest(t *testing.T) {
 	receiverID := uuid.New()
 	chatID := uuid.New()
 
-	messageForm := forms.MessageForm{
+	messageForm := forms2.MessageForm{
 		Text:            "Another message",
 		AttachmentsUrls: []string{"http://example.com/image2.jpg"},
 		ReceiverId:      receiverID,

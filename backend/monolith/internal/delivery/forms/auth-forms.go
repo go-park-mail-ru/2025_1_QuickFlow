@@ -1,6 +1,8 @@
 package forms
 
-import "quickflow/internal/models"
+import (
+	"quickflow/monolith/internal/models"
+)
 
 type SignUpForm struct {
 	Login       string     `json:"username"`

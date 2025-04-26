@@ -3,14 +3,13 @@ package middleware
 import (
 	"context"
 	"net/http"
+	http2 "quickflow/monolith/internal/delivery/http"
+	"quickflow/monolith/internal/delivery/ws"
+	"quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
+	httpUtils "quickflow/monolith/utils/http"
 
 	"github.com/gorilla/websocket"
-
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/ws"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
-	httpUtils "quickflow/utils/http"
 )
 
 // WebSocketMiddleware устанавливает ws соединение с клиентом и обрабатывает сессии.

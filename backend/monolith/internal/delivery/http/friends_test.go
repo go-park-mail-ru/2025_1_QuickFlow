@@ -7,23 +7,22 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/internal/models"
+	http2 "quickflow/monolith/internal/delivery/http"
+	mocks2 "quickflow/monolith/internal/delivery/http/mocks"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
 )
 
 func TestFriendsHandler_GetFriends(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
-	mockWS := mocks.NewMockIWebSocketManager(ctrl)
+	mockFriendsUseCase := mocks2.NewMockFriendsUseCase(ctrl)
+	mockWS := mocks2.NewMockIWebSocketManager(ctrl)
 	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
@@ -31,38 +30,38 @@ func TestFriendsHandler_GetFriends(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		queryParams        map[string]string
 		mockBehavior       func()
 		expectedStatusCode int
 	}{
 		{
 			name:        "OK (Current User)",
-			ctxUser:     &models.User{Id: userID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: userID, Username: "testuser"},
 			queryParams: map[string]string{},
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
 					GetFriendsInfo(gomock.Any(), userID.String(), "", "").
-					Return([]models.FriendInfo{}, false, 0, nil)
+					Return([]models2.FriendInfo{}, false, 0, nil)
 				mockWS.EXPECT().IsConnected(gomock.Any()).Return(nil, false).AnyTimes()
 			},
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:        "OK (Specific User)",
-			ctxUser:     &models.User{Id: userID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: userID, Username: "testuser"},
 			queryParams: map[string]string{"user_id": targetUserID.String()},
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
 					GetFriendsInfo(gomock.Any(), targetUserID.String(), "", "").
-					Return([]models.FriendInfo{}, false, 0, nil)
+					Return([]models2.FriendInfo{}, false, 0, nil)
 				mockWS.EXPECT().IsConnected(gomock.Any()).Return(nil, false).AnyTimes()
 			},
 			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:        "Error in UseCase",
-			ctxUser:     &models.User{Id: userID, Username: "testuser"},
+			ctxUser:     &models2.User{Id: userID, Username: "testuser"},
 			queryParams: map[string]string{},
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -108,8 +107,8 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
-	mockWS := mocks.NewMockIWebSocketManager(ctrl)
+	mockFriendsUseCase := mocks2.NewMockFriendsUseCase(ctrl)
+	mockWS := mocks2.NewMockIWebSocketManager(ctrl)
 	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
@@ -117,14 +116,14 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		inputBody          string
 		mockBehavior       func()
 		expectedStatusCode int
 	}{
 		{
 			name:      "OK (Success)",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"receiver_id":"%s"}`, receiverID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -138,7 +137,7 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 		},
 		{
 			name:      "Request Already Exists",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"receiver_id":"%s"}`, receiverID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -149,7 +148,7 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 		},
 		{
 			name:      "Bad JSON",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: `{"receiver_id": "invalid",`,
 			mockBehavior: func() {
 			},
@@ -157,7 +156,7 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 		},
 		{
 			name:      "Error in IsExistsFriendRequest",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"receiver_id":"%s"}`, receiverID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -168,7 +167,7 @@ func TestFriendsHandler_SendFriendRequest(t *testing.T) {
 		},
 		{
 			name:      "Error in SendFriendRequest",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"receiver_id":"%s"}`, receiverID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -204,8 +203,8 @@ func TestFriendsHandler_AcceptFriendRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
-	mockWS := mocks.NewMockIWebSocketManager(ctrl)
+	mockFriendsUseCase := mocks2.NewMockFriendsUseCase(ctrl)
+	mockWS := mocks2.NewMockIWebSocketManager(ctrl)
 	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
@@ -213,14 +212,14 @@ func TestFriendsHandler_AcceptFriendRequest(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		inputBody          string
 		mockBehavior       func()
 		expectedStatusCode int
 	}{
 		{
 			name:      "OK (Success)",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"receiver_id":"%s"}`, receiverID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -231,7 +230,7 @@ func TestFriendsHandler_AcceptFriendRequest(t *testing.T) {
 		},
 		{
 			name:      "Bad JSON",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: `{"receiver_id": "invalid",`,
 			mockBehavior: func() {
 			},
@@ -239,7 +238,7 @@ func TestFriendsHandler_AcceptFriendRequest(t *testing.T) {
 		},
 		{
 			name:      "Error in AcceptFriendRequest",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"receiver_id":"%s"}`, receiverID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -272,8 +271,8 @@ func TestFriendsHandler_DeleteFriend(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
-	mockWS := mocks.NewMockIWebSocketManager(ctrl)
+	mockFriendsUseCase := mocks2.NewMockFriendsUseCase(ctrl)
+	mockWS := mocks2.NewMockIWebSocketManager(ctrl)
 	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
@@ -281,14 +280,14 @@ func TestFriendsHandler_DeleteFriend(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		inputBody          string
 		mockBehavior       func()
 		expectedStatusCode int
 	}{
 		{
 			name:      "OK (Success)",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"friend_id":"%s"}`, friendID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -299,7 +298,7 @@ func TestFriendsHandler_DeleteFriend(t *testing.T) {
 		},
 		{
 			name:      "Bad JSON",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: `{"friend_id": "invalid",`,
 			mockBehavior: func() {
 			},
@@ -307,7 +306,7 @@ func TestFriendsHandler_DeleteFriend(t *testing.T) {
 		},
 		{
 			name:      "Error in DeleteFriend",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"friend_id":"%s"}`, friendID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -340,8 +339,8 @@ func TestFriendsHandler_Unfollow(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockFriendsUseCase := mocks.NewMockFriendsUseCase(ctrl)
-	mockWS := mocks.NewMockIWebSocketManager(ctrl)
+	mockFriendsUseCase := mocks2.NewMockFriendsUseCase(ctrl)
+	mockWS := mocks2.NewMockIWebSocketManager(ctrl)
 	handler := http2.NewFriendHandler(mockFriendsUseCase, mockWS)
 
 	userID := uuid.New()
@@ -349,14 +348,14 @@ func TestFriendsHandler_Unfollow(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		ctxUser            *models.User
+		ctxUser            *models2.User
 		inputBody          string
 		mockBehavior       func()
 		expectedStatusCode int
 	}{
 		{
 			name:      "OK (Success)",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"friend_id":"%s"}`, friendID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().
@@ -367,7 +366,7 @@ func TestFriendsHandler_Unfollow(t *testing.T) {
 		},
 		{
 			name:      "Bad JSON",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: `{"friend_id": "invalid",`,
 			mockBehavior: func() {
 			},
@@ -375,7 +374,7 @@ func TestFriendsHandler_Unfollow(t *testing.T) {
 		},
 		{
 			name:      "Error in Unfollow",
-			ctxUser:   &models.User{Id: userID, Username: "testuser"},
+			ctxUser:   &models2.User{Id: userID, Username: "testuser"},
 			inputBody: fmt.Sprintf(`{"friend_id":"%s"}`, friendID.String()),
 			mockBehavior: func() {
 				mockFriendsUseCase.EXPECT().

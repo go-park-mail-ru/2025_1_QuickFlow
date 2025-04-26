@@ -6,7 +6,7 @@ package mocks
 
 import (
 	context "context"
-	models "quickflow/internal/models"
+	models2 "quickflow/monolith/internal/models"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -89,7 +89,7 @@ func (mr *MockIWebSocketManagerMockRecorder) RemoveAndCloseConnection(userId int
 }
 
 // SendMessageToChat mocks base method.
-func (m *MockIWebSocketManager) SendMessageToChat(ctx context.Context, message models.Message, publicSenderInfo models.PublicUserInfo, chatParticipants []models.User) error {
+func (m *MockIWebSocketManager) SendMessageToChat(ctx context.Context, message models2.Message, publicSenderInfo models2.PublicUserInfo, chatParticipants []models2.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessageToChat", ctx, message, publicSenderInfo, chatParticipants)
 	ret0, _ := ret[0].(error)

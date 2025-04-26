@@ -6,8 +6,8 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"quickflow/internal/models"
-	"quickflow/internal/repository/postgres"
+	"quickflow/monolith/internal/models"
+	"quickflow/monolith/internal/repository/postgres"
 	"testing"
 	"time"
 )

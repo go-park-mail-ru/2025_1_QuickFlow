@@ -5,25 +5,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	time2 "quickflow/monolith/config/time"
+	"quickflow/monolith/internal/delivery/forms"
+	models2 "quickflow/monolith/internal/models"
+	"quickflow/monolith/pkg/logger"
+	"quickflow/monolith/pkg/sanitizer"
+	http2 "quickflow/monolith/utils/http"
+	"quickflow/monolith/utils/validation"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
-
-	time2 "quickflow/config/time"
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
-	"quickflow/pkg/logger"
-	"quickflow/pkg/sanitizer"
-	http2 "quickflow/utils/http"
-	"quickflow/utils/validation"
 )
 
 type AuthUseCase interface {
-	CreateUser(ctx context.Context, user models.User, profile models.Profile) (uuid.UUID, models.Session, error)
-	AuthUser(ctx context.Context, authData models.LoginData) (models.Session, error)
-	GetUserByUsername(ctx context.Context, username string) (models.User, error)
-	LookupUserSession(ctx context.Context, session models.Session) (models.User, error)
+	CreateUser(ctx context.Context, user models2.User, profile models2.Profile) (uuid.UUID, models2.Session, error)
+	AuthUser(ctx context.Context, authData models2.LoginData) (models2.Session, error)
+	GetUserByUsername(ctx context.Context, username string) (models2.User, error)
+	LookupUserSession(ctx context.Context, session models2.Session) (models2.User, error)
 	DeleteUserSession(ctx context.Context, session string) error
 }
 
@@ -83,7 +82,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	sanitizer.SanitizeSignUpData(&form, a.policy)
 
 	// converting transport form to domain model
-	user := models.User{
+	user := models2.User{
 		Username: form.Login,
 		Password: form.Password,
 	}
@@ -95,8 +94,8 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile := models.Profile{
-		BasicInfo: &models.BasicInfo{
+	profile := models2.Profile{
+		BasicInfo: &models2.BasicInfo{
 			AvatarUrl:   "",
 			Name:        form.Name,
 			Surname:     form.Surname,
@@ -171,7 +170,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	sanitizer.SanitizeLoginData(&form, a.policy)
 
 	// converting transport form to domain model
-	loginData := models.LoginData{
+	loginData := models2.LoginData{
 		Login:    form.Login,
 		Password: form.Password,
 	}
@@ -225,7 +224,7 @@ func (a *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = a.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: cookieUUID}); err != nil {
+	if _, err = a.authUseCase.LookupUserSession(r.Context(), models2.Session{SessionId: cookieUUID}); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Couldn't find user session: %s", err.Error()))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

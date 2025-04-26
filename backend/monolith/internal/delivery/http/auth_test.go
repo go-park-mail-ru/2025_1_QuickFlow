@@ -6,6 +6,10 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"quickflow/monolith/internal/delivery/forms"
+	http2 "quickflow/monolith/internal/delivery/http"
+	"quickflow/monolith/internal/delivery/http/mocks"
+	models2 "quickflow/monolith/internal/models"
 	"testing"
 	"time"
 
@@ -13,11 +17,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
-
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
 )
 
 func TestAuthHandler_SignUp(t *testing.T) {
@@ -49,7 +48,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(uuid.New(), models.Session{
+					Return(uuid.New(), models2.Session{
 						SessionId:  uuid.New(),
 						ExpireDate: time.Now().Add(time.Hour),
 					}, nil)
@@ -84,7 +83,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(uuid.Nil, models.Session{}, errors.New("fail"))
+					Return(uuid.Nil, models2.Session{}, errors.New("fail"))
 			},
 			expectedStatusCode: http.StatusConflict,
 		},
@@ -137,7 +136,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
 					AuthUser(gomock.Any(), gomock.Any()).
-					Return(models.Session{
+					Return(models2.Session{
 						SessionId:  uuid.New(),
 						ExpireDate: time.Now().Add(time.Hour),
 					}, nil)
@@ -160,7 +159,7 @@ func TestAuthHandler_Login(t *testing.T) {
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
 					AuthUser(gomock.Any(), gomock.Any()).
-					Return(models.Session{}, errors.New("fail"))
+					Return(models2.Session{}, errors.New("fail"))
 			},
 			expectedStatusCode: http.StatusUnauthorized,
 		},
@@ -205,8 +204,8 @@ func TestAuthHandler_Logout(t *testing.T) {
 			setCookie: true,
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
-					LookupUserSession(gomock.Any(), models.Session{SessionId: uuid.MustParse(sessionID)}).
-					Return(models.User{}, nil)
+					LookupUserSession(gomock.Any(), models2.Session{SessionId: uuid.MustParse(sessionID)}).
+					Return(models2.User{}, nil)
 				mockUC.EXPECT().
 					DeleteUserSession(gomock.Any(), sessionID).
 					Return(nil)
@@ -225,7 +224,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
 					LookupUserSession(gomock.Any(), gomock.Any()).
-					Return(models.User{}, errors.New("not found"))
+					Return(models2.User{}, errors.New("not found"))
 			},
 			expectedStatusCode: http.StatusUnauthorized,
 		},
@@ -235,7 +234,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 			mockBehavior: func(mockUC *mocks.MockAuthUseCase) {
 				mockUC.EXPECT().
 					LookupUserSession(gomock.Any(), gomock.Any()).
-					Return(models.User{}, nil)
+					Return(models2.User{}, nil)
 				mockUC.EXPECT().
 					DeleteUserSession(gomock.Any(), sessionID).
 					Return(errors.New("fail"))
