@@ -66,7 +66,11 @@ func (f *FeedbackHandler) SaveFeedback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = f.feedbackUseCase.SaveFeedback(ctx, feedback)
-	if err != nil {
+	if errors.Is(err, usecase.ErrRating) || errors.Is(err, usecase.ErrRespondent) || errors.Is(err, usecase.ErrTextTooLong) {
+		logger.Error(ctx, fmt.Sprintf("Rating save error: %s", err.Error()))
+		http2.WriteJSONError(w, "Rating save error", http.StatusBadRequest)
+		return
+	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("SaveFeedback error: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to save feedback", http.StatusInternalServerError)
 		return
