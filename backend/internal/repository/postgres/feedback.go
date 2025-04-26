@@ -22,7 +22,7 @@ const (
 	getFeedbackOlderQuery = `
 	select rating, respondent_id, text, type, created_at
 	from feedback
-	where created_at > $1 and type = $2
+	where created_at < $1 and type = $2
 	order by created_at desc
 	limit $3
 `
@@ -55,8 +55,8 @@ func (f *FeedbackRepository) Close() {
 
 func (f *FeedbackRepository) SaveFeedback(ctx context.Context, feedback *models.Feedback) error {
 	pgFeedback := postgres_models.FromModel(feedback)
-	err := f.ConnPool.
-		QueryRowContext(ctx, saveFeedbackQuery, pgFeedback.Rating, pgFeedback.RespondentId, pgFeedback.Text, pgFeedback.Type)
+	_, err := f.ConnPool.
+		ExecContext(ctx, saveFeedbackQuery, pgFeedback.Rating, pgFeedback.RespondentId, pgFeedback.Text, pgFeedback.Type, pgFeedback.CreatedAt)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("failed to save feedback: %v", err))
 		return fmt.Errorf("save feedback: %w", err)
@@ -67,7 +67,7 @@ func (f *FeedbackRepository) SaveFeedback(ctx context.Context, feedback *models.
 
 func (f *FeedbackRepository) GetAllFeedbackType(ctx context.Context, feedbackType models.FeedbackType, ts time.Time, count int) ([]models.Feedback, error) {
 	rows, err := f.ConnPool.QueryContext(ctx, getFeedbackOlderQuery,
-		pgtype.Timestamptz{Time: ts, Valid: true}, feedbackType, count)
+		pgtype.Timestamptz{Time: ts, Valid: true}, pgtype.Text{String: string(feedbackType), Valid: true}, count)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, usecase.ErrNotFound
 	} else if err != nil {
@@ -75,7 +75,7 @@ func (f *FeedbackRepository) GetAllFeedbackType(ctx context.Context, feedbackTyp
 		return nil, fmt.Errorf("get feedback: %w", err)
 	}
 	defer rows.Close()
-	feedback := []models.Feedback{}
+	var feedback []models.Feedback
 	for rows.Next() {
 		var r postgres_models.PgFeedback
 		err = rows.Scan(&r.Rating, &r.RespondentId, &r.Text, &r.Type, &r.CreatedAt)

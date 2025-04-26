@@ -8,15 +8,16 @@ import (
 )
 
 type HttpHandlerCollection struct {
-	AuthHandler    *http2.AuthHandler
-	ChatHandler    *http2.ChatHandler
-	FeedHandler    *http2.FeedHandler
-	PostHandler    *http2.PostHandler
-	ProfileHandler *http2.ProfileHandler
-	SearchHandler  *http2.SearchHandler
-	MessageHandler *http2.MessageHandler
-	FriendHandler  *http2.FriendHandler
-	CSRFHandler    *http2.CSRFHandler
+	AuthHandler     *http2.AuthHandler
+	ChatHandler     *http2.ChatHandler
+	FeedHandler     *http2.FeedHandler
+	PostHandler     *http2.PostHandler
+	ProfileHandler  *http2.ProfileHandler
+	SearchHandler   *http2.SearchHandler
+	MessageHandler  *http2.MessageHandler
+	FriendHandler   *http2.FriendHandler
+	CSRFHandler     *http2.CSRFHandler
+	FeedbackHandler *http2.FeedbackHandler
 }
 
 type HttpWSHandlerFactory struct {
@@ -37,15 +38,16 @@ func NewHttpWSHandlerFactory(serviceFactory ServiceFactory) *HttpWSHandlerFactor
 
 func (f *HttpWSHandlerFactory) InitHttpHandlers() *HttpHandlerCollection {
 	return &HttpHandlerCollection{
-		AuthHandler:    http2.NewAuthHandler(f.serviceFactory.AuthService(), f.sanitizer),
-		ChatHandler:    http2.NewChatHandler(f.serviceFactory.ChatService(), f.serviceFactory.ProfileService(), f.connManager),
-		FeedHandler:    http2.NewFeedHandler(f.serviceFactory.AuthService(), f.serviceFactory.PostService(), f.serviceFactory.ProfileService(), f.serviceFactory.FriendService()),
-		PostHandler:    http2.NewPostHandler(f.serviceFactory.PostService(), f.serviceFactory.ProfileService(), f.sanitizer),
-		ProfileHandler: http2.NewProfileHandler(f.serviceFactory.ProfileService(), f.serviceFactory.FriendService(), f.serviceFactory.AuthService(), f.serviceFactory.ChatService(), f.connManager, f.sanitizer),
-		SearchHandler:  http2.NewSearchHandler(f.serviceFactory.SearchService()),
-		MessageHandler: http2.NewMessageHandler(f.serviceFactory.MessageService(), f.serviceFactory.AuthService(), f.serviceFactory.ProfileService(), f.sanitizer),
-		FriendHandler:  http2.NewFriendHandler(f.serviceFactory.FriendService(), f.connManager),
-		CSRFHandler:    http2.NewCSRFHandler(),
+		AuthHandler:     http2.NewAuthHandler(f.serviceFactory.AuthService(), f.sanitizer),
+		ChatHandler:     http2.NewChatHandler(f.serviceFactory.ChatService(), f.serviceFactory.ProfileService(), f.connManager),
+		FeedHandler:     http2.NewFeedHandler(f.serviceFactory.AuthService(), f.serviceFactory.PostService(), f.serviceFactory.ProfileService(), f.serviceFactory.FriendService()),
+		PostHandler:     http2.NewPostHandler(f.serviceFactory.PostService(), f.serviceFactory.ProfileService(), f.sanitizer),
+		ProfileHandler:  http2.NewProfileHandler(f.serviceFactory.ProfileService(), f.serviceFactory.FriendService(), f.serviceFactory.AuthService(), f.serviceFactory.ChatService(), f.connManager, f.sanitizer),
+		SearchHandler:   http2.NewSearchHandler(f.serviceFactory.SearchService()),
+		MessageHandler:  http2.NewMessageHandler(f.serviceFactory.MessageService(), f.serviceFactory.AuthService(), f.serviceFactory.ProfileService(), f.sanitizer),
+		FriendHandler:   http2.NewFriendHandler(f.serviceFactory.FriendService(), f.connManager),
+		CSRFHandler:     http2.NewCSRFHandler(),
+		FeedbackHandler: http2.NewFeedbackService(f.serviceFactory.FeedBackService(), f.serviceFactory.ProfileService()),
 	}
 }
 

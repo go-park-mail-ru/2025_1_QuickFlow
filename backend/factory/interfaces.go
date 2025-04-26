@@ -13,6 +13,7 @@ type RepositoryFactory interface {
 	MessageRepository() usecase.MessageRepository
 	FileRepository() usecase.FileRepository
 	FriendRepository() usecase.FriendsRepository
+	FeedbackRepository() usecase.FeedbackRepository
 	Close() error
 }
 
@@ -24,6 +25,7 @@ type ServiceFactory interface {
 	MessageService() *usecase.MessageService
 	FriendService() *usecase.FriendsService
 	SearchService() *usecase.SearchService
+	FeedBackService() *usecase.FeedbackService
 }
 
 type HandlerFactory interface {

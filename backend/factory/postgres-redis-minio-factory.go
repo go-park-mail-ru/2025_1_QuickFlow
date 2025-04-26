@@ -66,6 +66,10 @@ func (f *PGMFactory) FriendRepository() usecase.FriendsRepository {
 	return postgres.NewPostgresFriendsRepository(f.db)
 }
 
+func (f *PGMFactory) FeedbackRepository() usecase.FeedbackRepository {
+	return postgres.NewFeedbackRepository(f.db)
+}
+
 func (f *PGMFactory) Close() error {
 	if err := f.db.Close(); err != nil {
 		return err

@@ -14,6 +14,12 @@ func NewDefaultServiceFactory(repoFactory RepositoryFactory) *DefaultServiceFact
 	}
 }
 
+func (f *DefaultServiceFactory) FeedBackService() *usecase.FeedbackService {
+	return usecase.NewFeedBackService(
+		f.repoFactory.FeedbackRepository(),
+	)
+}
+
 func (f *DefaultServiceFactory) AuthService() *usecase.AuthService {
 	return usecase.NewAuthService(
 		f.repoFactory.UserRepository(),

@@ -94,6 +94,7 @@ func setupRouters(cfg *config.Config, httpHandlers *factory.HttpHandlerCollectio
 	protectedPost.HandleFunc("/follow", httpHandlers.FriendHandler.SendFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/followers/accept", httpHandlers.FriendHandler.AcceptFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", httpHandlers.MessageHandler.SendMessageToUsername).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/feedback", httpHandlers.FeedbackHandler.SaveFeedback).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(serviceFactory.AuthService()))
@@ -104,6 +105,7 @@ func setupRouters(cfg *config.Config, httpHandlers *factory.HttpHandlerCollectio
 	protectedGet.HandleFunc("/friends", httpHandlers.FriendHandler.GetFriends).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", httpHandlers.CSRFHandler.GetCSRF).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/users/search", httpHandlers.SearchHandler.SearchSimilar).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/feedback", httpHandlers.FeedbackHandler.GetAllFeedbackType).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(wsHandlers.ConnManager, wsHandlers.PingHandler))
