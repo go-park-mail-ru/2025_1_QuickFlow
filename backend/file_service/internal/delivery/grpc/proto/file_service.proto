@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package file_service;
+option go_package = "backend/file_service/internal/delivery/grpc/proto";
+import "backend/shared/proto/file.proto";
+
+message UploadFileRequest {
+  File file = 1;
+}
+
+message UploadFileResponse {
+  string file_url = 1;
+}
+
+message UploadManyFilesRequest {
+  repeated UploadFileRequest files = 1;
+}
+
+message UploadManyFilesResponse {
+  repeated string file_urls = 1;
+}
+
+message DeleteFileRequest {
+  string file_url = 1;
+}
+
+message DeleteFileResponse {
+  bool success = 1;
+}
+
+service FileService {
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
+  rpc UploadManyFiles(UploadManyFilesRequest) returns (UploadManyFilesResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}

@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"flag"
@@ -12,7 +12,6 @@ import (
 	redis_config "quickflow/config/redis"
 	"quickflow/config/server"
 	validation_config "quickflow/config/validation"
-	"quickflow/internal"
 )
 
 func initCfg() (*config.Config, error) {
@@ -61,7 +60,7 @@ func main() {
 		log.Fatalf("failed to initialize configuration: %v", err)
 	}
 
-	if err = internal.Run(appCfg); err != nil {
+	if err = Run(appCfg); err != nil {
 		log.Fatalf("failed to start QuickFlow: %v", err)
 	}
 }

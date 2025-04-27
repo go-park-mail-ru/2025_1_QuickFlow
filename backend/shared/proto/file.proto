@@ -1,0 +1,15 @@
+syntax = "proto3";
+option go_package = "quickflow/shared/proto";
+
+enum AccessMode {
+  ACCESS_PUBLIC = 0;
+  ACCESS_PRIVATE = 1;
+}
+
+message File {
+  string file_name = 1;
+  bytes file = 2;
+  string file_type = 3;
+  int64 file_size = 4;
+  AccessMode access_mode = 5;
+}

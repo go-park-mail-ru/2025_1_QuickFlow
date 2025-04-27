@@ -1,7 +1,6 @@
 package models
 
 import (
-	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,5 +25,5 @@ type Post struct {
 type PostUpdate struct {
 	Id    uuid.UUID
 	Desc  string
-	Files []*File
+	Files []*models.File
 }

@@ -1,0 +1,2 @@
+minio_use_ssl = false
+presigned_url_expiration = "24h"
