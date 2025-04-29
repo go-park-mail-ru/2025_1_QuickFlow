@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package friends_service;
+
+option go_package = "quickflow/friends_service/internal/delivery/grpc/proto";
+
+message FriendRequest {
+  string user_id = 1;
+  string receiver_id = 2;
+}
+
+message FriendResponse {}
+
+message GetFriendInfo {
+  string id = 1;
+  string username = 2;
+  string firstname = 3;
+  string lastname = 4;
+  string avatar_url = 5;
+  string university = 6;
+}
+
+message GetFriendsInfoRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetFriendsInfoResponse {
+  repeated GetFriendInfo friends = 1;
+  int32 total_count = 2;
+}
+
+message IsRelationExistsResponse {
+  bool is_exists = 1;
+}
+
+message RelationResponse {
+  string relation = 1;
+}
+
+service PostService {
+      rpc GetFriendsInfo(FriendRequest) returns (GetFriendsInfoResponse);
+      rpc SendFriendRequest(FriendRequest) returns (FriendResponse);
+      rpc AcceptFriendRequest(FriendRequest) returns (FriendResponse);
+      rpc Unfollow(FriendRequest) returns (FriendResponse);
+      rpc DeleteFriend(FriendRequest) returns (FriendResponse);
+      rpc GetUserRelation(FriendRequest) returns (RelationResponse);
+}
+
+
