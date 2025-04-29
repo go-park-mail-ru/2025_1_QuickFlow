@@ -5,7 +5,7 @@ import (
 
 	cfg "quickflow/file_service/config/validation"
 	qf_errors "quickflow/file_service/internal/errors"
-	"quickflow/file_service/internal/models"
+	"quickflow/shared/models"
 )
 
 type FileValidator struct {

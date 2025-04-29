@@ -20,6 +20,12 @@ type PostDTO struct {
 	IsRepost     bool
 }
 
+type PostUpdateDTO struct {
+	Id    uuid.UUID
+	Desc  string
+	Files []*FileDTO
+}
+
 type AddPostRequestDTO struct {
 	Post *PostDTO
 }

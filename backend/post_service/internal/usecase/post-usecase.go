@@ -10,18 +10,15 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 
+	post_errors "quickflow/post_service/internal/errors"
 	"quickflow/post_service/internal/models"
 	shared_models "quickflow/shared/models"
 	"quickflow/utils/validation"
 )
 
-var (
-	ErrPostDoesNotBelongToUser = errors.New("post does not belong to user")
-	ErrPostNotFound            = errors.New("post not found")
-	ErrUploadFile              = errors.New("upload file error")
-	ErrInvalidNumPosts         = errors.New("invalid number of posts")
-	ErrInvalidTimestamp        = errors.New("invalid timestamp")
-)
+type PostValidator interface {
+	ValidateFeedParams(numPosts int, timestamp time.Time) error
+}
 
 type PostRepository interface {
 	AddPost(ctx context.Context, post models.Post) error
@@ -36,28 +33,29 @@ type PostRepository interface {
 	GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error)
 }
 
-type FileRepository interface {
+type FileService interface {
 	UploadFile(ctx context.Context, file *shared_models.File) (string, error)
 	UploadManyFiles(ctx context.Context, files []*shared_models.File) ([]string, error)
-	GetFileURL(ctx context.Context, filename string) (string, error)
 	DeleteFile(ctx context.Context, filename string) error
 }
 
-type PostService struct {
-	postRepo PostRepository
-	fileRepo FileRepository
+type PostUseCase struct {
+	postRepo  PostRepository
+	fileRepo  FileService
+	validator PostValidator
 }
 
-// NewPostService creates new post service.
-func NewPostService(postRepo PostRepository, fileRepo FileRepository) *PostService {
-	return &PostService{
-		postRepo: postRepo,
-		fileRepo: fileRepo,
+// NewPostUseCase creates new post service.
+func NewPostUseCase(postRepo PostRepository, fileRepo FileService, validator PostValidator) *PostUseCase {
+	return &PostUseCase{
+		postRepo:  postRepo,
+		fileRepo:  fileRepo,
+		validator: validator,
 	}
 }
 
 // AddPost adds post to the repository.
-func (p *PostService) AddPost(ctx context.Context, post models.Post) (models.Post, error) {
+func (p *PostUseCase) AddPost(ctx context.Context, post models.Post) (models.Post, error) {
 	post.Id = uuid.New()
 
 	var err error
@@ -77,13 +75,13 @@ func (p *PostService) AddPost(ctx context.Context, post models.Post) (models.Pos
 }
 
 // DeletePost removes post from the repository.
-func (p *PostService) DeletePost(ctx context.Context, user shared_models.User, postId uuid.UUID) error {
+func (p *PostUseCase) DeletePost(ctx context.Context, user shared_models.User, postId uuid.UUID) error {
 	belongsTo, err := p.postRepo.BelongsTo(ctx, user.Id, postId)
 	if err != nil {
-		return ErrPostNotFound
+		return post_errors.ErrPostNotFound
 	}
 	if !belongsTo && user.Username != "Nikita" && user.Username != "rvasutenko" {
-		return ErrPostDoesNotBelongToUser
+		return post_errors.ErrPostDoesNotBelongToUser
 	}
 
 	// retrieve post files
@@ -109,13 +107,13 @@ func (p *PostService) DeletePost(ctx context.Context, user shared_models.User, p
 }
 
 // FetchFeed returns feed for user.
-func (p *PostService) FetchFeed(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchFeed(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
-	err := validation.ValidateFeedParams(numPosts, timestamp)
+	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
-		return []models.Post{}, ErrInvalidNumPosts
+		return []models.Post{}, post_errors.ErrInvalidNumPosts
 	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
-		return []models.Post{}, ErrInvalidTimestamp
+		return []models.Post{}, post_errors.ErrInvalidTimestamp
 	} else if err != nil {
 		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
 	}
@@ -130,13 +128,13 @@ func (p *PostService) FetchFeed(ctx context.Context, user shared_models.User, nu
 }
 
 // FetchRecommendations returns recommendations for user.
-func (p *PostService) FetchRecommendations(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchRecommendations(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
-	err := validation.ValidateFeedParams(numPosts, timestamp)
+	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
-		return []models.Post{}, ErrInvalidNumPosts
+		return []models.Post{}, post_errors.ErrInvalidNumPosts
 	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
-		return []models.Post{}, ErrInvalidTimestamp
+		return []models.Post{}, post_errors.ErrInvalidTimestamp
 	} else if err != nil {
 		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
 	}
@@ -150,13 +148,13 @@ func (p *PostService) FetchRecommendations(ctx context.Context, user shared_mode
 	return posts, nil
 }
 
-func (p *PostService) FetchUserPosts(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchUserPosts(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
-	err := validation.ValidateFeedParams(numPosts, timestamp)
+	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
-		return []models.Post{}, ErrInvalidNumPosts
+		return []models.Post{}, post_errors.ErrInvalidNumPosts
 	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
-		return []models.Post{}, ErrInvalidTimestamp
+		return []models.Post{}, post_errors.ErrInvalidTimestamp
 	} else if err != nil {
 		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
 	}
@@ -170,7 +168,7 @@ func (p *PostService) FetchUserPosts(ctx context.Context, user shared_models.Use
 	return posts, nil
 }
 
-func (p *PostService) UpdatePost(ctx context.Context, postUpdate models.PostUpdate, userId uuid.UUID) (models.Post, error) {
+func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpdate, userId uuid.UUID) (models.Post, error) {
 	// check if user owns the post
 	belongsTo, err := p.postRepo.BelongsTo(ctx, userId, postUpdate.Id)
 	if err != nil {
@@ -178,7 +176,7 @@ func (p *PostService) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	}
 
 	if !belongsTo {
-		return models.Post{}, ErrPostDoesNotBelongToUser
+		return models.Post{}, post_errors.ErrPostDoesNotBelongToUser
 	}
 
 	// retrieve old post photos

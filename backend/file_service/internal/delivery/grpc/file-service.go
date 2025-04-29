@@ -8,18 +8,24 @@ import (
 	"google.golang.org/grpc/status"
 
 	"quickflow/file_service/internal/delivery/grpc/dto"
-	pb "quickflow/file_service/internal/delivery/grpc/proto"
 	qf_errors "quickflow/file_service/internal/errors"
-	"quickflow/file_service/internal/usecase"
 	"quickflow/shared/models"
+	pb "quickflow/shared/proto/file_service"
 )
+
+type FileUseCase interface {
+	UploadFile(ctx context.Context, fileModel *models.File) (string, error)
+	UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error)
+	GetFileURL(ctx context.Context, filename string) (string, error)
+	DeleteFile(ctx context.Context, filename string) error
+}
 
 type FileServiceServer struct {
 	pb.UnimplementedFileServiceServer
-	fileUC *usecase.FileUseCase
+	fileUC FileUseCase
 }
 
-func NewFileServiceServer(fileUC *usecase.FileUseCase) *FileServiceServer {
+func NewFileServiceServer(fileUC FileUseCase) *FileServiceServer {
 	return &FileServiceServer{fileUC: fileUC}
 }
 

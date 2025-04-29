@@ -1,8 +1,10 @@
 syntax = "proto3";
 
 package file_service;
-option go_package = "backend/post_service/internal/delivery/grpc/proto";
-import "file.proto";
+option go_package = "quickflow/post_service/internal/delivery/grpc/proto";
+
+import "google/protobuf/timestamp.proto";
+import "file_service/file_service.proto";
 
 message Post {
   string id = 1;
@@ -10,12 +12,18 @@ message Post {
   string description = 3;
   repeated string images_url = 4;
   repeated File images = 5;
-  string created_at = 6;
-  string updated_at = 7;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
   int64 like_count = 8;
   int64 repost_count = 9;
   int64 comment_count = 10;
   bool is_repost = 11;
+}
+
+message PostUpdate {
+  string id = 1;
+  string description = 2;
+  repeated File files = 3;
 }
 
 message AddPostRequest {
@@ -36,7 +44,7 @@ message DeletePostResponse {
 
 message FetchFeedRequest {
   int32 num_posts = 1;
-  string timestamp = 2;
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 message FetchFeedResponse {
@@ -45,7 +53,7 @@ message FetchFeedResponse {
 
 message FetchRecommendationsRequest {
   int32 num_posts = 1;
-  string timestamp = 2;
+  google.protobuf.Timestamp timestamp = 2;
 }
 
 message FetchRecommendationsResponse {
@@ -55,7 +63,7 @@ message FetchRecommendationsResponse {
 message FetchUserPostsRequest {
   string user_id = 1;
   int32 num_posts = 2;
-  string timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 message FetchUserPostsResponse {
@@ -63,7 +71,7 @@ message FetchUserPostsResponse {
 }
 
 message UpdatePostRequest {
-  Post post = 1;
+  PostUpdate post = 1;
 }
 
 message UpdatePostResponse {

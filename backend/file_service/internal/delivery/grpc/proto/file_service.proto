@@ -1,8 +1,8 @@
 syntax = "proto3";
 
 package file_service;
-option go_package = "backend/file_service/internal/delivery/grpc/proto";
-import "backend/shared/proto/file.proto";
+option go_package = "backend/post_service/internal/delivery/grpc/proto";
+import "file.proto";
 
 message UploadFileRequest {
   File file = 1;

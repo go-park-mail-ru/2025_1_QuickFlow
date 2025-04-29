@@ -10,11 +10,11 @@ RUN go mod download
 # Копируем весь проект в билд-контейнер
 COPY . .
 
-# Переходим в папку file_service
-WORKDIR /app/file_service
+# Переходим в папку post_service
+WORKDIR /app/post_service
 
 # Собираем сервис
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o file_service ./internal/server.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o post_service ./internal/server.go
 
 # Стейдж финальный
 FROM alpine:latest
@@ -23,10 +23,10 @@ WORKDIR /root/
 
 RUN apk --no-cache add ca-certificates
 
-COPY --from=builder /app/file_service/file_service .
+COPY --from=builder /app/post_service/post_service .
 
-COPY --from=builder /app/file_service/deploy/config ./config
+COPY --from=builder /app/post_service/deploy/config ./config
 
-EXPOSE 8081
+EXPOSE 8082
 
-ENTRYPOINT ["./file_service"]
+ENTRYPOINT ["./post_service"]

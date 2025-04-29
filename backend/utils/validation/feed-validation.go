@@ -10,7 +10,9 @@ var (
 	ErrInvalidTimestamp = errors.New("invalid timestamp")
 )
 
-func ValidateFeedParams(numPosts int, timestamp time.Time) error {
+type PostValidator struct{}
+
+func (p *PostValidator) ValidateFeedParams(numPosts int, timestamp time.Time) error {
 	if numPosts <= 0 {
 		return ErrInvalidNumPosts
 	}

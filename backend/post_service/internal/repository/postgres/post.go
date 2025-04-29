@@ -3,15 +3,18 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"quickflow/internal/models"
-	pgmodels "quickflow/internal/repository/postgres/postgres-models"
+	models_common "quickflow/internal/models"
 	"quickflow/pkg/logger"
+	post_errors "quickflow/post_service/internal/errors"
+	"quickflow/post_service/internal/models"
+	pgmodels "quickflow/post_service/internal/repository/postgres-models"
 )
 
 const getPostsQuery = `
@@ -169,6 +172,9 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 
 func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getUserPostsOlder, id, timestamp, numPosts)
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, post_errors.ErrNotFound
+	}
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			id, numPosts, timestamp, err.Error()))
@@ -213,7 +219,9 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 
 func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getRecommendationsForUserOlder, timestamp, numPosts)
-	if err != nil {
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, post_errors.ErrNotFound
+	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			uid, numPosts, timestamp, err.Error()))
 		return nil, fmt.Errorf("unable to get posts from database: %w", err)
@@ -257,8 +265,10 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 
 func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
-		models.RelationFriend, models.RelationFollowedBy, models.RelationFollowing)
-	if err != nil {
+		models_common.RelationFriend, models_common.RelationFollowedBy, models_common.RelationFollowing)
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, post_errors.ErrNotFound
+	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
 			uid, numPosts, timestamp, err.Error()))
 		return nil, fmt.Errorf("unable to get posts from database: %w", err)

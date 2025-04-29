@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"path"
 
-	pb "quickflow/file_service/internal/delivery/grpc/proto"
-	"quickflow/file_service/internal/models"
+	shared_models "quickflow/shared/models"
+	pb "quickflow/shared/proto/file_service"
 )
 
 // mapping to proto
 func MapUploadFileRequestToDTO(file *pb.UploadFileRequest) *UploadFileDTO {
 	return &UploadFileDTO{
-		Name:       file.FileName,
-		Size:       file.FileSize,
-		Content:    file.File,
-		MimeType:   file.FileType,
-		AccessMode: AccessModeDTO(file.AccessMode),
-		Ext:        path.Ext(file.FileName),
+		Name:       file.File.FileName,
+		Size:       file.File.FileSize,
+		Content:    file.File.File,
+		MimeType:   file.File.FileType,
+		AccessMode: AccessModeDTO(file.File.AccessMode),
+		Ext:        path.Ext(file.File.FileName),
 	}
 }
 
@@ -59,19 +59,19 @@ func MapDTOToDeleteFileResponse(success bool) *pb.DeleteFileResponse {
 }
 
 // mapping to models
-func MapDTOFileToModel(fileDTO *UploadFileDTO) *models.File {
-	return &models.File{
+func MapDTOFileToModel(fileDTO *UploadFileDTO) *shared_models.File {
+	return &shared_models.File{
 		Name:       fileDTO.Name,
 		Size:       fileDTO.Size,
 		Reader:     bytes.NewReader(fileDTO.Content),
 		MimeType:   fileDTO.MimeType,
-		AccessMode: models.AccessMode(fileDTO.AccessMode),
+		AccessMode: shared_models.AccessMode(fileDTO.AccessMode),
 		Ext:        fileDTO.Ext,
 		URL:        fileDTO.URL,
 	}
 }
 
-func MapModelFileToDTO(file *models.File) *UploadFileDTO {
+func MapModelFileToDTO(file *shared_models.File) *UploadFileDTO {
 
 	return &UploadFileDTO{
 		Name:       file.Name,
