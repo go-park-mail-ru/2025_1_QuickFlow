@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,291 +20,291 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PostService_GetFriendsInfo_FullMethodName      = "/friends_service.PostService/GetFriendsInfo"
-	PostService_SendFriendRequest_FullMethodName   = "/friends_service.PostService/SendFriendRequest"
-	PostService_AcceptFriendRequest_FullMethodName = "/friends_service.PostService/AcceptFriendRequest"
-	PostService_Unfollow_FullMethodName            = "/friends_service.PostService/Unfollow"
-	PostService_DeleteFriend_FullMethodName        = "/friends_service.PostService/DeleteFriend"
-	PostService_GetUserRelation_FullMethodName     = "/friends_service.PostService/GetUserRelation"
+	FriendsService_GetFriendsInfo_FullMethodName      = "/friends_service.FriendsService/GetFriendsInfo"
+	FriendsService_SendFriendRequest_FullMethodName   = "/friends_service.FriendsService/SendFriendRequest"
+	FriendsService_AcceptFriendRequest_FullMethodName = "/friends_service.FriendsService/AcceptFriendRequest"
+	FriendsService_Unfollow_FullMethodName            = "/friends_service.FriendsService/Unfollow"
+	FriendsService_DeleteFriend_FullMethodName        = "/friends_service.FriendsService/DeleteFriend"
+	FriendsService_GetUserRelation_FullMethodName     = "/friends_service.FriendsService/GetUserRelation"
 )
 
-// PostServiceClient is the client API for PostService service.
+// FriendsServiceClient is the client API for FriendsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PostServiceClient interface {
-	GetFriendsInfo(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*GetFriendsInfoResponse, error)
-	SendFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error)
-	AcceptFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error)
-	Unfollow(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error)
-	DeleteFriend(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error)
+type FriendsServiceClient interface {
+	GetFriendsInfo(ctx context.Context, in *GetFriendsInfoRequest, opts ...grpc.CallOption) (*GetFriendsInfoResponse, error)
+	SendFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	AcceptFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Unfollow(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteFriend(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetUserRelation(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*RelationResponse, error)
 }
 
-type postServiceClient struct {
+type friendsServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPostServiceClient(cc grpc.ClientConnInterface) PostServiceClient {
-	return &postServiceClient{cc}
+func NewFriendsServiceClient(cc grpc.ClientConnInterface) FriendsServiceClient {
+	return &friendsServiceClient{cc}
 }
 
-func (c *postServiceClient) GetFriendsInfo(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*GetFriendsInfoResponse, error) {
+func (c *friendsServiceClient) GetFriendsInfo(ctx context.Context, in *GetFriendsInfoRequest, opts ...grpc.CallOption) (*GetFriendsInfoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetFriendsInfoResponse)
-	err := c.cc.Invoke(ctx, PostService_GetFriendsInfo_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, FriendsService_GetFriendsInfo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postServiceClient) SendFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error) {
+func (c *friendsServiceClient) SendFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FriendResponse)
-	err := c.cc.Invoke(ctx, PostService_SendFriendRequest_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, FriendsService_SendFriendRequest_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postServiceClient) AcceptFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error) {
+func (c *friendsServiceClient) AcceptFriendRequest(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FriendResponse)
-	err := c.cc.Invoke(ctx, PostService_AcceptFriendRequest_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, FriendsService_AcceptFriendRequest_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postServiceClient) Unfollow(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error) {
+func (c *friendsServiceClient) Unfollow(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FriendResponse)
-	err := c.cc.Invoke(ctx, PostService_Unfollow_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, FriendsService_Unfollow_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postServiceClient) DeleteFriend(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*FriendResponse, error) {
+func (c *friendsServiceClient) DeleteFriend(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FriendResponse)
-	err := c.cc.Invoke(ctx, PostService_DeleteFriend_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, FriendsService_DeleteFriend_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postServiceClient) GetUserRelation(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*RelationResponse, error) {
+func (c *friendsServiceClient) GetUserRelation(ctx context.Context, in *FriendRequest, opts ...grpc.CallOption) (*RelationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RelationResponse)
-	err := c.cc.Invoke(ctx, PostService_GetUserRelation_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, FriendsService_GetUserRelation_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// PostServiceServer is the server API for PostService service.
-// All implementations must embed UnimplementedPostServiceServer
+// FriendsServiceServer is the server API for FriendsService service.
+// All implementations must embed UnimplementedFriendsServiceServer
 // for forward compatibility.
-type PostServiceServer interface {
-	GetFriendsInfo(context.Context, *FriendRequest) (*GetFriendsInfoResponse, error)
-	SendFriendRequest(context.Context, *FriendRequest) (*FriendResponse, error)
-	AcceptFriendRequest(context.Context, *FriendRequest) (*FriendResponse, error)
-	Unfollow(context.Context, *FriendRequest) (*FriendResponse, error)
-	DeleteFriend(context.Context, *FriendRequest) (*FriendResponse, error)
+type FriendsServiceServer interface {
+	GetFriendsInfo(context.Context, *GetFriendsInfoRequest) (*GetFriendsInfoResponse, error)
+	SendFriendRequest(context.Context, *FriendRequest) (*emptypb.Empty, error)
+	AcceptFriendRequest(context.Context, *FriendRequest) (*emptypb.Empty, error)
+	Unfollow(context.Context, *FriendRequest) (*emptypb.Empty, error)
+	DeleteFriend(context.Context, *FriendRequest) (*emptypb.Empty, error)
 	GetUserRelation(context.Context, *FriendRequest) (*RelationResponse, error)
-	mustEmbedUnimplementedPostServiceServer()
+	mustEmbedUnimplementedFriendsServiceServer()
 }
 
-// UnimplementedPostServiceServer must be embedded to have
+// UnimplementedFriendsServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedPostServiceServer struct{}
+type UnimplementedFriendsServiceServer struct{}
 
-func (UnimplementedPostServiceServer) GetFriendsInfo(context.Context, *FriendRequest) (*GetFriendsInfoResponse, error) {
+func (UnimplementedFriendsServiceServer) GetFriendsInfo(context.Context, *GetFriendsInfoRequest) (*GetFriendsInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFriendsInfo not implemented")
 }
-func (UnimplementedPostServiceServer) SendFriendRequest(context.Context, *FriendRequest) (*FriendResponse, error) {
+func (UnimplementedFriendsServiceServer) SendFriendRequest(context.Context, *FriendRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendFriendRequest not implemented")
 }
-func (UnimplementedPostServiceServer) AcceptFriendRequest(context.Context, *FriendRequest) (*FriendResponse, error) {
+func (UnimplementedFriendsServiceServer) AcceptFriendRequest(context.Context, *FriendRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AcceptFriendRequest not implemented")
 }
-func (UnimplementedPostServiceServer) Unfollow(context.Context, *FriendRequest) (*FriendResponse, error) {
+func (UnimplementedFriendsServiceServer) Unfollow(context.Context, *FriendRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unfollow not implemented")
 }
-func (UnimplementedPostServiceServer) DeleteFriend(context.Context, *FriendRequest) (*FriendResponse, error) {
+func (UnimplementedFriendsServiceServer) DeleteFriend(context.Context, *FriendRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteFriend not implemented")
 }
-func (UnimplementedPostServiceServer) GetUserRelation(context.Context, *FriendRequest) (*RelationResponse, error) {
+func (UnimplementedFriendsServiceServer) GetUserRelation(context.Context, *FriendRequest) (*RelationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserRelation not implemented")
 }
-func (UnimplementedPostServiceServer) mustEmbedUnimplementedPostServiceServer() {}
-func (UnimplementedPostServiceServer) testEmbeddedByValue()                     {}
+func (UnimplementedFriendsServiceServer) mustEmbedUnimplementedFriendsServiceServer() {}
+func (UnimplementedFriendsServiceServer) testEmbeddedByValue()                        {}
 
-// UnsafePostServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PostServiceServer will
+// UnsafeFriendsServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to FriendsServiceServer will
 // result in compilation errors.
-type UnsafePostServiceServer interface {
-	mustEmbedUnimplementedPostServiceServer()
+type UnsafeFriendsServiceServer interface {
+	mustEmbedUnimplementedFriendsServiceServer()
 }
 
-func RegisterPostServiceServer(s grpc.ServiceRegistrar, srv PostServiceServer) {
-	// If the following call pancis, it indicates UnimplementedPostServiceServer was
+func RegisterFriendsServiceServer(s grpc.ServiceRegistrar, srv FriendsServiceServer) {
+	// If the following call pancis, it indicates UnimplementedFriendsServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&PostService_ServiceDesc, srv)
+	s.RegisterService(&FriendsService_ServiceDesc, srv)
 }
 
-func _PostService_GetFriendsInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FriendsService_GetFriendsInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFriendsInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FriendsServiceServer).GetFriendsInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FriendsService_GetFriendsInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FriendsServiceServer).GetFriendsInfo(ctx, req.(*GetFriendsInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FriendsService_SendFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FriendRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostServiceServer).GetFriendsInfo(ctx, in)
+		return srv.(FriendsServiceServer).SendFriendRequest(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PostService_GetFriendsInfo_FullMethodName,
+		FullMethod: FriendsService_SendFriendRequest_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).GetFriendsInfo(ctx, req.(*FriendRequest))
+		return srv.(FriendsServiceServer).SendFriendRequest(ctx, req.(*FriendRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostService_SendFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FriendsService_AcceptFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FriendRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostServiceServer).SendFriendRequest(ctx, in)
+		return srv.(FriendsServiceServer).AcceptFriendRequest(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PostService_SendFriendRequest_FullMethodName,
+		FullMethod: FriendsService_AcceptFriendRequest_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).SendFriendRequest(ctx, req.(*FriendRequest))
+		return srv.(FriendsServiceServer).AcceptFriendRequest(ctx, req.(*FriendRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostService_AcceptFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FriendsService_Unfollow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FriendRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostServiceServer).AcceptFriendRequest(ctx, in)
+		return srv.(FriendsServiceServer).Unfollow(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PostService_AcceptFriendRequest_FullMethodName,
+		FullMethod: FriendsService_Unfollow_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).AcceptFriendRequest(ctx, req.(*FriendRequest))
+		return srv.(FriendsServiceServer).Unfollow(ctx, req.(*FriendRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostService_Unfollow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FriendsService_DeleteFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FriendRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostServiceServer).Unfollow(ctx, in)
+		return srv.(FriendsServiceServer).DeleteFriend(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PostService_Unfollow_FullMethodName,
+		FullMethod: FriendsService_DeleteFriend_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).Unfollow(ctx, req.(*FriendRequest))
+		return srv.(FriendsServiceServer).DeleteFriend(ctx, req.(*FriendRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostService_DeleteFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FriendsService_GetUserRelation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FriendRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostServiceServer).DeleteFriend(ctx, in)
+		return srv.(FriendsServiceServer).GetUserRelation(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PostService_DeleteFriend_FullMethodName,
+		FullMethod: FriendsService_GetUserRelation_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).DeleteFriend(ctx, req.(*FriendRequest))
+		return srv.(FriendsServiceServer).GetUserRelation(ctx, req.(*FriendRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostService_GetUserRelation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FriendRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PostServiceServer).GetUserRelation(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PostService_GetUserRelation_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).GetUserRelation(ctx, req.(*FriendRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// PostService_ServiceDesc is the grpc.ServiceDesc for PostService service.
+// FriendsService_ServiceDesc is the grpc.ServiceDesc for FriendsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var PostService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "friends_service.PostService",
-	HandlerType: (*PostServiceServer)(nil),
+var FriendsService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "friends_service.FriendsService",
+	HandlerType: (*FriendsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetFriendsInfo",
-			Handler:    _PostService_GetFriendsInfo_Handler,
+			Handler:    _FriendsService_GetFriendsInfo_Handler,
 		},
 		{
 			MethodName: "SendFriendRequest",
-			Handler:    _PostService_SendFriendRequest_Handler,
+			Handler:    _FriendsService_SendFriendRequest_Handler,
 		},
 		{
 			MethodName: "AcceptFriendRequest",
-			Handler:    _PostService_AcceptFriendRequest_Handler,
+			Handler:    _FriendsService_AcceptFriendRequest_Handler,
 		},
 		{
 			MethodName: "Unfollow",
-			Handler:    _PostService_Unfollow_Handler,
+			Handler:    _FriendsService_Unfollow_Handler,
 		},
 		{
 			MethodName: "DeleteFriend",
-			Handler:    _PostService_DeleteFriend_Handler,
+			Handler:    _FriendsService_DeleteFriend_Handler,
 		},
 		{
 			MethodName: "GetUserRelation",
-			Handler:    _PostService_GetUserRelation_Handler,
+			Handler:    _FriendsService_GetUserRelation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
