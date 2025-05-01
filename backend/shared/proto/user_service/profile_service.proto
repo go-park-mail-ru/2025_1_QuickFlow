@@ -99,6 +99,14 @@ message GetPublicUserInfoResponse {
   PublicUserInfo user_info = 1;
 }
 
+message GetPublicUsersInfoRequest {
+  repeated string user_ids = 1;
+}
+
+message GetPublicUsersInfoResponse {
+  repeated PublicUserInfo users_info = 1;
+}
+
 service ProfileService {
   rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
@@ -106,4 +114,5 @@ service ProfileService {
   rpc GetProfileByUsername(GetProfileByUsernameRequest) returns (GetProfileByUsernameResponse);
   rpc UpdateLastSeen(UpdateLastSeenRequest) returns (UpdateLastSeenResponse);
   rpc GetPublicUserInfo(GetPublicUserInfoRequest) returns (GetPublicUserInfoResponse);
+  rpc GetPublicUsersInfo(GetPublicUsersInfoRequest) returns (GetPublicUsersInfoResponse);
 }

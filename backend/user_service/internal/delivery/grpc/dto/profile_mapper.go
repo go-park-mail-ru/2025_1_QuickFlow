@@ -5,7 +5,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	shared_models "quickflow/shared/models"
-	db "quickflow/user_service/internal/delivery/grpc/proto"
+	db "quickflow/shared/proto/user_service"
 )
 
 func MapSchoolEducationToDTO(schoolEducation *shared_models.SchoolEducation) *db.SchoolEducation {

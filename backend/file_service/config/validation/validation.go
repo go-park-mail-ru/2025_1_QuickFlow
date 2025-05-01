@@ -19,7 +19,7 @@ type ValidationConfig struct {
 
 type validationConfigRaw struct {
 	MaxPicturesCount int      `toml:"max_picture_count"`
-	AllowedFileExt   []string `toml:"allowed_file_ext"`
+	AllowedFileExt   []string `toml:"allowed_img_ext"`
 	MaxPictureSize   string   `toml:"max_picture_size"`
 }
 

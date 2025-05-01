@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 
-	"quickflow/internal/models"
+	"quickflow/shared/models"
 	"quickflow/utils/validation"
 )
 

@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	shared_models "quickflow/shared/models"
+	pb "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/delivery/grpc/dto"
-	pb "quickflow/user_service/internal/delivery/grpc/proto"
 	user_errors "quickflow/user_service/internal/errors"
 )
 
@@ -85,22 +85,6 @@ func (s *UserServiceServer) GetUserByUsername(ctx context.Context, req *pb.GetUs
 	}, nil
 }
 
-// --- Грамотная обработка ошибок
-func grpcErrorFromAppError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	switch {
-	case errors.Is(err, user_errors.ErrAlreadyExists):
-		return status.Error(codes.AlreadyExists, err.Error())
-	case errors.Is(err, user_errors.ErrNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	default:
-		return status.Error(codes.Internal, err.Error())
-	}
-}
-
 func (s *UserServiceServer) GetUserById(ctx context.Context, req *pb.GetUserByIdRequest) (*pb.GetUserByIdResponse, error) {
 	userId, err := uuid.Parse(req.Id)
 	if err != nil {
@@ -115,4 +99,37 @@ func (s *UserServiceServer) GetUserById(ctx context.Context, req *pb.GetUserById
 	return &pb.GetUserByIdResponse{
 		User: dto.MapUserToUserDTO(&user),
 	}, nil
+}
+
+func (s *UserServiceServer) LookupUserSession(ctx context.Context, req *pb.LookupUserSessionRequest) (*pb.LookupUserSessionResponse, error) {
+	sessionId, err := uuid.Parse(req.SessionId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid session id")
+	}
+
+	session := shared_models.Session{SessionId: sessionId}
+	user, err := s.authUseCase.LookupUserSession(ctx, session)
+	if err != nil {
+		return nil, grpcErrorFromAppError(err)
+	}
+
+	return &pb.LookupUserSessionResponse{
+		UserId:   user.Id.String(),
+		Username: user.Username,
+	}, nil
+}
+
+func grpcErrorFromAppError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case errors.Is(err, user_errors.ErrAlreadyExists):
+		return status.Error(codes.AlreadyExists, err.Error())
+	case errors.Is(err, user_errors.ErrNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	default:
+		return status.Error(codes.Internal, err.Error())
+	}
 }

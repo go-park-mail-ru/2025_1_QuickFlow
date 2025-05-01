@@ -11,9 +11,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	postgres_config "quickflow/config/postgres"
+	proto "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/client/file_sevice"
 	grpc2 "quickflow/user_service/internal/delivery/grpc"
-	"quickflow/user_service/internal/delivery/grpc/proto"
 	"quickflow/user_service/internal/repository/postgres"
 	"quickflow/user_service/internal/repository/redis"
 	"quickflow/user_service/internal/usecase"

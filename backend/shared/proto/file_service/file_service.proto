@@ -14,6 +14,7 @@ message File {
   string file_type = 3;
   int64 file_size = 4;
   AccessMode access_mode = 5;
+  string url = 6;
 }
 
 message UploadFileRequest {

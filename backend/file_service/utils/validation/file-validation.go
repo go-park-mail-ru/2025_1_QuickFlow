@@ -29,7 +29,7 @@ func (f *FileValidator) ValidateFile(file *models.File) error {
 	if err := f.validateFileSize(file.Size); err != nil {
 		return err
 	}
-	if err := f.validateFileMimeType(file.MimeType); err != nil {
+	if err := f.validateFileMimeType(file.Ext); err != nil {
 		return err
 	}
 	return nil

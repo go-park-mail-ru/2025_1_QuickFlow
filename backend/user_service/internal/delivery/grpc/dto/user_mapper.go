@@ -10,7 +10,7 @@ import (
 
 	shared_models "quickflow/shared/models"
 	proto "quickflow/shared/proto/file_service"
-	pb "quickflow/user_service/internal/delivery/grpc/proto"
+	pb "quickflow/shared/proto/user_service"
 )
 
 func MapFileToFileDTO(file *proto.File) *shared_models.File {

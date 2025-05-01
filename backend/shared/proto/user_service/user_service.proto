@@ -65,10 +65,20 @@ message GetUserByIdResponse {
   User user = 1;
 }
 
+message LookupUserSessionRequest {
+  string session_id = 1;
+}
+
+message LookupUserSessionResponse {
+  string user_id = 1;
+  string username = 2;
+}
+
 service UserService {
   rpc SignUp(SignUpRequest) returns (SignUpResponse);
   rpc SignIn(SignInRequest) returns (SignInResponse);
   rpc SignOut(SignOutRequest) returns (SignOutResponse);
   rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
   rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
+  rpc LookupUserSession(LookupUserSessionRequest) returns (LookupUserSessionResponse);
 }

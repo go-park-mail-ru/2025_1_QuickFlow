@@ -12,7 +12,7 @@ var (
 
 type PostValidator struct{}
 
-func (p *PostValidator) ValidateFeedParams(numPosts int, timestamp time.Time) error {
+func ValidateFeedParams(numPosts int, timestamp time.Time) error {
 	if numPosts <= 0 {
 		return ErrInvalidNumPosts
 	}

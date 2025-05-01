@@ -277,5 +277,5 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "profile_service.proto",
+	Metadata: "chat_service.proto",
 }

@@ -146,7 +146,7 @@ func (p *ProfileService) GetPublicUserInfo(ctx context.Context, userId uuid.UUID
 	return publicInfo, nil
 }
 
-func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) (map[uuid.UUID]shared_models.PublicUserInfo, error) {
+func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]shared_models.PublicUserInfo, error) {
 	if len(userIds) == 0 {
 		return nil, fmt.Errorf("userIds is empty")
 	}
@@ -156,11 +156,7 @@ func (p *ProfileService) GetPublicUsersInfo(ctx context.Context, userIds []uuid.
 		return nil, fmt.Errorf("p.profileRepo.GetPublicUsersInfo: %w", err)
 	}
 
-	userInfoMap := make(map[uuid.UUID]shared_models.PublicUserInfo)
-	for _, userInfo := range publicInfo {
-		userInfoMap[userInfo.Id] = userInfo
-	}
-	return userInfoMap, nil
+	return publicInfo, nil
 }
 
 func (p *ProfileService) UpdateLastSeen(ctx context.Context, userId uuid.UUID) error {

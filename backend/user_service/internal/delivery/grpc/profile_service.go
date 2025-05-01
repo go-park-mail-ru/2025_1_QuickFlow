@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	shared_models "quickflow/shared/models"
+	pb "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/delivery/grpc/dto"
-	pb "quickflow/user_service/internal/delivery/grpc/proto"
 	user_errors "quickflow/user_service/internal/errors"
 )
 
@@ -21,6 +21,7 @@ type ProfileUseCase interface {
 	GetProfileByUsername(ctx context.Context, username string) (shared_models.Profile, error)
 	UpdateLastSeen(ctx context.Context, userID uuid.UUID) error
 	GetPublicUserInfo(ctx context.Context, userID uuid.UUID) (shared_models.PublicUserInfo, error)
+	GetPublicUsersInfo(ctx context.Context, userIds []uuid.UUID) ([]shared_models.PublicUserInfo, error)
 }
 
 type ProfileServiceServer struct {
@@ -153,5 +154,36 @@ func (p *ProfileServiceServer) GetPublicUserInfo(ctx context.Context, req *pb.Ge
 
 	return &pb.GetPublicUserInfoResponse{
 		UserInfo: dto.MapPublicUserInfoToDTO(&info),
+	}, nil
+}
+
+// GetPublicUsersInfo получает публичную информацию о нескольких пользователях
+func (p *ProfileServiceServer) GetPublicUsersInfo(ctx context.Context, req *pb.GetPublicUsersInfoRequest) (*pb.GetPublicUsersInfoResponse, error) {
+	userIds := req.GetUserIds()
+	if len(userIds) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "user ids are required")
+	}
+
+	parsedUserIds := make([]uuid.UUID, len(userIds))
+	for i, id := range userIds {
+		parsedId, err := uuid.Parse(id)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid user id")
+		}
+		parsedUserIds[i] = parsedId
+	}
+
+	publicInfo, err := p.profileUC.GetPublicUsersInfo(ctx, parsedUserIds)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get public users info: %v", err)
+	}
+
+	var userInfos []*pb.PublicUserInfo
+	for _, info := range publicInfo {
+		userInfos = append(userInfos, dto.MapPublicUserInfoToDTO(&info))
+	}
+
+	return &pb.GetPublicUsersInfoResponse{
+		UsersInfo: userInfos,
 	}, nil
 }

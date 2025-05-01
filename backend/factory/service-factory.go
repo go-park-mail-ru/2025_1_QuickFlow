@@ -52,8 +52,8 @@ func (f *DefaultServiceFactory) ChatService() *usecase.ChatService {
 	)
 }
 
-func (f *DefaultServiceFactory) MessageService() *usecase.MessageService {
-	return usecase.NewMessageService(
+func (f *DefaultServiceFactory) MessageService() *usecase.MessageUseCase {
+	return usecase.NewMessageUseCase(
 		f.repoFactory.MessageRepository(),
 		f.repoFactory.FileRepository(),
 		f.repoFactory.ChatRepository(),
