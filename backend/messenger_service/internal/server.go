@@ -12,12 +12,13 @@ import (
 
 	postgres_config "quickflow/config/postgres"
 	grpc2 "quickflow/messenger_service/internal/delivery/grpc"
-	"quickflow/messenger_service/internal/delivery/grpc/proto"
+	"quickflow/messenger_service/internal/delivery/grpc/interceptor"
 	"quickflow/messenger_service/internal/repository/postgres"
 	"quickflow/messenger_service/internal/usecase"
 	"quickflow/messenger_service/utils/validation"
 	"quickflow/shared/client/file_service"
 	"quickflow/shared/client/user_service"
+	"quickflow/shared/proto/messenger_service"
 )
 
 func main() {
@@ -28,17 +29,20 @@ func main() {
 	defer listener.Close()
 
 	grpcConnFileService, err := grpc.NewClient(
-		"localhost:8081",
+		"127.0.0.1:8081",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+	if err != nil {
+		log.Fatalf("failed to connect to file service: %v", err)
+	}
 
 	grpcConnUserService, err := grpc.NewClient(
-		"localhost:8083",
+		"127.0.0.1:8083",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
 	if err != nil {
-		log.Fatalf("failed to connect to file service: %v", err)
+		log.Fatalf("failed to connect to user service: %v", err)
 	}
 	defer grpcConnFileService.Close()
 
@@ -59,7 +63,12 @@ func main() {
 	messageUseCase := usecase.NewMessageService(messageRepo, fileService, chatRepo, messageValidator)
 	chatUseCase := usecase.NewChatUseCase(chatRepo, fileService, profileService, messageRepo, chatValidator)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interceptor.ErrorInterceptor,
+			interceptor.RequestIDUnaryInterceptor,
+		),
+	)
 
 	log.Printf("Server is listening on %s", listener.Addr().String())
 	proto.RegisterChatServiceServer(server, grpc2.NewChatServiceServer(chatUseCase))

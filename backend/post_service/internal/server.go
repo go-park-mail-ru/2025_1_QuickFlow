@@ -14,10 +14,10 @@ import (
 	"quickflow/post_service/internal/client/file_sevice"
 	"quickflow/post_service/internal/client/user_service"
 	grpc3 "quickflow/post_service/internal/delivery/grpc"
-	"quickflow/post_service/internal/delivery/grpc/proto"
 	"quickflow/post_service/internal/repository/postgres"
 	"quickflow/post_service/internal/usecase"
 	"quickflow/post_service/utils/validation"
+	"quickflow/shared/proto/post_service"
 )
 
 func main() {
@@ -27,13 +27,13 @@ func main() {
 	}
 	defer listener.Close()
 
-	grpcConnFileService, err := grpc.NewClient(
-		"localhost:8081",
+	grpcConnFileService, err := grpc.Dial(
+		"127.0.0.1:8081",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
 	grpcConnUserService, err := grpc.Dial(
-		"localhost:8083",
+		"127.0.0.1:8083",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 

@@ -10,8 +10,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"quickflow/messenger_service/internal/delivery/grpc/dto"
-	pb "quickflow/messenger_service/internal/delivery/grpc/proto"
 	"quickflow/shared/models"
+	pb "quickflow/shared/proto/messenger_service"
 )
 
 type MessageUseCase interface {
@@ -38,7 +38,7 @@ func (m *MessageServiceServer) GetMessagesForChat(ctx context.Context, req *pb.G
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	userId, err := uuid.Parse(ctx.Value("user_id").(string))
+	userId, err := uuid.Parse(req.UserAuthId)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "user not found in context")
 	}
@@ -70,7 +70,7 @@ func (m *MessageServiceServer) GetMessageById(ctx context.Context, req *pb.GetMe
 }
 
 func (m *MessageServiceServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-	userId, err := uuid.Parse(ctx.Value("user_id").(string))
+	userId, err := uuid.Parse(req.UserAuthId)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "user not found in context")
 	}
@@ -114,7 +114,7 @@ func (m *MessageServiceServer) UpdateLastReadTs(ctx context.Context, req *pb.Upd
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	userId, err := uuid.Parse(ctx.Value("user_id").(string))
+	userId, err := uuid.Parse(req.UserAuthId)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "user not found in context")
 	}
@@ -135,7 +135,7 @@ func (m *MessageServiceServer) GetLastReadTs(ctx context.Context, req *pb.GetLas
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	userId, err := uuid.Parse(ctx.Value("user_id").(string))
+	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "user not found in context")
 	}

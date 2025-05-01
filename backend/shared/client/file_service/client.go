@@ -3,7 +3,7 @@ package file_service
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/file_service"
@@ -29,7 +29,7 @@ func (f *FileClient) UploadFile(ctx context.Context, file *models.File) (string,
 
 	// Если есть Reader — читаем
 	if file.Reader != nil {
-		fileBytes, err = ioutil.ReadAll(file.Reader)
+		fileBytes, err = io.ReadAll(file.Reader)
 		if err != nil {
 			return "", fmt.Errorf("failed to read file: %w", err)
 		}
@@ -62,7 +62,7 @@ func (f *FileClient) UploadManyFiles(ctx context.Context, files []*models.File) 
 		var err error
 
 		if file.Reader != nil {
-			fileBytes, err = ioutil.ReadAll(file.Reader)
+			fileBytes, err = io.ReadAll(file.Reader)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read file: %w", err)
 			}

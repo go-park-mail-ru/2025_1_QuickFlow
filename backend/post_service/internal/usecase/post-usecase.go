@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	post_errors "quickflow/post_service/internal/errors"
-	"quickflow/post_service/internal/models"
+	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
 	"quickflow/utils/validation"
 )
@@ -55,34 +55,36 @@ func NewPostUseCase(postRepo PostRepository, fileRepo FileService, validator Pos
 }
 
 // AddPost adds post to the repository.
-func (p *PostUseCase) AddPost(ctx context.Context, post models.Post) (models.Post, error) {
+func (p *PostUseCase) AddPost(ctx context.Context, post models.Post) (*models.Post, error) {
 	post.Id = uuid.New()
 
 	var err error
 	// Upload files to storage
 	post.ImagesURL, err = p.fileRepo.UploadManyFiles(ctx, post.Images)
 	if err != nil {
-		return models.Post{}, fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
+		return nil, fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
 	}
 
 	// Update post images with urls
 	err = p.postRepo.AddPost(ctx, post)
 	if err != nil {
-		return models.Post{}, fmt.Errorf("p.postRepo.AddPost: %w", err)
+		return nil, fmt.Errorf("p.postRepo.AddPost: %w", err)
 	}
 
-	return post, nil
+	return &post, nil
 }
 
 // DeletePost removes post from the repository.
-func (p *PostUseCase) DeletePost(ctx context.Context, user shared_models.User, postId uuid.UUID) error {
-	belongsTo, err := p.postRepo.BelongsTo(ctx, user.Id, postId)
-	if err != nil {
-		return post_errors.ErrPostNotFound
-	}
-	if !belongsTo && user.Username != "Nikita" && user.Username != "rvasutenko" {
-		return post_errors.ErrPostDoesNotBelongToUser
-	}
+func (p *PostUseCase) DeletePost(ctx context.Context, userId uuid.UUID, postId uuid.UUID) error {
+	//belongsTo, err := p.postRepo.BelongsTo(ctx, userId, postId)
+	//if err != nil {
+	//	return post_errors.ErrPostNotFound
+	//}
+
+	// TODO user_service
+	//if !belongsTo && user.Username != "Nikita" && user.Username != "rvasutenko" {
+	//	return post_errors.ErrPostDoesNotBelongToUser
+	//}
 
 	// retrieve post files
 	postFiles, err := p.postRepo.GetPostFiles(ctx, postId)
@@ -107,28 +109,28 @@ func (p *PostUseCase) DeletePost(ctx context.Context, user shared_models.User, p
 }
 
 // FetchFeed returns feed for user.
-func (p *PostUseCase) FetchFeed(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchFeed(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
 	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
-		return []models.Post{}, post_errors.ErrInvalidNumPosts
+		return nil, post_errors.ErrInvalidNumPosts
 	} else if errors.Is(err, validation.ErrInvalidTimestamp) {
-		return []models.Post{}, post_errors.ErrInvalidTimestamp
+		return nil, post_errors.ErrInvalidTimestamp
 	} else if err != nil {
-		return []models.Post{}, fmt.Errorf("validation.ValidateFeedParams: %w", err)
+		return nil, fmt.Errorf("validation.ValidateFeedParams: %w", err)
 	}
 
 	// fetch posts
-	posts, err := p.postRepo.GetPostsForUId(ctx, user.Id, numPosts, timestamp)
+	posts, err := p.postRepo.GetPostsForUId(ctx, userId, numPosts, timestamp)
 	if err != nil {
-		return []models.Post{}, fmt.Errorf("p.repo.GetPostsForUId: %w", err)
+		return nil, fmt.Errorf("p.repo.GetPostsForUId: %w", err)
 	}
 
 	return posts, nil
 }
 
 // FetchRecommendations returns recommendations for user.
-func (p *PostUseCase) FetchRecommendations(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchRecommendations(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
 	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
@@ -140,7 +142,7 @@ func (p *PostUseCase) FetchRecommendations(ctx context.Context, user shared_mode
 	}
 
 	// fetch posts
-	posts, err := p.postRepo.GetRecommendationsForUId(ctx, user.Id, numPosts, timestamp)
+	posts, err := p.postRepo.GetRecommendationsForUId(ctx, userId, numPosts, timestamp)
 	if err != nil {
 		return []models.Post{}, fmt.Errorf("p.repo.GetRecommendationsForUId: %w", err)
 	}
@@ -148,7 +150,7 @@ func (p *PostUseCase) FetchRecommendations(ctx context.Context, user shared_mode
 	return posts, nil
 }
 
-func (p *PostUseCase) FetchUserPosts(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchUserPosts(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
 	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
@@ -160,7 +162,7 @@ func (p *PostUseCase) FetchUserPosts(ctx context.Context, user shared_models.Use
 	}
 
 	// fetch posts
-	posts, err := p.postRepo.GetUserPosts(ctx, user.Id, numPosts, timestamp)
+	posts, err := p.postRepo.GetUserPosts(ctx, userId, numPosts, timestamp)
 	if err != nil {
 		return []models.Post{}, fmt.Errorf("p.repo.GetPostsForUId: %w", err)
 	}
@@ -168,21 +170,21 @@ func (p *PostUseCase) FetchUserPosts(ctx context.Context, user shared_models.Use
 	return posts, nil
 }
 
-func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpdate, userId uuid.UUID) (models.Post, error) {
+func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpdate, userId uuid.UUID) (*models.Post, error) {
 	// check if user owns the post
 	belongsTo, err := p.postRepo.BelongsTo(ctx, userId, postUpdate.Id)
 	if err != nil {
-		return models.Post{}, fmt.Errorf("p.postRepo.BelongsTo: %w", err)
+		return nil, fmt.Errorf("p.postRepo.BelongsTo: %w", err)
 	}
 
 	if !belongsTo {
-		return models.Post{}, post_errors.ErrPostDoesNotBelongToUser
+		return nil, post_errors.ErrPostDoesNotBelongToUser
 	}
 
 	// retrieve old post photos
 	oldPics, err := p.postRepo.GetPostFiles(ctx, postUpdate.Id)
 	if err != nil {
-		return models.Post{}, fmt.Errorf("p.postRepo.GetPostFiles: %w", err)
+		return nil, fmt.Errorf("p.postRepo.GetPostFiles: %w", err)
 	}
 
 	// Upload files to storage
@@ -219,7 +221,7 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	})
 
 	if err = g.Wait(); err != nil {
-		return models.Post{}, err
+		return nil, err
 	}
 	close(fileURLChan)
 
@@ -227,14 +229,14 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	for _, pic := range oldPics {
 		err = p.fileRepo.DeleteFile(ctx, path.Base(pic))
 		if err != nil {
-			return models.Post{}, fmt.Errorf("p.fileRepo.DeleteFile: %w", err)
+			return nil, fmt.Errorf("p.fileRepo.DeleteFile: %w", err)
 		}
 	}
 
 	post, err := p.postRepo.GetPost(ctx, postUpdate.Id)
 	if err != nil {
-		return models.Post{}, fmt.Errorf("p.postRepo.GetPost: %w", err)
+		return nil, fmt.Errorf("p.postRepo.GetPost: %w", err)
 	}
 
-	return post, nil
+	return &post, nil
 }

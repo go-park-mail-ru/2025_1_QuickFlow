@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	userclient "quickflow/shared/client/user_service"
 	shared_models "quickflow/shared/models"
 	pb "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/delivery/grpc/dto"
@@ -22,6 +23,7 @@ type UserUseCase interface {
 	LookupUserSession(ctx context.Context, session shared_models.Session) (shared_models.User, error)
 	DeleteUserSession(ctx context.Context, session string) error
 	GetUserById(ctx context.Context, userId uuid.UUID) (shared_models.User, error)
+	SearchSimilarUser(ctx context.Context, toSearch string, usersCount uint) ([]shared_models.PublicUserInfo, error)
 }
 type UserServiceServer struct {
 	pb.UnimplementedUserServiceServer
@@ -116,6 +118,22 @@ func (s *UserServiceServer) LookupUserSession(ctx context.Context, req *pb.Looku
 	return &pb.LookupUserSessionResponse{
 		UserId:   user.Id.String(),
 		Username: user.Username,
+	}, nil
+}
+
+func (s *UserServiceServer) SearchSimilarUser(ctx context.Context, req *pb.SearchSimilarUserRequest) (*pb.SearchSimilarUserResponse, error) {
+	users, err := s.authUseCase.SearchSimilarUser(ctx, req.ToSearch, uint(req.NumUsers))
+	if err != nil {
+		return nil, grpcErrorFromAppError(err)
+	}
+
+	protoUsers := make([]*pb.PublicUserInfo, len(users))
+	for i, user := range users {
+		protoUsers[i] = userclient.MapPublicUserInfoToDTO(&user)
+	}
+
+	return &pb.SearchSimilarUserResponse{
+		UsersInfo: protoUsers,
 	}, nil
 }
 

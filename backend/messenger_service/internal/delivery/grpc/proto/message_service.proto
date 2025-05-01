@@ -19,11 +19,11 @@ message Message {
   repeated string attachment_urls = 9;
 }
 
-// TODO: pass user?
 message GetMessagesForChatRequest {
   string chat_id = 1;
   int32 messages_num = 2;
   google.protobuf.Timestamp updated_at = 3;
+  string user_auth_id = 4;
 }
 
 message GetMessagesForChatResponse {

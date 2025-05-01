@@ -3,7 +3,7 @@ package postgres_models
 import (
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"quickflow/post_service/internal/models"
+	"quickflow/shared/models"
 )
 
 type PostPostgres struct {

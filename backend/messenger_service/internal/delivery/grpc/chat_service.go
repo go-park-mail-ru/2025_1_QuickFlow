@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	"quickflow/messenger_service/internal/delivery/grpc/dto"
-	pb "quickflow/messenger_service/internal/delivery/grpc/proto"
 	messenger_errors "quickflow/messenger_service/internal/errors"
 	"quickflow/shared/models"
+	pb "quickflow/shared/proto/messenger_service"
 )
 
 type ChatUseCase interface {

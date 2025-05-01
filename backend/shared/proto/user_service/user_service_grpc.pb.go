@@ -24,6 +24,7 @@ type UserServiceClient interface {
 	GetUserByUsername(ctx context.Context, in *GetUserByUsernameRequest, opts ...grpc.CallOption) (*GetUserByUsernameResponse, error)
 	GetUserById(ctx context.Context, in *GetUserByIdRequest, opts ...grpc.CallOption) (*GetUserByIdResponse, error)
 	LookupUserSession(ctx context.Context, in *LookupUserSessionRequest, opts ...grpc.CallOption) (*LookupUserSessionResponse, error)
+	SearchSimilarUser(ctx context.Context, in *SearchSimilarUserRequest, opts ...grpc.CallOption) (*SearchSimilarUserResponse, error)
 }
 
 type userServiceClient struct {
@@ -88,6 +89,15 @@ func (c *userServiceClient) LookupUserSession(ctx context.Context, in *LookupUse
 	return out, nil
 }
 
+func (c *userServiceClient) SearchSimilarUser(ctx context.Context, in *SearchSimilarUserRequest, opts ...grpc.CallOption) (*SearchSimilarUserResponse, error) {
+	out := new(SearchSimilarUserResponse)
+	err := c.cc.Invoke(ctx, "/user_service.UserService/SearchSimilarUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
@@ -98,6 +108,7 @@ type UserServiceServer interface {
 	GetUserByUsername(context.Context, *GetUserByUsernameRequest) (*GetUserByUsernameResponse, error)
 	GetUserById(context.Context, *GetUserByIdRequest) (*GetUserByIdResponse, error)
 	LookupUserSession(context.Context, *LookupUserSessionRequest) (*LookupUserSessionResponse, error)
+	SearchSimilarUser(context.Context, *SearchSimilarUserRequest) (*SearchSimilarUserResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -122,6 +133,9 @@ func (UnimplementedUserServiceServer) GetUserById(context.Context, *GetUserByIdR
 }
 func (UnimplementedUserServiceServer) LookupUserSession(context.Context, *LookupUserSessionRequest) (*LookupUserSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LookupUserSession not implemented")
+}
+func (UnimplementedUserServiceServer) SearchSimilarUser(context.Context, *SearchSimilarUserRequest) (*SearchSimilarUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchSimilarUser not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -244,6 +258,24 @@ func _UserService_LookupUserSession_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_SearchSimilarUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchSimilarUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SearchSimilarUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/user_service.UserService/SearchSimilarUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SearchSimilarUser(ctx, req.(*SearchSimilarUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -274,6 +306,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LookupUserSession",
 			Handler:    _UserService_LookupUserSession_Handler,
+		},
+		{
+			MethodName: "SearchSimilarUser",
+			Handler:    _UserService_SearchSimilarUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

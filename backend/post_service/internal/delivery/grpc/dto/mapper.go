@@ -2,67 +2,105 @@ package dto
 
 import (
 	"bytes"
-	"io"
 	"path"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb "quickflow/post_service/internal/delivery/grpc/proto"
-	"quickflow/post_service/internal/models"
+	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
-	file_service "quickflow/shared/proto/file_service"
+	"quickflow/shared/proto/file_service"
+	pb "quickflow/shared/proto/post_service"
 )
 
-func MapFileToFileDTO(file *shared_models.File) *FileDTO {
-	if file == nil {
+func ProtoFileToModel(f *file_service.File) *shared_models.File {
+	if f == nil {
 		return nil
 	}
-	data := make([]byte, 0)
-	if file.Reader != nil {
-		data = make([]byte, file.Size)
-		_, err := file.Reader.Read(data)
-		if err != nil {
-			return nil
-		}
-	}
-
-	return &FileDTO{
-		Name:       file.Name,
-		Size:       file.Size,
-		Ext:        file.Ext,
-		MimeType:   file.MimeType,
-		AccessMode: AccessModeDTO(file.AccessMode),
-		URL:        file.URL,
-		Content:    data,
-	}
-}
-
-func MapFileDTOToFile(fileDTO *FileDTO) *shared_models.File {
-	if fileDTO == nil {
-		return nil
-	}
-	var reader io.Reader
-	if fileDTO.Content != nil {
-		reader = bytes.NewReader(fileDTO.Content)
-	}
-
 	return &shared_models.File{
-		Name:       fileDTO.Name,
-		Size:       fileDTO.Size,
-		Ext:        fileDTO.Ext,
-		MimeType:   fileDTO.MimeType,
-		AccessMode: shared_models.AccessMode(fileDTO.AccessMode),
-		URL:        fileDTO.URL,
-		Reader:     reader,
+		Name:       f.FileName,
+		Size:       f.FileSize,
+		Ext:        path.Ext(f.FileName),
+		MimeType:   f.FileType,
+		AccessMode: shared_models.AccessMode(f.AccessMode),
+		Reader:     bytes.NewReader(f.File),
+		URL:        f.Url,
 	}
 }
 
-func (p *PostDTO) ConvertToProto() *pb.Post {
+func ProtoFilesToModel(files []*file_service.File) []*shared_models.File {
+	result := make([]*shared_models.File, len(files))
+	for i, f := range files {
+		result[i] = ProtoFileToModel(f)
+	}
+	return result
+}
+
+// Convert from proto.Post to model.Post
+func ProtoPostToModel(p *pb.Post) (*models.Post, error) {
+	id, err := uuid.Parse(p.Id)
+	if err != nil {
+		return nil, err
+	}
+	creatorId, err := uuid.Parse(p.CreatorId)
+	if err != nil {
+		return nil, err
+	}
+	return &models.Post{
+		Id:           id,
+		CreatorId:    creatorId,
+		Desc:         p.Description,
+		Images:       ProtoFilesToModel(p.Images),
+		ImagesURL:    p.ImagesUrl,
+		CreatedAt:    p.CreatedAt.AsTime(),
+		UpdatedAt:    p.UpdatedAt.AsTime(),
+		LikeCount:    int(p.LikeCount),
+		RepostCount:  int(p.RepostCount),
+		CommentCount: int(p.CommentCount),
+		IsRepost:     p.IsRepost,
+	}, nil
+}
+
+func ProtoPostUpdateToModel(p *pb.PostUpdate) (*models.PostUpdate, error) {
+	id, err := uuid.Parse(p.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &models.PostUpdate{
+		Id:    id,
+		Desc:  p.Description,
+		Files: ProtoFilesToModel(p.Files),
+	}, nil
+}
+
+func ModelFileToProto(f *shared_models.File) *file_service.File {
+	if f == nil {
+		return nil
+	}
+	return &file_service.File{
+		FileName:   f.Name,
+		FileSize:   f.Size,
+		FileType:   f.MimeType,
+		AccessMode: file_service.AccessMode(f.AccessMode),
+		Url:        f.URL,
+	}
+}
+
+func ModelFilesToProto(files []*shared_models.File) []*file_service.File {
+	result := make([]*file_service.File, len(files))
+	for i, f := range files {
+		result[i] = ModelFileToProto(f)
+	}
+	return result
+}
+
+func ModelPostToProto(p *models.Post) *pb.Post {
 	return &pb.Post{
 		Id:           p.Id.String(),
 		CreatorId:    p.CreatorId.String(),
-		Description:  p.Description,
+		Description:  p.Desc,
+		Images:       ModelFilesToProto(p.Images),
 		ImagesUrl:    p.ImagesURL,
 		CreatedAt:    timestamppb.New(p.CreatedAt),
 		UpdatedAt:    timestamppb.New(p.UpdatedAt),
@@ -73,121 +111,14 @@ func (p *PostDTO) ConvertToProto() *pb.Post {
 	}
 }
 
-func MapProtoFileToDTO(file *file_service.File) *FileDTO {
-	if file == nil {
-		return nil
-	}
-	return &FileDTO{
-		Name:       file.FileName,
-		Size:       file.FileSize,
-		Ext:        path.Ext(file.FileName),
-		MimeType:   file.FileType,
-		AccessMode: AccessModeDTO(file.AccessMode),
-	}
-}
-
-func ConvertFilesProtoToDTO(files []*file_service.File) []*FileDTO {
-	filesDTO := make([]*FileDTO, len(files))
-	for i, file := range files {
-		filesDTO[i] = MapProtoFileToDTO(file)
-	}
-	return filesDTO
-}
-
-func ConvertFilesDTOToProto(files []*FileDTO) []*file_service.File {
-	filesProto := make([]*file_service.File, len(files))
-	for i, file := range files {
-		filesProto[i] = &file_service.File{
-			FileName:   file.Name,
-			FileSize:   file.Size,
-			FileType:   file.MimeType,
-			AccessMode: file_service.AccessMode(file.AccessMode),
-		}
-	}
-	return filesProto
-}
-
-func ConvertFromProto(fromProto *pb.Post) (*PostDTO, error) {
-	id, err := uuid.Parse(fromProto.Id)
-	if err != nil {
-		return nil, err
-	}
-	creatorId, err := uuid.Parse(fromProto.CreatorId)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PostDTO{
-		Id:           id,
-		CreatorId:    creatorId,
-		Description:  fromProto.Description,
-		ImagesURL:    fromProto.ImagesUrl,
-		Images:       ConvertFilesProtoToDTO(fromProto.Images),
-		CreatedAt:    fromProto.CreatedAt.AsTime(),
-		UpdatedAt:    fromProto.UpdatedAt.AsTime(),
-		LikeCount:    int(fromProto.LikeCount),
-		RepostCount:  int(fromProto.RepostCount),
-		CommentCount: int(fromProto.CommentCount),
-		IsRepost:     fromProto.IsRepost,
-	}, nil
-}
-
-func (p *PostDTO) ConvertToModel() *models.Post {
-	return &models.Post{
-		Id:           p.Id,
-		CreatorId:    p.CreatorId,
-		Desc:         p.Description,
-		Images:       ToFilesModel(p.Images),
-		ImagesURL:    p.ImagesURL,
-		CreatedAt:    p.CreatedAt,
-		UpdatedAt:    p.UpdatedAt,
-		LikeCount:    p.LikeCount,
-		RepostCount:  p.RepostCount,
-		CommentCount: p.CommentCount,
-		IsRepost:     p.IsRepost,
-	}
-}
-
-func ConvertFromModel(fromProto *models.Post) *PostDTO {
-	return &PostDTO{
-		Id:           fromProto.Id,
-		CreatorId:    fromProto.CreatorId,
-		Description:  fromProto.Desc,
-		ImagesURL:    fromProto.ImagesURL,
-		CreatedAt:    fromProto.CreatedAt,
-		UpdatedAt:    fromProto.UpdatedAt,
-		LikeCount:    fromProto.LikeCount,
-		RepostCount:  fromProto.RepostCount,
-		CommentCount: fromProto.CommentCount,
-		IsRepost:     fromProto.IsRepost,
-	}
-}
-
-func UpdateDTOFromProto(fromProto *pb.PostUpdate) (*PostUpdateDTO, error) {
-	id, err := uuid.Parse(fromProto.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PostUpdateDTO{
-		Id:    id,
-		Desc:  fromProto.Description,
-		Files: ConvertFilesProtoToDTO(fromProto.Files),
-	}, nil
-}
-
-func (p *PostUpdateDTO) UpdateProtoFromDTO() *pb.PostUpdate {
+func ModelPostUpdateToProto(p *models.PostUpdate) *pb.PostUpdate {
 	return &pb.PostUpdate{
 		Id:          p.Id.String(),
 		Description: p.Desc,
-		Files:       ConvertFilesDTOToProto(p.Files),
+		Files:       ModelFilesToProto(p.Files),
 	}
 }
 
-func (p *PostUpdateDTO) UpdateToModel() *models.PostUpdate {
-	return &models.PostUpdate{
-		Id:    p.Id,
-		Desc:  p.Desc,
-		Files: ToFilesModel(p.Files),
-	}
+func ToTimestamp(t time.Time) *timestamppb.Timestamp {
+	return timestamppb.New(t)
 }

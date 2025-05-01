@@ -117,6 +117,27 @@ func (c *Client) LookupUserSession(ctx context.Context, session shared_models.Se
 	return shared_models.User{Id: userId, Username: resp.Username}, nil
 }
 
+func (c *Client) SearchSimilarUser(ctx context.Context, toSearch string, usersCount uint) ([]shared_models.PublicUserInfo, error) {
+	resp, err := c.client.SearchSimilarUser(ctx, &pb.SearchSimilarUserRequest{
+		ToSearch: toSearch,
+		NumUsers: int32(usersCount),
+	})
+	if err != nil {
+		return nil, unwrapGRPCError(err)
+	}
+
+	users := make([]shared_models.PublicUserInfo, len(resp.UsersInfo))
+	for i, userDTO := range resp.UsersInfo {
+		user, err := MapPublicUserInfoDTOToModel(userDTO)
+		if err != nil {
+			return nil, err
+		}
+		users[i] = *user
+	}
+
+	return users, nil
+}
+
 func unwrapGRPCError(err error) error {
 	if err == nil {
 		return nil

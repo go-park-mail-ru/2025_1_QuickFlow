@@ -1,4 +1,32 @@
 services:
+  gateway:
+    build:
+      context: ../backend
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    ports:
+      - "8080:8080"  # HTTP Gateway порт
+    volumes:
+      - ../deploy/config:/config
+    depends_on:
+      post_service:
+        condition: service_started
+      user_service:
+        condition: service_started
+      file_service:
+        condition: service_started
+      messenger_service:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_started
+    restart: always
+    environment:
+      RUNNING_IN_CONTAINER: true
+    env_file:
+      - .env
+
   file_service:
     build:
       context: ../backend
@@ -20,7 +48,6 @@ services:
       RUNNING_IN_CONTAINER: true
     env_file:
       - .env
-
 
   post_service:
     build:

@@ -4,8 +4,8 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb "quickflow/messenger_service/internal/delivery/grpc/proto"
 	"quickflow/shared/models"
+	pb "quickflow/shared/proto/messenger_service"
 )
 
 func MapChatToProto(chat models.Chat) *pb.Chat {
@@ -37,6 +37,49 @@ func MapChatsToProto(chats []models.Chat) []*pb.Chat {
 	res := make([]*pb.Chat, len(chats))
 	for i, chat := range chats {
 		res[i] = MapChatToProto(chat)
+	}
+	return res
+}
+
+func MapProtoToChat(chat *pb.Chat) *models.Chat {
+	id, err := uuid.Parse(chat.Id)
+	if err != nil {
+		return nil
+	}
+
+	res := &models.Chat{
+		ID:        id,
+		Name:      chat.Name,
+		Type:      models.ChatType(chat.Type),
+		AvatarURL: chat.AvatarUrl,
+		CreatedAt: chat.CreatedAt.AsTime(),
+		UpdatedAt: chat.UpdatedAt.AsTime(),
+	}
+
+	if chat.LastReadByOthers != nil {
+		tm := chat.LastReadByOthers.AsTime()
+		res.LastReadByOther = &tm
+	}
+
+	if chat.LastReadByMe != nil {
+		tm := chat.LastReadByMe.AsTime()
+		res.LastReadByMe = &tm
+	}
+
+	if chat.LastMessage != nil {
+		msg, err := MapProtoToMessage(chat.LastMessage)
+		if err == nil {
+			res.LastMessage = *msg
+		}
+	}
+
+	return res
+}
+
+func MapProtoToChats(chats []*pb.Chat) []models.Chat {
+	res := make([]models.Chat, len(chats))
+	for i, chat := range chats {
+		res[i] = *MapProtoToChat(chat)
 	}
 	return res
 }

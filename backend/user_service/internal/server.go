@@ -27,7 +27,7 @@ func main() {
 	defer listener.Close()
 
 	grpcConn, err := grpc.NewClient(
-		"localhost:8081",
+		"127.0.0.1:8081",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
@@ -45,7 +45,7 @@ func main() {
 	userRepo := postgres.NewPostgresUserRepository(db)
 	profileRepo := postgres.NewPostgresProfileRepository(db)
 	redisRepo := redis.NewRedisSessionRepository()
-	userUserCase := usecase.NewAuthService(userRepo, redisRepo, profileRepo)
+	userUserCase := usecase.NewUserUseCase(userRepo, redisRepo, profileRepo)
 	profileUseCase := usecase.NewProfileService(profileRepo, userRepo, fileService)
 
 	server := grpc.NewServer()

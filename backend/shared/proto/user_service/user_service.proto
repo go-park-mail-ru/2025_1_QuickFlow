@@ -74,6 +74,15 @@ message LookupUserSessionResponse {
   string username = 2;
 }
 
+message SearchSimilarUserRequest {
+  string to_search = 1;
+  int32 num_users = 2;
+}
+
+message SearchSimilarUserResponse {
+  repeated profile_service.PublicUserInfo users_info = 1;
+}
+
 service UserService {
   rpc SignUp(SignUpRequest) returns (SignUpResponse);
   rpc SignIn(SignInRequest) returns (SignInResponse);
@@ -81,4 +90,5 @@ service UserService {
   rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
   rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
   rpc LookupUserSession(LookupUserSessionRequest) returns (LookupUserSessionResponse);
+  rpc SearchSimilarUser(SearchSimilarUserRequest) returns (SearchSimilarUserResponse);
 }

@@ -11,19 +11,19 @@ import (
 	"google.golang.org/grpc/status"
 
 	"quickflow/post_service/internal/delivery/grpc/dto"
-	pb "quickflow/post_service/internal/delivery/grpc/proto"
 	post_errors "quickflow/post_service/internal/errors"
-	"quickflow/post_service/internal/models"
+	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
+	pb "quickflow/shared/proto/post_service"
 )
 
 type PostUseCase interface {
-	FetchFeed(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
-	FetchRecommendations(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
-	FetchUserPosts(ctx context.Context, user shared_models.User, numPosts int, timestamp time.Time) ([]models.Post, error)
-	AddPost(ctx context.Context, post models.Post) (models.Post, error)
-	DeletePost(ctx context.Context, user shared_models.User, postId uuid.UUID) error
-	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (models.Post, error)
+	FetchFeed(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	FetchRecommendations(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	FetchUserPosts(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	AddPost(ctx context.Context, post models.Post) (*models.Post, error)
+	DeletePost(ctx context.Context, userId uuid.UUID, postId uuid.UUID) error
+	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (*models.Post, error)
 }
 
 type UserUseCase interface {
@@ -42,19 +42,18 @@ func NewPostServiceServer(postUseCase PostUseCase, userUseCase UserUseCase) *Pos
 		userUseCase: userUseCase,
 	}
 }
-
 func (p *PostServiceServer) AddPost(ctx context.Context, req *pb.AddPostRequest) (*pb.AddPostResponse, error) {
-	dtoPost, err := dto.ConvertFromProto(req.Post)
+	post, err := dto.ProtoPostToModel(req.Post)
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	post, err := p.postUseCase.AddPost(ctx, *dtoPost.ConvertToModel())
+	result, err := p.postUseCase.AddPost(ctx, *post)
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	return &pb.AddPostResponse{Post: dto.ConvertFromModel(&post).ConvertToProto()}, nil
+	return &pb.AddPostResponse{Post: dto.ModelPostToProto(result)}, nil
 }
 
 func (p *PostServiceServer) DeletePost(ctx context.Context, req *pb.DeletePostRequest) (*pb.DeletePostResponse, error) {
@@ -63,102 +62,92 @@ func (p *PostServiceServer) DeletePost(ctx context.Context, req *pb.DeletePostRe
 		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid post id: %w", post_errors.ErrInvalidUUID, err))
 	}
 
-	user, ok := ctx.Value("user").(shared_models.User)
-	if !ok {
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
 		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
 	}
 
-	err = p.postUseCase.DeletePost(ctx, user, postId)
-	if err != nil {
+	if err := p.postUseCase.DeletePost(ctx, userId, postId); err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	return &pb.DeletePostResponse{
-		Success: true,
-	}, nil
+	return &pb.DeletePostResponse{Success: true}, nil
 }
 
 func (p *PostServiceServer) UpdatePost(ctx context.Context, req *pb.UpdatePostRequest) (*pb.UpdatePostResponse, error) {
-	post, err := dto.UpdateDTOFromProto(req.Post)
+	update, err := dto.ProtoPostUpdateToModel(req.Post)
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	user, ok := ctx.Value("user").(shared_models.User)
-	if !ok {
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
 		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
 	}
 
-	updatedPost, err := p.postUseCase.UpdatePost(ctx, *post.UpdateToModel(), user.Id)
+	updatedPost, err := p.postUseCase.UpdatePost(ctx, *update, userId)
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	return &pb.UpdatePostResponse{
-		Post: dto.ConvertFromModel(&updatedPost).ConvertToProto(),
-	}, nil
+	return &pb.UpdatePostResponse{Post: dto.ModelPostToProto(updatedPost)}, nil
 }
 
 func (p *PostServiceServer) FetchFeed(ctx context.Context, req *pb.FetchFeedRequest) (*pb.FetchFeedResponse, error) {
-	user, ok := ctx.Value("user").(shared_models.User)
-	if !ok {
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
 		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
 	}
 
-	posts, err := p.postUseCase.FetchFeed(ctx, user, int(req.NumPosts), req.Timestamp.AsTime())
+	posts, err := p.postUseCase.FetchFeed(ctx, userId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	dtoPosts := make([]*pb.Post, len(posts))
+	protoPosts := make([]*pb.Post, len(posts))
 	for i, post := range posts {
-		dtoPosts[i] = dto.ConvertFromModel(&post).ConvertToProto()
+		protoPosts[i] = dto.ModelPostToProto(&post)
 	}
 
-	return &pb.FetchFeedResponse{Posts: dtoPosts}, nil
+	return &pb.FetchFeedResponse{Posts: protoPosts}, nil
 }
 
 func (p *PostServiceServer) FetchRecommendations(ctx context.Context, req *pb.FetchRecommendationsRequest) (*pb.FetchRecommendationsResponse, error) {
-	user, ok := ctx.Value("user").(shared_models.User)
-	if !ok {
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
 		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
 	}
 
-	posts, err := p.postUseCase.FetchRecommendations(ctx, user, int(req.NumPosts), req.Timestamp.AsTime())
+	posts, err := p.postUseCase.FetchRecommendations(ctx, userId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	dtoPosts := make([]*pb.Post, len(posts))
+	protoPosts := make([]*pb.Post, len(posts))
 	for i, post := range posts {
-		dtoPosts[i] = dto.ConvertFromModel(&post).ConvertToProto()
+		protoPosts[i] = dto.ModelPostToProto(&post)
 	}
 
-	return &pb.FetchRecommendationsResponse{Posts: dtoPosts}, nil
+	return &pb.FetchRecommendationsResponse{Posts: protoPosts}, nil
 }
 
 func (p *PostServiceServer) FetchUserPosts(ctx context.Context, req *pb.FetchUserPostsRequest) (*pb.FetchUserPostsResponse, error) {
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
-		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user id: %w", post_errors.ErrInvalidUUID, err))
+		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
 	}
-	// get user by userId
-	user, err := p.userUseCase.GetUserById(ctx, userId)
+
+	posts, err := p.postUseCase.FetchUserPosts(ctx, userId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		return nil, grpcErrorFromAppError(err)
 	}
 
-	posts, err := p.postUseCase.FetchUserPosts(ctx, *user, int(req.NumPosts), req.Timestamp.AsTime())
-	if err != nil {
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	dtoPosts := make([]*pb.Post, len(posts))
+	protoPosts := make([]*pb.Post, len(posts))
 	for i, post := range posts {
-		dtoPosts[i] = dto.ConvertFromModel(&post).ConvertToProto()
+		protoPosts[i] = dto.ModelPostToProto(&post)
 	}
 
-	return &pb.FetchUserPostsResponse{Posts: dtoPosts}, nil
+	return &pb.FetchUserPostsResponse{Posts: protoPosts}, nil
 }
 
 func grpcErrorFromAppError(err error) error {

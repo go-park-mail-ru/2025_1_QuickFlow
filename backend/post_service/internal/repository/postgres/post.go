@@ -10,11 +10,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	models_common "quickflow/internal/models"
 	"quickflow/pkg/logger"
 	post_errors "quickflow/post_service/internal/errors"
-	"quickflow/post_service/internal/models"
 	pgmodels "quickflow/post_service/internal/repository/postgres-models"
+	"quickflow/shared/models"
+	models_common "quickflow/shared/models"
 )
 
 const getPostsQuery = `

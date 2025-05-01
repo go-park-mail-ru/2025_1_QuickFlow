@@ -12,6 +12,7 @@ import (
 	minio_config "quickflow/file_service/config/minio"
 	validation_config "quickflow/file_service/config/validation"
 	grpc2 "quickflow/file_service/internal/delivery/grpc"
+	"quickflow/file_service/internal/delivery/grpc/interceptor"
 	"quickflow/file_service/internal/repository/minio"
 	"quickflow/file_service/internal/usecase"
 	"quickflow/file_service/utils/validation"
@@ -72,7 +73,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.ErrorInterceptor))
 	proto.RegisterFileServiceServer(server, grpc2.NewFileServiceServer(fileUseCase))
 
 	log.Printf("Server is listening on %s", listener.Addr().String())

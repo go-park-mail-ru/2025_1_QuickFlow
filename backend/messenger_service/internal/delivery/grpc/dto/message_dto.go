@@ -1,11 +1,13 @@
 package dto
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb "quickflow/messenger_service/internal/delivery/grpc/proto"
 	"quickflow/shared/models"
+	pb "quickflow/shared/proto/messenger_service"
 )
 
 func MapMessageToProto(message models.Message) *pb.Message {
@@ -17,6 +19,7 @@ func MapMessageToProto(message models.Message) *pb.Message {
 		CreatedAt:      timestamppb.New(message.CreatedAt),
 		UpdatedAt:      timestamppb.New(message.UpdatedAt),
 		AttachmentUrls: message.AttachmentURLs,
+		ReceiverId:     message.ReceiverID.String(),
 	}
 }
 
@@ -44,8 +47,8 @@ func MapProtoToMessage(message *pb.Message) (*models.Message, error) {
 		chatId = uuid.Nil
 	}
 	receiverId, err2 := uuid.Parse(message.ReceiverId)
-	if err1 != nil && err2 != nil {
-		return nil, err1
+	if err1 != nil && err2 != nil || chatId == uuid.Nil && receiverId == uuid.Nil {
+		return nil, errors.New("both chatId and receiverId are empty")
 	} else if err2 != nil {
 		receiverId = uuid.Nil
 	}

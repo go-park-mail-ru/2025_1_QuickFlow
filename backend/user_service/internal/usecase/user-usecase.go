@@ -28,15 +28,15 @@ type SessionRepository interface {
 	DeleteSession(ctx context.Context, sessionId string) error
 }
 
-type AuthService struct {
+type UserUseCase struct {
 	userRepo    UserRepository
 	profileRepo ProfileRepository
 	sessionRepo SessionRepository
 }
 
-// NewAuthService creates new auth service.
-func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, profileRepo ProfileRepository) *AuthService {
-	return &AuthService{
+// NewUserUseCase creates new auth service.
+func NewUserUseCase(userRepo UserRepository, sessionRepo SessionRepository, profileRepo ProfileRepository) *UserUseCase {
+	return &UserUseCase{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
 		profileRepo: profileRepo,
@@ -44,21 +44,8 @@ func NewAuthService(userRepo UserRepository, sessionRepo SessionRepository, prof
 }
 
 // CreateUser creates new user.
-func (a *AuthService) CreateUser(ctx context.Context, user shared_models.User, profile shared_models.Profile) (uuid.UUID, shared_models.Session, error) {
+func (u *UserUseCase) CreateUser(ctx context.Context, user shared_models.User, profile shared_models.Profile) (uuid.UUID, shared_models.Session, error) {
 	var err error
-	if user, err = shared_models.CreateUser(user); err != nil {
-		return uuid.Nil, shared_models.Session{}, fmt.Errorf("shared_models.CreateUser: %w", err)
-	}
-
-	exists, err := a.userRepo.IsExists(ctx, user.Username)
-	if err != nil {
-		return uuid.Nil, shared_models.Session{}, fmt.Errorf("a.userRepo.IsExists: %w", err)
-	}
-
-	if exists {
-		return uuid.Nil, shared_models.Session{}, user_errors.ErrAlreadyExists
-	}
-
 	// validation
 	if err = validation.ValidateUser(user.Username, user.Password); err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("%w: validation.ValidateUser: %w", user_errors.ErrUserValidation, err)
@@ -67,18 +54,31 @@ func (a *AuthService) CreateUser(ctx context.Context, user shared_models.User, p
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("%w: validation.ValidateProfile: %w", user_errors.ErrProfileValidation, err)
 	}
 
-	userId, err := a.userRepo.SaveUser(ctx, user)
+	if user, err = shared_models.CreateUser(user); err != nil {
+		return uuid.Nil, shared_models.Session{}, fmt.Errorf("shared_models.CreateUser: %w", err)
+	}
+
+	exists, err := u.userRepo.IsExists(ctx, user.Username)
+	if err != nil {
+		return uuid.Nil, shared_models.Session{}, fmt.Errorf("a.userRepo.IsExists: %w", err)
+	}
+
+	if exists {
+		return uuid.Nil, shared_models.Session{}, user_errors.ErrAlreadyExists
+	}
+
+	userId, err := u.userRepo.SaveUser(ctx, user)
 	if err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("a.userRepo.SaveUser: %w", err)
 	}
 	profile.UserId = userId
 
-	if err = a.profileRepo.SaveProfile(ctx, profile); err != nil {
+	if err = u.profileRepo.SaveProfile(ctx, profile); err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("a.profileRepo.SaveProfile: %w", err)
 	}
 
 	session := shared_models.CreateSession()
-	exists, err = a.sessionRepo.IsExists(ctx, session.SessionId)
+	exists, err = u.sessionRepo.IsExists(ctx, session.SessionId)
 	if err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("a.sessionRepo.IsExists: %w", err)
 	}
@@ -87,7 +87,7 @@ func (a *AuthService) CreateUser(ctx context.Context, user shared_models.User, p
 		session = shared_models.CreateSession()
 	}
 
-	if err = a.sessionRepo.SaveSession(ctx, userId, session); err != nil {
+	if err = u.sessionRepo.SaveSession(ctx, userId, session); err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("a.sessionRepo.SaveSession: %w", err)
 	}
 
@@ -95,14 +95,14 @@ func (a *AuthService) CreateUser(ctx context.Context, user shared_models.User, p
 }
 
 // AuthUser checks if user exists and creates session.
-func (a *AuthService) AuthUser(ctx context.Context, authData shared_models.LoginData) (shared_models.Session, error) {
-	user, err := a.userRepo.GetUser(ctx, authData)
+func (u *UserUseCase) AuthUser(ctx context.Context, authData shared_models.LoginData) (shared_models.Session, error) {
+	user, err := u.userRepo.GetUser(ctx, authData)
 	if err != nil {
 		return shared_models.Session{}, fmt.Errorf("a.userRepo.GetUser: %w", err)
 	}
 
 	session := shared_models.CreateSession()
-	exists, err := a.sessionRepo.IsExists(ctx, session.SessionId)
+	exists, err := u.sessionRepo.IsExists(ctx, session.SessionId)
 	if err != nil {
 		return shared_models.Session{}, fmt.Errorf("a.sessionRepo.IsExists: %w", err)
 	}
@@ -111,15 +111,15 @@ func (a *AuthService) AuthUser(ctx context.Context, authData shared_models.Login
 		session = shared_models.CreateSession()
 	}
 
-	if err = a.sessionRepo.SaveSession(ctx, user.Id, session); err != nil {
+	if err = u.sessionRepo.SaveSession(ctx, user.Id, session); err != nil {
 		return shared_models.Session{}, fmt.Errorf("a.sessionRepo.SaveSession: %w", err)
 	}
 
 	return session, nil
 }
 
-func (a *AuthService) GetUserByUsername(ctx context.Context, username string) (shared_models.User, error) {
-	user, err := a.userRepo.GetUserByUsername(ctx, username)
+func (u *UserUseCase) GetUserByUsername(ctx context.Context, username string) (shared_models.User, error) {
+	user, err := u.userRepo.GetUserByUsername(ctx, username)
 	if err != nil {
 		return shared_models.User{}, fmt.Errorf("a.userRepo.GetUserByUId: %w", err)
 	}
@@ -128,13 +128,13 @@ func (a *AuthService) GetUserByUsername(ctx context.Context, username string) (s
 }
 
 // LookupUserSession returns user by session.
-func (a *AuthService) LookupUserSession(ctx context.Context, session shared_models.Session) (shared_models.User, error) {
-	userID, err := a.sessionRepo.LookupUserSession(ctx, session)
+func (u *UserUseCase) LookupUserSession(ctx context.Context, session shared_models.Session) (shared_models.User, error) {
+	userID, err := u.sessionRepo.LookupUserSession(ctx, session)
 	if err != nil {
 		return shared_models.User{}, fmt.Errorf("a.sessionRepo.LookupUserSession: %w", err)
 	}
 
-	user, err := a.userRepo.GetUserByUId(ctx, userID)
+	user, err := u.userRepo.GetUserByUId(ctx, userID)
 	if err != nil {
 		return shared_models.User{}, fmt.Errorf("a.userRepo.GetUserByUId: %w", err)
 	}
@@ -143,15 +143,24 @@ func (a *AuthService) LookupUserSession(ctx context.Context, session shared_mode
 }
 
 // DeleteUserSession deletes user session.
-func (a *AuthService) DeleteUserSession(ctx context.Context, sessionId string) error {
-	return a.sessionRepo.DeleteSession(ctx, sessionId)
+func (u *UserUseCase) DeleteUserSession(ctx context.Context, sessionId string) error {
+	return u.sessionRepo.DeleteSession(ctx, sessionId)
 }
 
-func (a *AuthService) GetUserById(ctx context.Context, userId uuid.UUID) (shared_models.User, error) {
-	user, err := a.userRepo.GetUserByUId(ctx, userId)
+func (u *UserUseCase) GetUserById(ctx context.Context, userId uuid.UUID) (shared_models.User, error) {
+	user, err := u.userRepo.GetUserByUId(ctx, userId)
 	if err != nil {
 		return shared_models.User{}, fmt.Errorf("a.userRepo.GetUserByUId: %w", err)
 	}
 
 	return user, nil
+}
+
+func (u *UserUseCase) SearchSimilarUser(ctx context.Context, toSearch string, postsCount uint) ([]shared_models.PublicUserInfo, error) {
+	users, err := u.userRepo.SearchSimilar(ctx, toSearch, postsCount)
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
