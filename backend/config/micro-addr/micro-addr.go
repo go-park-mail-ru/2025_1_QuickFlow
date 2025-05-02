@@ -15,4 +15,7 @@ const (
 
 	DefaultFeedbackServiceAddrEnv = "FEEDBACK_SERVICE_ADDR"
 	DefaultFeedbackServicePort    = 8085
+
+	DefaultFriendsServiceAddrEnv = "FRIENDS_SERVICE_ADDR"
+	DefaultFriendsServicePort    = 8086
 )

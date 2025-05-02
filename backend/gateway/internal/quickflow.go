@@ -16,6 +16,7 @@ import (
 	"quickflow/gateway/internal/delivery/http/middleware"
 	"quickflow/gateway/internal/delivery/ws"
 	"quickflow/shared/client/feedback_service"
+	friendsService "quickflow/shared/client/friends_service"
 	"quickflow/shared/client/messenger_service"
 	postService "quickflow/shared/client/post_service"
 	userService "quickflow/shared/client/user_service"
@@ -27,14 +28,6 @@ func Run(cfg *config.Config) error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
-
-	//grpcConnFileService, err := grpc.NewClient(
-	//	fmt.Sprintf("localhost:%d", filePort),
-	//	grpc.WithTransportCredentials(insecure.NewCredentials()),
-	//)
-	//if err != nil {
-	//	return fmt.Errorf("failed to connect to file service: %w", err)
-	//}
 
 	grpcConnPostService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultPostServiceAddrEnv, micro_addr.DefaultPostServicePort),
@@ -66,27 +59,32 @@ func Run(cfg *config.Config) error {
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 
+	grpcConnFriendsService, err := grpc.NewClient(
+		get_env.GetServiceAddr(micro_addr.DefaultFriendsServiceAddrEnv, micro_addr.DefaultFriendsServicePort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+
 	// services
-	//fileService := fileService.NewFileClient(grpcConnFileService)
 	UserService := userService.NewUserServiceClient(grpcConnUserService)
 	profileService := userService.NewProfileClient(grpcConnUserService)
 	PostService := postService.NewPostServiceClient(grpcConnPostService)
 	chatService := messenger_service.NewChatServiceClient(grpcConnMessengerService)
 	messageService := messenger_service.NewMessageServiceClient(grpcConnMessengerService)
 	feedbackService := feedback_service.NewFeedbackClient(grpcConnFeedbackService)
-	// TODO : friends
+	FriendsService := friendsService.NewFriendsClient(grpcConnFriendsService)
 
 	connManager := ws.NewWSConnectionManager()
 	sanitizerPolicy := bluemonday.UGCPolicy()
 
 	newAuthHandler := qfhttp.NewAuthHandler(UserService, sanitizerPolicy)
-	//newFeedHandler := qfhttp.NewFeedHandler(UserService, PostService, profileService, newFriendsService)
+	newFeedHandler := qfhttp.NewFeedHandler(UserService, PostService, profileService, FriendsService)
 	newPostHandler := qfhttp.NewPostHandler(PostService, profileService, sanitizerPolicy)
-	//newProfileHandler := qfhttp.NewProfileHandler(profileService, newFriendsService, UserService, chatService, connManager, sanitizerPolicy)
+	newProfileHandler := qfhttp.NewProfileHandler(profileService, FriendsService, UserService, chatService, connManager, sanitizerPolicy)
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
 	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, connManager)
-	//newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
+	newFriendsHandler := qfhttp.NewFriendsHandler(FriendsService, connManager)
 	newSearchHandler := qfhttp.NewSearchHandler(UserService)
+
 	CSRFHandler := qfhttp.NewCSRFHandler()
 	FeedbackHandler := qfhttp.NewFeedbackHandler(feedbackService, profileService, sanitizerPolicy)
 
@@ -116,13 +114,13 @@ func Run(cfg *config.Config) error {
 	}).Methods(http.MethodOptions)
 
 	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
-	//r.HandleFunc("/profiles/{username}", newProfileHandler.GetProfile).Methods(http.MethodGet)
+	r.HandleFunc("/profiles/{username}", newProfileHandler.GetProfile).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
 	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
 
 	apiGetRouter := r.PathPrefix("/").Subrouter()
-	//apiGetRouter.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
+	apiGetRouter.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
 
 	// validating that the content type is application/json for every route but /hello
 
@@ -137,19 +135,19 @@ func Run(cfg *config.Config) error {
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/like", newPostHandler.LikePost).Methods(http.MethodPost)
-	//protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
-	//protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
-	//protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/feedback", FeedbackHandler.SaveFeedback).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(UserService))
-	//protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
-	//protectedGet.HandleFunc("/recommendations", newFeedHandler.GetRecommendations).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/feed", newFeedHandler.GetFeed).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/recommendations", newFeedHandler.GetRecommendations).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats/{chat_id:[0-9a-fA-F-]{36}}/messages", newMessageHandler.GetMessagesForChat).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/chats", newChatHandler.GetUserChats).Methods(http.MethodGet)
-	//protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", CSRFHandler.GetCSRF).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/feedback", FeedbackHandler.GetAllFeedbackType).Methods(http.MethodGet)
@@ -163,8 +161,8 @@ func Run(cfg *config.Config) error {
 	apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/like", newPostHandler.UnlikePost).Methods(http.MethodDelete)
-	//apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
-	//apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
 
 	server := http.Server{
 		Addr:         cfg.ServerConfig.Addr,

@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 
-	"quickflow/internal/models"
-	postgresModels "quickflow/internal/repository/postgres/postgres-models"
+	postgresModels "quickflow/friends_service/internal/repository/postgres-models"
 	"quickflow/shared/logger"
+	"quickflow/shared/models"
 )
 
 const (

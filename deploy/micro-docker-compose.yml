@@ -17,6 +17,12 @@ services:
         condition: service_started
       messenger_service:
         condition: service_started
+      feedback_service:
+        condition: service_started
+      friends_service:
+        condition: service_started
+      minio:
+        condition: service_healthy
       redis:
         condition: service_started
       postgres:
@@ -123,6 +129,24 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+    restart: always
+    env_file:
+      - .env
+
+  friends_service:
+    build:
+      context: ../backend
+      dockerfile: friends_service/deploy/Dockerfile
+    container_name: friends_service
+    volumes:
+      - ../deploy/config:/config
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
     restart: always
     env_file:
       - .env

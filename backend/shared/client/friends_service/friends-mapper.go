@@ -1,6 +1,8 @@
-package dto
+package friends_service
 
 import (
+	"github.com/google/uuid"
+
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/friends_service"
 )
@@ -16,6 +18,17 @@ func fromModelFriendInfoToGrpc(info models.FriendInfo) *pb.GetFriendInfo {
 	}
 }
 
+func fromGrpcToModelFriendInfo(info *pb.GetFriendInfo) models.FriendInfo {
+	return models.FriendInfo{
+		Id:         uuid.MustParse(info.Id),
+		Firstname:  info.Firstname,
+		Lastname:   info.Lastname,
+		Username:   info.Username,
+		AvatarURL:  info.AvatarUrl,
+		University: info.University,
+	}
+}
+
 func FromModelFriendsInfoToGrpc(infos []models.FriendInfo, friendsCount int) *pb.GetFriendsInfoResponse {
 	var friendsInfos []*pb.GetFriendInfo
 	for _, info := range infos {
@@ -26,4 +39,13 @@ func FromModelFriendsInfoToGrpc(infos []models.FriendInfo, friendsCount int) *pb
 		Friends:    friendsInfos,
 		TotalCount: int32(friendsCount),
 	}
+}
+
+func FromGrpcToModelFriendsInfo(in *pb.GetFriendsInfoResponse) ([]models.FriendInfo, int) {
+	result := make([]models.FriendInfo, len(in.Friends))
+	for _, info := range in.Friends {
+		result = append(result, fromGrpcToModelFriendInfo(info))
+	}
+
+	return result, int(in.TotalCount)
 }
