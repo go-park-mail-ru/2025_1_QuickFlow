@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -41,6 +42,15 @@ func (f *FriendsServiceServer) GetFriendsInfo(ctx context.Context, in *pb.GetFri
 	return dto.FromModelFriendsInfoToGrpc(friendsInfos, friendsCount), nil
 }
 func (f *FriendsServiceServer) SendFriendRequest(ctx context.Context, in *pb.FriendRequest) (*emptypb.Empty, error) {
+	exists, err := f.friendsUseCase.IsExistsFriendRequest(ctx, in.UserId, in.ReceiverId)
+	if exists {
+		return &emptypb.Empty{}, errors.New("friend request already exists")
+	}
+
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
 	if err := f.friendsUseCase.SendFriendRequest(ctx, in.UserId, in.ReceiverId); err != nil {
 		return nil, err
 	}

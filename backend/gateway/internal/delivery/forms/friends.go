@@ -36,7 +36,7 @@ func (f *FriendsInfoOut) toFriendsInfoOutForm(info models.FriendInfo, isOnline b
 	}
 }
 
-func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo, friendsOnline []bool, hasMore bool, friendsCount int) map[string]map[string]interface{} {
+func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo, friendsOnline []bool, friendsCount int) map[string]map[string]interface{} {
 	res := make(map[string]map[string]interface{})
 	res["body"] = make(map[string]interface{})
 
@@ -46,7 +46,6 @@ func (f *FriendsInfoOut) ToJson(friendsInfo []models.FriendInfo, friendsOnline [
 	}
 
 	res["body"]["friends"] = friendsInfoOut
-	res["body"]["has_more"] = hasMore
 	res["body"]["total_count"] = friendsCount
 
 	return res

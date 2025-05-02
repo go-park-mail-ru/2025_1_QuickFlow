@@ -17,12 +17,12 @@ import (
 )
 
 type FriendsUseCase interface {
-	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, bool, int, error)
+	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, int, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	Unfollow(ctx context.Context, userID string, friendID string) error
 	DeleteFriend(ctx context.Context, user string, friend string) error
-	IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
+	// GetUserRelation IsExistsFriendRequest(ctx context.Context, senderID string, receiverID string) (bool, error)
 	GetUserRelation(ctx context.Context, user1 uuid.UUID, user2 uuid.UUID) (models.UserRelation, error)
 }
 
@@ -31,7 +31,7 @@ type FriendHandler struct {
 	ConnService    IWebSocketConnectionManager
 }
 
-func NewFriendHandler(friendsUseCase FriendsUseCase, connService IWebSocketConnectionManager) *FriendHandler {
+func NewFriendsHandler(friendsUseCase FriendsUseCase, connService IWebSocketConnectionManager) *FriendHandler {
 	return &FriendHandler{
 		FriendsUseCase: friendsUseCase,
 		ConnService:    connService,
@@ -68,7 +68,7 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info(ctx, fmt.Sprintf("User %s requested friends", targetUserID))
 
-	friendsInfo, hasMore, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset)
+	friendsInfo, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset)
 
 	if err != nil {
 		err := errors.FromGRPCError(err)
@@ -87,7 +87,7 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	var friendsInfoOut forms.FriendsInfoOut
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(friendsInfoOut.ToJson(friendsInfo, friendsOnline, hasMore, friendsCount))
+	err = json.NewEncoder(w).Encode(friendsInfoOut.ToJson(friendsInfo, friendsOnline, friendsCount))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to encode friends info to json: %s", err))
 		http2.WriteJSONError(w, "Unable to encode friends info to json", http.StatusInternalServerError)
@@ -128,20 +128,20 @@ func (f *FriendHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	logger.Info(ctx, "Successfully parsed request body")
-	logger.Info(ctx, fmt.Sprintf("Trying to check relation between sender %s and receiver %s", user.Username, req.ReceiverID))
-
-	isExists, err := f.FriendsUseCase.IsExistsFriendRequest(ctx, user.Id.String(), req.ReceiverID)
-	if err != nil {
-		err := errors.FromGRPCError(err)
-		logger.Error(ctx, fmt.Sprintf("Unable to check relation between sender: %s and receiver: %s. Error: %s", user.Username, req.ReceiverID, err.Error()))
-		http2.WriteJSONError(w, "Failed to check relation", err.HTTPStatus)
-		return
-	}
-
-	if isExists {
-		http2.WriteJSONError(w, "Relationship between sender and receiver already exists", http.StatusConflict)
-		return
-	}
+	//logger.Info(ctx, fmt.Sprintf("Trying to check relation between sender %s and receiver %s", user.Username, req.ReceiverID))
+	//
+	//isExists, err := f.FriendsUseCase.IsExistsFriendRequest(ctx, user.Id.String(), req.ReceiverID)
+	//if err != nil {
+	//	err := errors.FromGRPCError(err)
+	//	logger.Error(ctx, fmt.Sprintf("Unable to check relation between sender: %s and receiver: %s. Error: %s", user.Username, req.ReceiverID, err.Error()))
+	//	http2.WriteJSONError(w, "Failed to check relation", err.HTTPStatus)
+	//	return
+	//}
+	//
+	//if isExists {
+	//	http2.WriteJSONError(w, "Relationship between sender and receiver already exists", http.StatusConflict)
+	//	return
+	//}
 
 	logger.Info(ctx, fmt.Sprintf("User %s trying to add friend %s ", user.Username, req.ReceiverID))
 
