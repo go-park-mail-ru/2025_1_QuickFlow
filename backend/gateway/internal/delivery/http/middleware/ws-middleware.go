@@ -9,7 +9,7 @@ import (
 	http2 "quickflow/gateway/internal/delivery/http"
 	"quickflow/gateway/internal/delivery/ws"
 	httpUtils "quickflow/gateway/utils/http"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

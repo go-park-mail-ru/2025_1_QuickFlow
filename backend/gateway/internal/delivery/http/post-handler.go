@@ -16,7 +16,7 @@ import (
 	errors2 "quickflow/gateway/internal/errors"
 	"quickflow/gateway/pkg/sanitizer"
 	http2 "quickflow/gateway/utils/http"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 
@@ -270,4 +270,58 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to encode post", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (p *PostHandler) LikePost(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	postIdStr := mux.Vars(r)["post_id"]
+	postId, err := uuid.Parse(postIdStr)
+	if err != nil {
+		http2.WriteJSONError(w, "Failed to parse post ID", http.StatusBadRequest)
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("User %s liked post %s", user.Username, postId.String()))
+
+	err = p.postUseCase.LikePost(ctx, postId, user.Id)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to like post: %s", err.Error()), err.HTTPStatus)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (p *PostHandler) UnlikePost(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+
+	postIdStr := mux.Vars(r)["post_id"]
+	postId, err := uuid.Parse(postIdStr)
+	if err != nil {
+		http2.WriteJSONError(w, "Failed to parse post ID", http.StatusBadRequest)
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("User %s unliked post %s", user.Username, postId.String()))
+
+	err = p.postUseCase.UnlikePost(ctx, postId, user.Id)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to unlike post: %s", err.Error()), err.HTTPStatus)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

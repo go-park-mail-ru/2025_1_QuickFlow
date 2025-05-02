@@ -17,7 +17,7 @@ import (
 	forms2 "quickflow/gateway/internal/delivery/ws/forms"
 	errors2 "quickflow/gateway/internal/errors"
 	http2 "quickflow/gateway/utils/http"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

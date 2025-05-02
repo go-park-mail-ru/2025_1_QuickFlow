@@ -11,7 +11,7 @@ import (
 
 	messenger_errors "quickflow/messenger_service/internal/errors"
 	pgmodels "quickflow/messenger_service/internal/repository/postgres-models"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

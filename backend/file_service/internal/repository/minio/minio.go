@@ -10,8 +10,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	minioconfig "quickflow/file_service/config/minio"
-	"quickflow/pkg/logger"
 	threadsafeslice "quickflow/pkg/thread-safe-slice"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

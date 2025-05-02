@@ -11,7 +11,7 @@ import (
 
 	"quickflow/internal/models"
 	postgresModels "quickflow/internal/repository/postgres/postgres-models"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 )
 
 const (

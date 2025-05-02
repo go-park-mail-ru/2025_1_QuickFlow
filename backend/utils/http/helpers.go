@@ -14,7 +14,7 @@ import (
 
 	"quickflow/internal/delivery/forms"
 	"quickflow/internal/models"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 )
 
 var TooManyFilesErr = errors.New("too many files")

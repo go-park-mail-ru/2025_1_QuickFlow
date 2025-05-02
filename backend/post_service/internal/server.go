@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net"
 
@@ -10,6 +11,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
+	micro_addr "quickflow/config/micro-addr"
 	postgres_config "quickflow/config/postgres"
 	"quickflow/post_service/internal/client/file_sevice"
 	"quickflow/post_service/internal/client/user_service"
@@ -17,24 +19,28 @@ import (
 	"quickflow/post_service/internal/repository/postgres"
 	"quickflow/post_service/internal/usecase"
 	"quickflow/post_service/utils/validation"
+	"quickflow/shared/interceptors"
 	"quickflow/shared/proto/post_service"
+	get_env "quickflow/utils/get-env"
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":8082")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", micro_addr.DefaultPostServicePort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	defer listener.Close()
 
-	grpcConnFileService, err := grpc.Dial(
-		"127.0.0.1:8081",
+	grpcConnFileService, err := grpc.NewClient(
+		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 
-	grpcConnUserService, err := grpc.Dial(
-		"127.0.0.1:8083",
+	grpcConnUserService, err := grpc.NewClient(
+		get_env.GetServiceAddr(micro_addr.DefaultUserServiceAddrEnv, micro_addr.DefaultUserServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 
 	if err != nil {
@@ -53,7 +59,7 @@ func main() {
 	postUseCase := usecase.NewPostUseCase(postRepo, fileService, postValidator)
 	userUseCase := user_service.NewUserClient(grpcConnUserService)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()))
 	proto.RegisterPostServiceServer(server, grpc3.NewPostServiceServer(postUseCase, userUseCase))
 	log.Printf("Server is listening on %s", listener.Addr().String())
 

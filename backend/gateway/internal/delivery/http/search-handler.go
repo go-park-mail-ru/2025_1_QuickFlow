@@ -8,7 +8,7 @@ import (
 
 	"quickflow/gateway/internal/delivery/forms"
 	"quickflow/gateway/internal/errors"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

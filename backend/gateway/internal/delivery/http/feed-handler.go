@@ -24,11 +24,13 @@ type PostService interface {
 	AddPost(ctx context.Context, post models.Post) (*models.Post, error)
 	DeletePost(ctx context.Context, userId uuid.UUID, postId uuid.UUID) error
 	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (*models.Post, error)
+	LikePost(ctx context.Context, postId, userId uuid.UUID) error
+	UnlikePost(ctx context.Context, postId, userId uuid.UUID) error
 }
 
 type FeedHandler struct {
 	authUseCase    AuthUseCase
-	postUseCase    PostService
+	postService    PostService
 	profileUseCase ProfileUseCase
 	friendUseCase  FriendsUseCase
 }
@@ -36,7 +38,7 @@ type FeedHandler struct {
 // NewFeedHandler creates new feed handler.
 func NewFeedHandler(authUseCase AuthUseCase, postUseCase PostService, profileUseCase ProfileUseCase, friendUseCase FriendsUseCase) *FeedHandler {
 	return &FeedHandler{
-		postUseCase:    postUseCase,
+		postService:    postUseCase,
 		profileUseCase: profileUseCase,
 		friendUseCase:  friendUseCase,
 		authUseCase:    authUseCase,
@@ -74,7 +76,7 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 		ts = time.Now()
 	}
 
-	posts, err := f.postUseCase.FetchFeed(ctx, feedForm.Posts, ts, user.Id)
+	posts, err := f.postService.FetchFeed(ctx, feedForm.Posts, ts, user.Id)
 	if err != nil {
 		err := errors2.FromGRPCError(err)
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to load feed: %s", err.Error()), err.HTTPStatus)
@@ -151,7 +153,7 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 		ts = time.Now()
 	}
 
-	posts, err := f.postUseCase.FetchRecommendations(ctx, feedForm.Posts, ts, user.Id)
+	posts, err := f.postService.FetchRecommendations(ctx, feedForm.Posts, ts, user.Id)
 	if err != nil {
 		err := errors2.FromGRPCError(err)
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to load recommendations: %s", err.Error()), err.HTTPStatus)
@@ -235,7 +237,7 @@ func (f *FeedHandler) FetchUserPosts(w http.ResponseWriter, r *http.Request) {
 		ts = time.Now()
 	}
 
-	posts, err := f.postUseCase.FetchUserPosts(ctx, user.Id, feedForm.Posts, ts)
+	posts, err := f.postService.FetchUserPosts(ctx, user.Id, feedForm.Posts, ts)
 	if err != nil {
 		err := errors2.FromGRPCError(err)
 		http2.WriteJSONError(w, fmt.Sprintf("Failed to load user posts: %s", err.Error()), err.HTTPStatus)

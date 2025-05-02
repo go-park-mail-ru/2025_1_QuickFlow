@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net"
 
@@ -10,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	micro_addr "quickflow/config/micro-addr"
 	postgres_config "quickflow/config/postgres"
 	grpc2 "quickflow/messenger_service/internal/delivery/grpc"
 	"quickflow/messenger_service/internal/delivery/grpc/interceptor"
@@ -18,27 +20,31 @@ import (
 	"quickflow/messenger_service/utils/validation"
 	"quickflow/shared/client/file_service"
 	"quickflow/shared/client/user_service"
+	"quickflow/shared/interceptors"
 	"quickflow/shared/proto/messenger_service"
+	get_env "quickflow/utils/get-env"
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":8084")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", micro_addr.DefaultMessengerServicePort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	defer listener.Close()
 
 	grpcConnFileService, err := grpc.NewClient(
-		"127.0.0.1:8081",
+		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 	if err != nil {
 		log.Fatalf("failed to connect to file service: %v", err)
 	}
 
 	grpcConnUserService, err := grpc.NewClient(
-		"127.0.0.1:8083",
+		get_env.GetServiceAddr(micro_addr.DefaultUserServiceAddrEnv, micro_addr.DefaultUserServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 
 	if err != nil {
@@ -67,6 +73,7 @@ func main() {
 		grpc.ChainUnaryInterceptor(
 			interceptor.ErrorInterceptor,
 			interceptor.RequestIDUnaryInterceptor,
+			interceptors.RequestIDServerInterceptor(),
 		),
 	)
 

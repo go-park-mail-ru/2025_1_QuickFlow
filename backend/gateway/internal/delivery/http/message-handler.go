@@ -15,7 +15,7 @@ import (
 	errors2 "quickflow/gateway/internal/errors"
 	"quickflow/gateway/pkg/sanitizer"
 	http2 "quickflow/gateway/utils/http"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

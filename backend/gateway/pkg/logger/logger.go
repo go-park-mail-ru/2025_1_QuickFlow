@@ -114,10 +114,13 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		levelColor = "\033[0m" // Без цвета
 	}
 
-	loc, _ := time.LoadLocation("Europe/Moscow")
-
 	level := fmt.Sprintf("%s[%s]\033[0m", levelColor, strings.ToUpper(entry.Level.String()))
-	timestamp := time.Now().In(loc).Format("2006-01-02T15:04:05")
+
+	loc, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		loc = time.UTC
+	}
+	timestamp := entry.Time.In(loc).Format("2006-01-02T15:04:05")
 	reqId := entry.Data["requestID"]
 	packageName := fmt.Sprintf("\033[33m[%s]\033[0m", entry.Data["package"])
 	funcName := fmt.Sprintf("\033[36m[%s]\033[0m", entry.Data["function"])

@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package file_service;
+option go_package = "quickflow/shared/proto/feedback";
+import "google/protobuf/timestamp.proto";
+
+enum FeedbackType {
+  FEEDBACK_GENERAL = 0;
+  FEEDBACK_POST = 1;
+  FEEDBACK_MESSENGER = 2;
+  FEEDBACK_RECOMMENDATIONS = 3;
+  FEEDBACK_PROFILE = 4;
+  FEEDBACK_AUTH = 5;
+}
+
+message Feedback {
+  string id = 1;
+  int32 rating = 2;
+  string respondent_id = 3;
+  string text = 4;
+  FeedbackType type = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message AverageStat {
+  string feedback_id = 1;
+  float average = 2;
+}
+
+message SaveFeedbackRequest {
+  Feedback feedback = 1;
+}
+
+message SaveFeedbackResponse {
+  bool success = 1;
+}
+
+message GetAllFeedbackTypeRequest {
+  FeedbackType type = 1;
+  google.protobuf.Timestamp ts = 2;
+  int32 count = 3;
+}
+
+message GetAllFeedbackTypeResponse {
+  repeated Feedback feedback = 1;
+}
+
+message GetNumMessagesSentRequest {
+  string user_id = 1;
+}
+
+message GetNumMessagesSentResponse {
+  int64 num_messages_sent = 1;
+}
+
+message GetNumPostsCreatedRequest {
+  string user_id = 1;
+}
+
+message GetNumPostsCreatedResponse {
+  int64 num_posts_created = 1;
+}
+
+message GetNumProfileChangesRequest {
+  string user_id = 1;
+}
+
+message GetNumProfileChangesResponse {
+  int64 num_profile_changes = 1;
+}
+
+service FeedbackService {
+  rpc SaveFeedback(SaveFeedbackRequest) returns (SaveFeedbackResponse);
+  rpc GetAllFeedbackType(GetAllFeedbackTypeRequest) returns (GetAllFeedbackTypeResponse);
+  rpc GetNumMessagesSent(GetNumMessagesSentRequest) returns (GetNumMessagesSentResponse);
+  rpc GetNumPostsCreated(GetNumPostsCreatedRequest) returns (GetNumPostsCreatedResponse);
+  rpc GetNumProfileChanges(GetNumProfileChangesRequest) returns (GetNumProfileChangesResponse);
+}

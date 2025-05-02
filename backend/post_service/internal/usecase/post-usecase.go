@@ -31,6 +31,9 @@ type PostRepository interface {
 	GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error)
+	CheckIfPostLiked(ctx context.Context, postId uuid.UUID, userId uuid.UUID) (bool, error)
+	UnlikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error
+	LikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error
 }
 
 type FileService interface {
@@ -239,4 +242,48 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	}
 
 	return &post, nil
+}
+
+func (p *PostUseCase) LikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error {
+	if userId == uuid.Nil || postId == uuid.Nil {
+		return errors.New("userId or postId is empty")
+	}
+
+	liked, err := p.postRepo.CheckIfPostLiked(ctx, postId, userId)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.CheckIfPostLiked: %w", err)
+	}
+
+	if liked {
+		return nil // идемпотентность лайка
+	}
+
+	err = p.postRepo.LikePost(ctx, postId, userId)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.LikePost: %w", err)
+	}
+
+	return nil
+}
+
+func (p *PostUseCase) UnlikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error {
+	if userId == uuid.Nil || postId == uuid.Nil {
+		return errors.New("userId or postId is empty")
+	}
+
+	liked, err := p.postRepo.CheckIfPostLiked(ctx, postId, userId)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.CheckIfPostLiked: %w", err)
+	}
+
+	if !liked {
+		return nil // идемпотентность дизлайка
+	}
+
+	err = p.postRepo.UnlikePost(ctx, postId, userId)
+	if err != nil {
+		return fmt.Errorf("p.postRepo.UnlikePost: %w", err)
+	}
+
+	return nil
 }

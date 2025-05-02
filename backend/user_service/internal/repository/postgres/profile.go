@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	user_errors "quickflow/user_service/internal/errors"
 	pgmodels "quickflow/user_service/internal/repository/postgres-models"

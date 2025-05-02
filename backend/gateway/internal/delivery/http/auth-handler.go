@@ -15,7 +15,7 @@ import (
 	"quickflow/gateway/pkg/sanitizer"
 	http2 "quickflow/gateway/utils/http"
 	"quickflow/gateway/utils/validation"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

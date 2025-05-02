@@ -85,3 +85,19 @@ func (c *PostServiceClient) FetchUserPosts(ctx context.Context, userId uuid.UUID
 	}
 	return convertProtoPosts(resp.Posts)
 }
+
+func (c *PostServiceClient) LikePost(ctx context.Context, postId, userId uuid.UUID) error {
+	_, err := c.client.LikePost(ctx, &pb.LikePostRequest{
+		PostId: postId.String(),
+		UserId: userId.String(),
+	})
+	return err
+}
+
+func (c *PostServiceClient) UnlikePost(ctx context.Context, postId, userId uuid.UUID) error {
+	_, err := c.client.UnlikePost(ctx, &pb.UnlikePostRequest{
+		PostId: postId.String(),
+		UserId: userId.String(),
+	})
+	return err
+}

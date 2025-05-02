@@ -11,19 +11,16 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"quickflow/config"
+	micro_addr "quickflow/config/micro-addr"
 	qfhttp "quickflow/gateway/internal/delivery/http"
 	"quickflow/gateway/internal/delivery/http/middleware"
 	"quickflow/gateway/internal/delivery/ws"
+	"quickflow/shared/client/feedback_service"
 	"quickflow/shared/client/messenger_service"
 	postService "quickflow/shared/client/post_service"
 	userService "quickflow/shared/client/user_service"
-)
-
-const (
-	filePort      = 8081
-	postPort      = 8082
-	userPort      = 8083
-	messengerPort = 8084
+	"quickflow/shared/interceptors"
+	get_env "quickflow/utils/get-env"
 )
 
 func Run(cfg *config.Config) error {
@@ -40,24 +37,33 @@ func Run(cfg *config.Config) error {
 	//}
 
 	grpcConnPostService, err := grpc.NewClient(
-		fmt.Sprintf("127.0.0.1:%d", postPort),
+		get_env.GetServiceAddr(micro_addr.DefaultPostServiceAddrEnv, micro_addr.DefaultPostServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to post service: %w", err)
 	}
 
 	grpcConnUserService, err := grpc.NewClient(
-		fmt.Sprintf("127.0.0.1:%d", userPort),
+		get_env.GetServiceAddr(micro_addr.DefaultUserServiceAddrEnv, micro_addr.DefaultUserServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to user service: %w", err)
 	}
 
 	grpcConnMessengerService, err := grpc.NewClient(
-		fmt.Sprintf("127.0.0.1:%d", messengerPort),
+		get_env.GetServiceAddr(micro_addr.DefaultMessengerServiceAddrEnv, micro_addr.DefaultMessengerServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+	)
+
+	grpcConnFeedbackService, err := grpc.NewClient(
+		get_env.GetServiceAddr(micro_addr.DefaultFeedbackServiceAddrEnv, micro_addr.DefaultFeedbackServicePort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
 	)
 
 	// services
@@ -67,6 +73,7 @@ func Run(cfg *config.Config) error {
 	PostService := postService.NewPostServiceClient(grpcConnPostService)
 	chatService := messenger_service.NewChatServiceClient(grpcConnMessengerService)
 	messageService := messenger_service.NewMessageServiceClient(grpcConnMessengerService)
+	feedbackService := feedback_service.NewFeedbackClient(grpcConnFeedbackService)
 	// TODO : friends
 
 	connManager := ws.NewWSConnectionManager()
@@ -81,6 +88,7 @@ func Run(cfg *config.Config) error {
 	//newFriendsHandler := qfhttp.NewFriendsHandler(newFriendsService, connManager)
 	newSearchHandler := qfhttp.NewSearchHandler(UserService)
 	CSRFHandler := qfhttp.NewCSRFHandler()
+	FeedbackHandler := qfhttp.NewFeedbackHandler(feedbackService, profileService, sanitizerPolicy)
 
 	wsRouter := ws.NewWebSocketRouter()
 	wsMessageHander := ws.NewInternalWSMessageHandler(connManager, messageService, profileService, chatService)
@@ -128,10 +136,12 @@ func Run(cfg *config.Config) error {
 	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
+	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/like", newPostHandler.LikePost).Methods(http.MethodPost)
 	//protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	//protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
 	//protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/users/{username:[0-9a-zA-Z-]+}/message", newMessageHandler.SendMessageToUsername).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/feedback", FeedbackHandler.SaveFeedback).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(UserService))
@@ -142,6 +152,7 @@ func Run(cfg *config.Config) error {
 	//protectedGet.HandleFunc("/friends", newFriendsHandler.GetFriends).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/csrf", CSRFHandler.GetCSRF).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/users/search", newSearchHandler.SearchSimilar).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/feedback", FeedbackHandler.GetAllFeedbackType).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager, pingHandler))
@@ -151,6 +162,7 @@ func Run(cfg *config.Config) error {
 	apiDeleteRouter.Use(middleware.SessionMiddleware(UserService))
 	apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/like", newPostHandler.UnlikePost).Methods(http.MethodDelete)
 	//apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
 	//apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
 

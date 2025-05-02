@@ -10,11 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"quickflow/pkg/logger"
 	post_errors "quickflow/post_service/internal/errors"
 	pgmodels "quickflow/post_service/internal/repository/postgres-models"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
-	models_common "quickflow/shared/models"
 )
 
 const getPostsQuery = `
@@ -75,6 +74,22 @@ const insertPhotoQuery = `
 	values ($1, $2)
 `
 
+const checkIfPostLikedRequest = `
+	select 1
+	from like_post
+	where post_id = $1 and user_id = $2;
+`
+
+const likePostRequest = `
+	insert into like_post (user_id, post_id)
+	values ($1, $2);
+`
+
+const unlikePostRequest = `
+	delete from like_post
+	where post_id = $1 and user_id = $2;
+`
+
 type PostgresPostRepository struct {
 	connPool *sql.DB
 }
@@ -101,6 +116,8 @@ func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) 
 		logger.Error(ctx, fmt.Sprintf("Unable to save post %v to database: %s", post, err.Error()))
 		return fmt.Errorf("unable to save post to database: %w", err)
 	}
+
+	logger.Info(ctx, fmt.Sprintf("Post %v saved to database", postPostgres.Id))
 
 	for _, picture := range postPostgres.ImagesURLs {
 		_, err = p.connPool.ExecContext(ctx, insertPhotoQuery,
@@ -265,7 +282,7 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 
 func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
-		models_common.RelationFriend, models_common.RelationFollowedBy, models_common.RelationFollowing)
+		models.RelationFriend, models.RelationFollowedBy, models.RelationFollowing)
 	if !errors.Is(err, sql.ErrNoRows) {
 		return nil, post_errors.ErrNotFound
 	} else if err != nil {
@@ -359,4 +376,56 @@ func (p *PostgresPostRepository) GetPostFiles(ctx context.Context, postId uuid.U
 	}
 
 	return result, nil
+}
+
+func (p *PostgresPostRepository) CheckIfPostLiked(ctx context.Context, postId uuid.UUID, userId uuid.UUID) (bool, error) {
+	var exists bool
+	err := p.connPool.QueryRowContext(ctx, checkIfPostLikedRequest, postId, userId).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to check if post %v is liked by user %v: %s", postId, userId, err.Error()))
+		return false, fmt.Errorf("unable to check if post is liked by user: %w", err)
+	}
+	return true, nil
+}
+
+func (p *PostgresPostRepository) UnlikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error {
+	res, err := p.connPool.ExecContext(ctx, unlikePostRequest, postId, userId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to unlike post %v by user %v: %s", postId, userId, err.Error()))
+		return fmt.Errorf("unable to unlike post: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to check rows affected when unliking post %v by user %v: %s", postId, userId, err.Error()))
+		return fmt.Errorf("unable to check if unlike was successful: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return post_errors.ErrNotFound
+	}
+
+	return nil
+}
+
+func (p *PostgresPostRepository) LikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error {
+	// дополнительная проверка на лайк для безопасности
+	liked, err := p.CheckIfPostLiked(ctx, postId, userId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to check if post %v is already liked by user %v: %s", postId, userId, err.Error()))
+		return fmt.Errorf("failed to check if already liked: %w", err)
+	}
+	if liked {
+		return post_errors.ErrAlreadyExists
+	}
+
+	_, err = p.connPool.ExecContext(ctx, likePostRequest, userId, postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to like post %v by user %v: %s", postId, userId, err.Error()))
+		return fmt.Errorf("unable to like post: %w", err)
+	}
+
+	return nil
 }

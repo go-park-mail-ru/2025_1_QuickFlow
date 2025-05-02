@@ -82,6 +82,24 @@ message UpdatePostResponse {
   Post post = 1;
 }
 
+message LikePostRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message LikePostResponse {
+  bool success = 1;
+}
+
+message UnlikePostRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message UnlikePostResponse {
+  bool success = 1;
+}
+
 service PostService {
   rpc AddPost(AddPostRequest) returns (AddPostResponse);
   rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
@@ -89,4 +107,6 @@ service PostService {
   rpc FetchRecommendations(FetchRecommendationsRequest) returns (FetchRecommendationsResponse);
   rpc FetchUserPosts(FetchUserPostsRequest) returns (FetchUserPostsResponse);
   rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
+  rpc LikePost(LikePostRequest) returns (LikePostResponse);
+  rpc UnlikePost(UnlikePostRequest) returns (UnlikePostResponse);
 }

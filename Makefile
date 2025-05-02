@@ -2,9 +2,9 @@ DOMAIN=quickflowapp.ru
 CERT_PATH=/etc/letsencrypt/live/$(DOMAIN)/fullchain.pem
 SCHEME?=http
 MINIO_PUBLIC_ENDPOINT?=localhost:9000
-COMPOSE_FILE=./deploy/docker-compose.yml
+COMPOSE_FILE=./deploy/micro-docker-compose.yml
 MODE?=daemon
-COMPOSE=docker-compose
+COMPOSE=docker compose
 
 ifeq ($(shell [ -f $(CERT_PATH) ] && echo yes),yes)
     SCHEME=https

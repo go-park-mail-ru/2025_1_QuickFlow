@@ -1,8 +1,9 @@
 package models
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type FeedbackType string
@@ -21,6 +22,8 @@ var FeedBackTypes = []FeedbackType{
 	FeedbackPost,
 	FeedbackRecommendation,
 	FeedbackMessenger,
+	FeedbackProfile,
+	FeedbackAuth,
 }
 
 type Feedback struct {

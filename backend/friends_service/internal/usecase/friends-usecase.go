@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"quickflow/internal/models"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 )
 
 type FriendsRepository interface {

@@ -24,6 +24,8 @@ type PostUseCase interface {
 	AddPost(ctx context.Context, post models.Post) (*models.Post, error)
 	DeletePost(ctx context.Context, userId uuid.UUID, postId uuid.UUID) error
 	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (*models.Post, error)
+	LikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error
+	UnlikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error
 }
 
 type UserUseCase interface {
@@ -148,6 +150,42 @@ func (p *PostServiceServer) FetchUserPosts(ctx context.Context, req *pb.FetchUse
 	}
 
 	return &pb.FetchUserPostsResponse{Posts: protoPosts}, nil
+}
+
+func (p *PostServiceServer) LikePost(ctx context.Context, req *pb.LikePostRequest) (*pb.LikePostResponse, error) {
+	postId, err := uuid.Parse(req.PostId)
+	if err != nil {
+		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid post id: %w", post_errors.ErrInvalidUUID, err))
+	}
+
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
+	}
+
+	if err := p.postUseCase.LikePost(ctx, postId, userId); err != nil {
+		return nil, grpcErrorFromAppError(err)
+	}
+
+	return &pb.LikePostResponse{Success: true}, nil
+}
+
+func (p *PostServiceServer) UnlikePost(ctx context.Context, req *pb.UnlikePostRequest) (*pb.UnlikePostResponse, error) {
+	postId, err := uuid.Parse(req.PostId)
+	if err != nil {
+		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid post id: %w", post_errors.ErrInvalidUUID, err))
+	}
+
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, grpcErrorFromAppError(fmt.Errorf("%w: invalid user", post_errors.ErrInvalidUUID))
+	}
+
+	if err := p.postUseCase.UnlikePost(ctx, postId, userId); err != nil {
+		return nil, grpcErrorFromAppError(err)
+	}
+
+	return &pb.UnlikePostResponse{Success: true}, nil
 }
 
 func grpcErrorFromAppError(err error) error {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	micro_addr "quickflow/config/micro-addr"
 	minio_config "quickflow/file_service/config/minio"
 	validation_config "quickflow/file_service/config/validation"
 	grpc2 "quickflow/file_service/internal/delivery/grpc"
@@ -16,6 +18,7 @@ import (
 	"quickflow/file_service/internal/repository/minio"
 	"quickflow/file_service/internal/usecase"
 	"quickflow/file_service/utils/validation"
+	"quickflow/shared/interceptors"
 	proto "quickflow/shared/proto/file_service"
 )
 
@@ -67,13 +70,16 @@ func main() {
 	fileUseCase := usecase.NewFileUseCase(fileRepo, fileValidator)
 
 	// gRPC
-	listener, err := net.Listen("tcp", ":8081")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", micro_addr.DefaultFileServicePort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	defer listener.Close()
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.ErrorInterceptor))
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		interceptor.ErrorInterceptor,
+		interceptors.RequestIDServerInterceptor(),
+	))
 	proto.RegisterFileServiceServer(server, grpc2.NewFileServiceServer(fileUseCase))
 
 	log.Printf("Server is listening on %s", listener.Addr().String())

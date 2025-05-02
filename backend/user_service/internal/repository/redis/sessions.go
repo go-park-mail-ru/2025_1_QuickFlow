@@ -11,7 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	redis2 "quickflow/config/redis"
-	"quickflow/pkg/logger"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 

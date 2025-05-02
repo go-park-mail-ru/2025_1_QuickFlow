@@ -12,4 +12,5 @@ var (
 	ErrInvalidTimestamp        = errors.New("invalid timestamp")
 	ErrNotFound                = errors.New("not found")
 	ErrInvalidUUID             = errors.New("invalid uuid")
+	ErrAlreadyExists           = errors.New("already exists")
 )

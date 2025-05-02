@@ -18,8 +18,6 @@ import (
 
 type FeedbackUseCase interface {
 	SaveFeedback(ctx context.Context, feedback *models.Feedback) error
-	GetAllFeedback(ctx context.Context, ts time.Time, count int) (map[models.FeedbackType][]models.Feedback, error)
-	GetAverageRatings(ctx context.Context) (map[models.FeedbackType]float64, error)
 	GetAllFeedbackType(ctx context.Context, feedbackType models.FeedbackType, ts time.Time, count int) ([]models.Feedback, error)
 	GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error)
 	GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error)
@@ -32,7 +30,7 @@ type FeedbackHandler struct {
 	policy          *bluemonday.Policy
 }
 
-func NewFeedbackService(feedbackUseCase FeedbackUseCase, profileService ProfileUseCase, policy *bluemonday.Policy) *FeedbackHandler {
+func NewFeedbackHandler(feedbackUseCase FeedbackUseCase, profileService ProfileUseCase, policy *bluemonday.Policy) *FeedbackHandler {
 	return &FeedbackHandler{
 		feedbackUseCase: feedbackUseCase,
 		profileService:  profileService,

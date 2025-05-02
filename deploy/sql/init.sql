@@ -183,55 +183,23 @@ create table if not exists feedback(
                                                check (rating >= 0 and rating <= 10)
 );
 
--- create table if not exists post_feedback(
---                                             id uuid primary key default gen_random_uuid(),
---                                             rating int not null,
---                                             respondent_id uuid references "user"(id) on delete set null,
---                                             text text,
---                                             type text not null,
---                                             created_at timestamptz not null default now(),
---                                             check (rating >= 0 and rating <= 10)
--- );
---
--- create table if not exists messenger_feedback(
---                                             id uuid primary key default gen_random_uuid(),
---                                             rating int not null,
---                                             respondent_id uuid references "user"(id) on delete set null,
---                                             text text,
---                                             type text not null,
---                                             created_at timestamptz not null default now(),
---                                             check (rating >= 0 and rating <= 10)
--- );
---
--- create table if not exists auth_feedback(
---                                             id uuid primary key default gen_random_uuid(),
---                                             rating int not null,
---                                             respondent_id uuid references "user"(id) on delete set null,
---                                             text text,
---                                             type text not null,
---                                             created_at timestamptz not null default now(),
---                                             check (rating >= 0 and rating <= 10)
--- );
---
--- create table if not exists profile_feedback(
---                                             id uuid primary key default gen_random_uuid(),
---                                             rating int not null,
---                                             respondent_id uuid references "user"(id) on delete set null,
---                                             text text,
---                                             type text not null,
---                                             created_at timestamptz not null default now(),
---                                             check (rating >= 0 and rating <= 10)
--- );
---
--- create table if not exists recommendation_feedback(
---                                             id uuid primary key default gen_random_uuid(),
---                                             rating int not null,
---                                             respondent_id uuid references "user"(id) on delete set null,
---                                             text text,
---                                             type text not null,
---                                             created_at timestamptz not null default now(),
---                                             check (rating >= 0 and rating <= 10)
--- );
-
 create extension if not exists pg_trgm;
-SET pg_trgm.similarity_threshold = 0.3;
+SET pg_trgm.similarity_threshold = 0.3; -- for fuzzy search
+
+-- triggers for updating like_count in post table
+CREATE OR REPLACE FUNCTION update_post_like_count()
+    RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE post SET like_count = like_count + 1 WHERE id = NEW.post_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE post SET like_count = like_count - 1 WHERE id = OLD.post_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_post_like_count
+    AFTER INSERT OR DELETE ON like_post
+    FOR EACH ROW
+EXECUTE FUNCTION update_post_like_count();
