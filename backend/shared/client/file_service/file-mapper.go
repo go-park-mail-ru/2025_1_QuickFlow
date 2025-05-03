@@ -8,6 +8,10 @@ import (
 )
 
 func ProtoFileToModel(file *file_service.File) *shared_models.File {
+	if file == nil {
+		return nil
+	}
+
 	return &shared_models.File{
 		Name:       file.FileName,
 		Size:       file.FileSize,

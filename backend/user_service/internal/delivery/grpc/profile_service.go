@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"quickflow/shared/logger"
 	shared_models "quickflow/shared/models"
 	pb "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/delivery/grpc/dto"
@@ -33,8 +34,9 @@ func NewProfileServiceServer(profileUC ProfileUseCase) *ProfileServiceServer {
 	return &ProfileServiceServer{profileUC: profileUC}
 }
 
-// CreateProfile создает новый профиль
 func (p *ProfileServiceServer) CreateProfile(ctx context.Context, req *pb.CreateProfileRequest) (*pb.CreateProfileResponse, error) {
+	logger.Info(ctx, "CreateProfile called")
+
 	profileDTO := req.GetProfile()
 	if profileDTO == nil {
 		return nil, status.Error(codes.InvalidArgument, "profile is required")
@@ -42,11 +44,13 @@ func (p *ProfileServiceServer) CreateProfile(ctx context.Context, req *pb.Create
 
 	profile, err := dto.MapProfileDTOToProfile(profileDTO)
 	if err != nil {
+		logger.Error(ctx, "invalid profile data:", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid profile data: %v", err)
 	}
 
 	createdProfile, err := p.profileUC.CreateProfile(ctx, *profile)
 	if err != nil {
+		logger.Error(ctx, "failed to create profile:", err)
 		return nil, status.Errorf(codes.Internal, "failed to create profile: %v", err)
 	}
 
@@ -55,8 +59,9 @@ func (p *ProfileServiceServer) CreateProfile(ctx context.Context, req *pb.Create
 	}, nil
 }
 
-// UpdateProfile обновляет существующий профиль
 func (p *ProfileServiceServer) UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest) (*pb.UpdateProfileResponse, error) {
+	logger.Info(ctx, "UpdateProfile called")
+
 	profileDTO := req.GetProfile()
 	if profileDTO == nil {
 		return nil, status.Error(codes.InvalidArgument, "profile is required")
@@ -64,6 +69,7 @@ func (p *ProfileServiceServer) UpdateProfile(ctx context.Context, req *pb.Update
 
 	profile, err := dto.MapProfileDTOToProfile(profileDTO)
 	if err != nil {
+		logger.Error(ctx, "invalid profile data:", err)
 		return nil, status.Errorf(codes.InvalidArgument, "invalid profile data: %v", err)
 	}
 
@@ -75,6 +81,7 @@ func (p *ProfileServiceServer) UpdateProfile(ctx context.Context, req *pb.Update
 		return nil, status.Error(codes.AlreadyExists, "username already taken")
 	}
 	if err != nil {
+		logger.Error(ctx, "failed to update profile:", err)
 		return nil, status.Errorf(codes.Internal, "failed to update profile: %v", err)
 	}
 
@@ -83,8 +90,9 @@ func (p *ProfileServiceServer) UpdateProfile(ctx context.Context, req *pb.Update
 	}, nil
 }
 
-// GetProfile получает профиль пользователя по user_id
 func (p *ProfileServiceServer) GetProfile(ctx context.Context, req *pb.GetProfileRequest) (*pb.GetProfileResponse, error) {
+	logger.Info(ctx, "GetProfile called")
+
 	userID, err := uuid.Parse(req.GetUserId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id")
@@ -95,6 +103,7 @@ func (p *ProfileServiceServer) GetProfile(ctx context.Context, req *pb.GetProfil
 		return nil, status.Error(codes.NotFound, "profile not found")
 	}
 	if err != nil {
+		logger.Error(ctx, "failed to get profile:", err)
 		return nil, status.Errorf(codes.Internal, "failed to get profile: %v", err)
 	}
 
@@ -103,10 +112,11 @@ func (p *ProfileServiceServer) GetProfile(ctx context.Context, req *pb.GetProfil
 	}, nil
 }
 
-// GetProfileByUsername получает профиль пользователя по username
 func (p *ProfileServiceServer) GetProfileByUsername(ctx context.Context, req *pb.GetProfileByUsernameRequest) (*pb.GetProfileByUsernameResponse, error) {
-	username := req.GetUsername()
-	if username == "" {
+	logger.Info(ctx, "GetProfileByUsername called")
+
+	username := req.Username
+	if len(username) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "username is required")
 	}
 
@@ -115,6 +125,7 @@ func (p *ProfileServiceServer) GetProfileByUsername(ctx context.Context, req *pb
 		return nil, status.Error(codes.NotFound, "profile not found")
 	}
 	if err != nil {
+		logger.Error(ctx, "failed to get profile by username:", err)
 		return nil, status.Errorf(codes.Internal, "failed to get profile: %v", err)
 	}
 
@@ -123,22 +134,25 @@ func (p *ProfileServiceServer) GetProfileByUsername(ctx context.Context, req *pb
 	}, nil
 }
 
-// UpdateLastSeen обновляет время последней активности пользователя
 func (p *ProfileServiceServer) UpdateLastSeen(ctx context.Context, req *pb.UpdateLastSeenRequest) (*pb.UpdateLastSeenResponse, error) {
+	logger.Info(ctx, "UpdateLastSeen called")
+
 	userID, err := uuid.Parse(req.GetUserId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id")
 	}
 
 	if err := p.profileUC.UpdateLastSeen(ctx, userID); err != nil {
+		logger.Error(ctx, "failed to update last seen:", err)
 		return nil, status.Errorf(codes.Internal, "failed to update last seen: %v", err)
 	}
 
 	return &pb.UpdateLastSeenResponse{Success: true}, nil
 }
 
-// GetPublicUserInfo получает публичную информацию о пользователе
 func (p *ProfileServiceServer) GetPublicUserInfo(ctx context.Context, req *pb.GetPublicUserInfoRequest) (*pb.GetPublicUserInfoResponse, error) {
+	logger.Info(ctx, "GetPublicUserInfo called")
+
 	userID, err := uuid.Parse(req.GetUserId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user id")
@@ -149,6 +163,7 @@ func (p *ProfileServiceServer) GetPublicUserInfo(ctx context.Context, req *pb.Ge
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 	if err != nil {
+		logger.Error(ctx, "failed to get public user info:", err)
 		return nil, status.Errorf(codes.Internal, "failed to get public user info: %v", err)
 	}
 
@@ -157,8 +172,9 @@ func (p *ProfileServiceServer) GetPublicUserInfo(ctx context.Context, req *pb.Ge
 	}, nil
 }
 
-// GetPublicUsersInfo получает публичную информацию о нескольких пользователях
 func (p *ProfileServiceServer) GetPublicUsersInfo(ctx context.Context, req *pb.GetPublicUsersInfoRequest) (*pb.GetPublicUsersInfoResponse, error) {
+	logger.Info(ctx, "GetPublicUsersInfo called")
+
 	userIds := req.GetUserIds()
 	if len(userIds) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "user ids are required")
@@ -175,6 +191,7 @@ func (p *ProfileServiceServer) GetPublicUsersInfo(ctx context.Context, req *pb.G
 
 	publicInfo, err := p.profileUC.GetPublicUsersInfo(ctx, parsedUserIds)
 	if err != nil {
+		logger.Error(ctx, "failed to get public users info:", err)
 		return nil, status.Errorf(codes.Internal, "failed to get public users info: %v", err)
 	}
 

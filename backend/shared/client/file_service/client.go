@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/file_service"
 
@@ -31,6 +32,7 @@ func (f *FileClient) UploadFile(ctx context.Context, file *models.File) (string,
 	if file.Reader != nil {
 		fileBytes, err = io.ReadAll(file.Reader)
 		if err != nil {
+			logger.Error(ctx, "Failed to read from file reader: %v", err)
 			return "", fmt.Errorf("failed to read file: %w", err)
 		}
 	}
@@ -45,8 +47,11 @@ func (f *FileClient) UploadFile(ctx context.Context, file *models.File) (string,
 		},
 	}
 
+	logger.Info(ctx, "Sending request to file_service to upload file: %s", file.Name)
+
 	resp, err := f.client.UploadFile(ctx, req)
 	if err != nil {
+		logger.Error(ctx, "Failed to upload file to file_service: %s", file.Name)
 		return "", fmt.Errorf("fileClient.UploadFile: %w", err)
 	}
 
@@ -64,6 +69,7 @@ func (f *FileClient) UploadManyFiles(ctx context.Context, files []*models.File) 
 		if file.Reader != nil {
 			fileBytes, err = io.ReadAll(file.Reader)
 			if err != nil {
+				logger.Error(ctx, "Failed to read from file reader: %v", err)
 				return nil, fmt.Errorf("failed to read file: %w", err)
 			}
 		}
@@ -85,8 +91,10 @@ func (f *FileClient) UploadManyFiles(ctx context.Context, files []*models.File) 
 		Files: requests,
 	}
 
+	logger.Info(ctx, "Sending request to file_service to upload multiple (%d) files", len(requests))
 	resp, err := f.client.UploadManyFiles(ctx, manyReq)
 	if err != nil {
+		logger.Error(ctx, "Failed to upload multiple files to file_service")
 		return nil, fmt.Errorf("fileClient.UploadManyFiles: %w", err)
 	}
 
@@ -99,8 +107,10 @@ func (f *FileClient) DeleteFile(ctx context.Context, filename string) error {
 		FileUrl: filename,
 	}
 
+	logger.Info(ctx, "Sending request to file_service to delete file: %s", filename)
 	_, err := f.client.DeleteFile(ctx, req)
 	if err != nil {
+		logger.Error(ctx, "Failed to delete file from file_service: %s", filename)
 		return fmt.Errorf("fileClient.DeleteFile: %w", err)
 	}
 

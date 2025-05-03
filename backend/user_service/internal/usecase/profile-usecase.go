@@ -203,5 +203,7 @@ func (p *ProfileService) GetProfileByUsername(ctx context.Context, username stri
 		return shared_models.Profile{}, fmt.Errorf("p.profileRepo.GetProfile: %w", err)
 	}
 
+	profile.Username = user.Username
+
 	return profile, nil
 }

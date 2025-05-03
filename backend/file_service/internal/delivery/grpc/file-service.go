@@ -9,6 +9,7 @@ import (
 
 	"quickflow/file_service/internal/delivery/grpc/dto"
 	qf_errors "quickflow/file_service/internal/errors"
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/file_service"
 )
@@ -30,19 +31,23 @@ func NewFileServiceServer(fileUC FileUseCase) *FileServiceServer {
 }
 
 func (s *FileServiceServer) UploadFile(ctx context.Context, req *pb.UploadFileRequest) (*pb.UploadFileResponse, error) {
-	dtoFile := dto.MapUploadFileRequestToDTO(req)
+	logger.Info(ctx, "Received UploadFile request")
 
+	dtoFile := dto.MapUploadFileRequestToDTO(req)
 	fileURL, err := s.fileUC.UploadFile(ctx, dto.MapDTOFileToModel(dtoFile))
 	if err != nil {
+		logger.Error(ctx, "Failed to upload file: ", err)
 		return nil, grpcErrorFromAppError(err)
 	}
 
+	logger.Info(ctx, "Successfully uploaded file")
 	return &pb.UploadFileResponse{FileUrl: fileURL}, nil
 }
 
 func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadManyFilesRequest) (*pb.UploadManyFilesResponse, error) {
-	dtoFiles := dto.MapUploadManyFilesRequestToDTO(req)
+	logger.Info(ctx, "Received UploadManyFiles request")
 
+	dtoFiles := dto.MapUploadManyFilesRequestToDTO(req)
 	files := make([]*models.File, len(dtoFiles.Files))
 	for i, file := range dtoFiles.Files {
 		files[i] = dto.MapDTOFileToModel(file)
@@ -50,18 +55,24 @@ func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadM
 
 	fileURLs, err := s.fileUC.UploadManyFiles(ctx, files)
 	if err != nil {
+		logger.Error(ctx, "Failed to upload many files: ", err)
 		return nil, grpcErrorFromAppError(err)
 	}
 
+	logger.Info(ctx, "Successfully uploaded multiple files")
 	return &pb.UploadManyFilesResponse{FileUrls: fileURLs}, nil
 }
 
 func (s *FileServiceServer) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest) (*pb.DeleteFileResponse, error) {
+	logger.Info(ctx, "Received DeleteFile request")
+
 	err := s.fileUC.DeleteFile(ctx, req.FileUrl)
 	if err != nil {
+		logger.Error(ctx, "Failed to delete file: ", err)
 		return &pb.DeleteFileResponse{Success: false}, grpcErrorFromAppError(err)
 	}
 
+	logger.Info(ctx, "Successfully deleted file")
 	return &pb.DeleteFileResponse{Success: true}, nil
 }
 
@@ -71,13 +82,12 @@ func grpcErrorFromAppError(err error) error {
 	}
 
 	switch {
-	case errors.Is(err, qf_errors.ErrInvalidFileName) ||
-		errors.Is(err, qf_errors.ErrInvalidFileSize) ||
-		errors.Is(err, qf_errors.ErrUnsupportedFileType) ||
+	case errors.Is(err, qf_errors.ErrInvalidFileName),
+		errors.Is(err, qf_errors.ErrInvalidFileSize),
+		errors.Is(err, qf_errors.ErrUnsupportedFileType),
 		errors.Is(err, qf_errors.ErrTooManyFiles):
 		return status.Error(codes.InvalidArgument, err.Error())
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}
-
 }

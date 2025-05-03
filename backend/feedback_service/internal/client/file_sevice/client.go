@@ -3,8 +3,10 @@ package file_sevice
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 
+	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/file_service"
 
@@ -29,8 +31,9 @@ func (f *FileClient) UploadFile(ctx context.Context, file *models.File) (string,
 
 	// Если есть Reader — читаем
 	if file.Reader != nil {
-		fileBytes, err = ioutil.ReadAll(file.Reader)
+		fileBytes, err = io.ReadAll(file.Reader)
 		if err != nil {
+			logger.Error(ctx, "UploadFile: failed to read file: %v", err)
 			return "", fmt.Errorf("failed to read file: %w", err)
 		}
 	}
@@ -45,8 +48,10 @@ func (f *FileClient) UploadFile(ctx context.Context, file *models.File) (string,
 		},
 	}
 
+	logger.Info(ctx, "Sending request to file_service to upload file: %s", file.Name)
 	resp, err := f.client.UploadFile(ctx, req)
 	if err != nil {
+		logger.Error(ctx, "Failed to upload file to file_service to upload file: %s", file.Name)
 		return "", fmt.Errorf("fileClient.UploadFile: %w", err)
 	}
 
