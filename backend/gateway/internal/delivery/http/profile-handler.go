@@ -240,7 +240,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
     logger.Info(ctx, fmt.Sprintf("Recieved profile update: %v", profile))
 
     profile.UserId = user.Id
-    _, err := p.profileUC.UpdateProfile(ctx, profile)
+    _, err = p.profileUC.UpdateProfile(ctx, profile)
     if err != nil {
         err := errors2.FromGRPCError(err)
         logger.Error(ctx, fmt.Sprintf("Failed to update profile: %s", err.Error()))
