@@ -4,6 +4,7 @@ SCHEME?=http
 MINIO_PUBLIC_ENDPOINT?=localhost:9000
 COMPOSE_FILE=./deploy/micro-docker-compose.yml
 MODE?=daemon
+SERVICE?=
 COMPOSE=docker compose
 
 ifeq ($(shell [ -f $(CERT_PATH) ] && echo yes),yes)
@@ -15,13 +16,25 @@ ifeq (${SCHEME}, https)
 endif
 
 build:
+ifeq ($(strip $(SERVICE)),)
 	$(COMPOSE) -f $(COMPOSE_FILE) build --build-arg SCHEME=$(SCHEME) --build-arg MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
+else
+	$(COMPOSE) -f $(COMPOSE_FILE) build $(SERVICE) --build-arg SCHEME=$(SCHEME) --build-arg MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
+endif
 
 up: build
+ifeq ($(strip $(SERVICE)),)
 ifeq ($(MODE),daemon)
 	$(COMPOSE) -f $(COMPOSE_FILE) up -d
 else
 	$(COMPOSE) -f $(COMPOSE_FILE) up
+endif
+else
+ifeq ($(MODE),daemon)
+	$(COMPOSE) -f $(COMPOSE_FILE) up -d $(SERVICE)
+else
+	$(COMPOSE) -f $(COMPOSE_FILE) up $(SERVICE)
+endif
 endif
 
 down:
@@ -30,7 +43,6 @@ ifeq ($(ERASE),yes)
 else
 	$(COMPOSE) -f $(COMPOSE_FILE) down
 endif
-
 
 restart: down up
 
