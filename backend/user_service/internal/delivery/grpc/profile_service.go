@@ -177,7 +177,9 @@ func (p *ProfileServiceServer) GetPublicUsersInfo(ctx context.Context, req *pb.G
 
 	userIds := req.GetUserIds()
 	if len(userIds) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "user ids are required")
+		return &pb.GetPublicUsersInfoResponse{
+			UsersInfo: nil,
+		}, nil
 	}
 
 	parsedUserIds := make([]uuid.UUID, len(userIds))

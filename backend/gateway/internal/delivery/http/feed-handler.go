@@ -77,9 +77,9 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	posts, err := f.postService.FetchFeed(ctx, feedForm.Posts, ts, user.Id)
-	if err != nil {
-		err := errors2.FromGRPCError(err)
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to load feed: %s", err.Error()), err.HTTPStatus)
+	appErr := errors2.FromGRPCError(err)
+	if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to load feed: %s", err.Error()), appErr.HTTPStatus)
 		return
 	}
 
@@ -154,9 +154,9 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 	}
 
 	posts, err := f.postService.FetchRecommendations(ctx, feedForm.Posts, ts, user.Id)
-	if err != nil {
-		err := errors2.FromGRPCError(err)
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to load recommendations: %s", err.Error()), err.HTTPStatus)
+	appErr := errors2.FromGRPCError(err)
+	if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to load recommendations: %s", err.Error()), appErr.HTTPStatus)
 		return
 	}
 
@@ -238,9 +238,9 @@ func (f *FeedHandler) FetchUserPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	posts, err := f.postService.FetchUserPosts(ctx, user.Id, feedForm.Posts, ts)
-	if err != nil {
-		err := errors2.FromGRPCError(err)
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to load user posts: %s", err.Error()), err.HTTPStatus)
+	appErr := errors2.FromGRPCError(err)
+	if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to load user posts: %s", err.Error()), appErr.HTTPStatus)
 		return
 	}
 

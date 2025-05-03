@@ -189,7 +189,7 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 
 func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getUserPostsOlder, id, timestamp, numPosts)
-	if !errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, post_errors.ErrNotFound
 	}
 	if err != nil {
@@ -236,7 +236,7 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 
 func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getRecommendationsForUserOlder, timestamp, numPosts)
-	if !errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, post_errors.ErrNotFound
 	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",
@@ -283,7 +283,7 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	rows, err := p.connPool.QueryContext(ctx, getPostsForUserOlder, uid, timestamp, numPosts,
 		models.RelationFriend, models.RelationFollowedBy, models.RelationFollowing)
-	if !errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, post_errors.ErrNotFound
 	} else if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to get posts from database for user %v, numPosts %v, timestamp %v: %s",

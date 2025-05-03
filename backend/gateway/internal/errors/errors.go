@@ -27,6 +27,10 @@ func New(code string, message string, status int) *GatewayError {
 }
 
 func FromGRPCError(err error) *GatewayError {
+	if err == nil {
+		return nil
+	}
+
 	st, ok := status.FromError(err)
 	if !ok {
 		// Не grpc-ошибка — внутренняя ошибка
