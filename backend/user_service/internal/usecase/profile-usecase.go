@@ -88,10 +88,10 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile shared_mo
 		}
 	}
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, newCtx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		if err := p.profileRepo.UpdateProfileTextInfo(ctx, newProfile); err != nil {
+		if err := p.profileRepo.UpdateProfileTextInfo(newCtx, newProfile); err != nil {
 			return fmt.Errorf("p.profileRepo.UpdateProfileTextInfo: %w", err)
 		}
 		return nil
@@ -99,11 +99,11 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile shared_mo
 
 	if newProfile.Avatar != nil {
 		g.Go(func() error {
-			avatarUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Avatar)
+			avatarUrl, err := p.fileRepo.UploadFile(newCtx, newProfile.Avatar)
 			if err != nil {
 				return fmt.Errorf("p.fileRepo.UploadFile (avatar): %w", err)
 			}
-			if err := p.profileRepo.UpdateProfileAvatar(ctx, newProfile.UserId, avatarUrl); err != nil {
+			if err := p.profileRepo.UpdateProfileAvatar(newCtx, newProfile.UserId, avatarUrl); err != nil {
 				return fmt.Errorf("p.profileRepo.UpdateProfileAvatar: %w", err)
 			}
 			return nil
@@ -112,11 +112,11 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile shared_mo
 
 	if newProfile.Background != nil {
 		g.Go(func() error {
-			backgroundUrl, err := p.fileRepo.UploadFile(ctx, newProfile.Background)
+			backgroundUrl, err := p.fileRepo.UploadFile(newCtx, newProfile.Background)
 			if err != nil {
 				return fmt.Errorf("p.fileRepo.UploadFile (background): %w", err)
 			}
-			if err := p.profileRepo.UpdateProfileCover(ctx, newProfile.UserId, backgroundUrl); err != nil {
+			if err := p.profileRepo.UpdateProfileCover(newCtx, newProfile.UserId, backgroundUrl); err != nil {
 				return fmt.Errorf("p.profileRepo.UpdateProfileCover: %w", err)
 			}
 			return nil
