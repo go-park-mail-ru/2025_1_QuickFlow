@@ -14,7 +14,7 @@ import (
 )
 
 type FriendsUseCase interface {
-	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, int, error)
+	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string, reqType string) ([]models.FriendInfo, int, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	Unfollow(ctx context.Context, userID string, friendID string) error
@@ -37,7 +37,7 @@ func NewFriendsServiceServer(friendsUseCase FriendsUseCase) *FriendsServiceServe
 func (f *FriendsServiceServer) GetFriendsInfo(ctx context.Context, in *pb.GetFriendsInfoRequest) (*pb.GetFriendsInfoResponse, error) {
 	logger.Info(ctx, "Received GetFriendsInfo request")
 
-	friendsInfos, friendsCount, err := f.friendsUseCase.GetFriendsInfo(ctx, in.UserId, in.Limit, in.Offset)
+	friendsInfos, friendsCount, err := f.friendsUseCase.GetFriendsInfo(ctx, in.UserId, in.Limit, in.Offset, in.ReqType)
 	if err != nil {
 		logger.Error(ctx, "GetFriendsInfo failed: ", err)
 		return &pb.GetFriendsInfoResponse{}, err

@@ -10,14 +10,14 @@ import (
 
 	"quickflow/gateway/internal/delivery/forms"
 	"quickflow/gateway/internal/errors"
-
 	http2 "quickflow/gateway/utils/http"
+	"quickflow/gateway/utils/validation"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
 
 type FriendsUseCase interface {
-	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, int, error)
+	GetFriendsInfo(ctx context.Context, userID string, limit string, offset string, reqType string) ([]models.FriendInfo, int, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	Unfollow(ctx context.Context, userID string, friendID string) error
@@ -60,15 +60,26 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("count")
 	offset := r.URL.Query().Get("offset")
 	userID := r.URL.Query().Get("user_id")
+	reqType := r.URL.Query().Get("section")
 
 	targetUserID := userID
 	if targetUserID == "" {
 		targetUserID = user.Id.String()
 	}
 
+	if reqType == "" {
+		reqType = "all"
+	}
+
+	if !validation.ValidateFriendReqType(reqType) {
+		logger.Error(ctx, fmt.Sprintf("Invalid request type: %s", reqType))
+		http2.WriteJSONError(w, "Invalid request type", http.StatusBadRequest)
+		return
+	}
+
 	logger.Info(ctx, fmt.Sprintf("User %s requested friends", targetUserID))
 
-	friendsInfo, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset)
+	friendsInfo, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset, reqType)
 
 	if err != nil {
 		err := errors.FromGRPCError(err)
@@ -242,7 +253,7 @@ func (f *FriendHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info(ctx, "Successfully parsed request body")
-	logger.Info(ctx, fmt.Sprintf("User: %s trying to unfollow userЖ %s ", user.Username, req.FriendID))
+	logger.Info(ctx, fmt.Sprintf("User: %s trying to unfollow user %s ", user.Username, req.FriendID))
 
 	if err = f.FriendsUseCase.Unfollow(ctx, user.Id.String(), req.FriendID); err != nil {
 		err := errors.FromGRPCError(err)

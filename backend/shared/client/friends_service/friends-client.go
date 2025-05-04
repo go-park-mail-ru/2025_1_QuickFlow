@@ -21,12 +21,13 @@ func NewFriendsClient(conn *grpc.ClientConn) *FriendsClient {
 	}
 }
 
-func (f *FriendsClient) GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]shared_models.FriendInfo, int, error) {
+func (f *FriendsClient) GetFriendsInfo(ctx context.Context, userID string, limit string, offset string, reqType string) ([]shared_models.FriendInfo, int, error) {
 	logger.Info(ctx, "Getting friends info for userId: %s", userID)
 	info, err := f.client.GetFriendsInfo(ctx, &pb.GetFriendsInfoRequest{
-		UserId: userID,
-		Limit:  limit,
-		Offset: offset,
+		UserId:  userID,
+		Limit:   limit,
+		Offset:  offset,
+		ReqType: reqType,
 	})
 
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 type FriendsRepository interface {
-	GetFriendsPublicInfo(ctx context.Context, userID string, amount int, startPos int) ([]models.FriendInfo, int, error)
+	GetFriendsPublicInfo(ctx context.Context, userID string, amount int, startPos int, reqType string) ([]models.FriendInfo, int, error)
 	SendFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	AcceptFriendRequest(ctx context.Context, senderID string, receiverID string) error
 	DeleteFriend(ctx context.Context, senderID string, receiverID string) error
@@ -32,7 +32,7 @@ func NewFriendsService(friendsRepo FriendsRepository) *FriendsService {
 	}
 }
 
-func (f *FriendsService) GetFriendsInfo(ctx context.Context, userID string, limit string, offset string) ([]models.FriendInfo, int, error) {
+func (f *FriendsService) GetFriendsInfo(ctx context.Context, userID string, limit string, offset string, reqType string) ([]models.FriendInfo, int, error) {
 	amount, err := strconv.Atoi(limit)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to parse count. Given value %s: %s", limit, err.Error()))
@@ -44,8 +44,8 @@ func (f *FriendsService) GetFriendsInfo(ctx context.Context, userID string, limi
 		logger.Error(ctx, fmt.Sprintf("Unable to parse offset. Given value %s: %s", offset, err.Error()))
 		return nil, 0, err
 	}
-
-	friendsIds, friendsCount, err := f.friendsRepo.GetFriendsPublicInfo(ctx, userID, amount, startPos)
+	
+	friendsIds, friendsCount, err := f.friendsRepo.GetFriendsPublicInfo(ctx, userID, amount, startPos, reqType)
 	if err != nil {
 		return []models.FriendInfo{}, 0, err
 	}

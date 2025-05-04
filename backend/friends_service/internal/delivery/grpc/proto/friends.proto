@@ -24,6 +24,7 @@ message GetFriendsInfoRequest {
   string user_id = 1;
   string limit = 2;
   string offset = 3;
+  string reqType = 4;
 }
 
 message GetFriendsInfoResponse {

@@ -16,14 +16,14 @@ import (
 
 const (
 	GetFriendsInfoQuery = `
-		with friends as (
+		with related_users as (
 			select 
-				case 
+				case
 					when user1_id = $1 then user2_id
-					else user1_id 
-				end as friend_id
+					else user1_id
+				end as related_id
 			from friendship
-			where (user1_id = $1 or user2_id = $1) and status = $4
+			where((user1_id = $1 AND status = $2) OR (user2_id = $1 AND status = $3))
 		)
 		select 
 			u.id, 
@@ -39,8 +39,8 @@ const (
 		left join university univ on f.university_id = univ.id
 		where u.id in (select friend_id from friends)
 		order by p.lastname, p.firstname
-		limit $2
-		offset $3
+		limit $4
+		offset $5
 	`
 
 	InsertFriendRequestQuery = `
@@ -72,9 +72,14 @@ const (
 	`
 
 	GetFriendsCountQuery = `
-	select count(*) 
-	from friendship 
-	where (user1_id = $1 or user2_id = $1) and status = $2
+		select count(
+			case
+				when user1_id = $1 then user2_id
+				else user1_id
+			end
+		)
+		from friendship
+		where ((user1_id = $1 and status = $2) or (user2_id = $1 and status = $3));
 	`
 )
 
@@ -92,11 +97,27 @@ func (p *PostgresFriendsRepository) Close() {
 	p.connPool.Close()
 }
 
-// GetFriendsPublicInfo Отдает структуру с информацией по друзьям + флаг hasMore, который говорит - остались ли еще друзья + ошибку
-func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string, limit int, offset int) ([]models.FriendInfo, int, error) {
+// GetFriendsPublicInfo Отдает структуру с информацией по друзьям + количество друзей + ошибку
+func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, userID string, limit int, offset int, reqType string) ([]models.FriendInfo, int, error) {
+	var rel1, rel2 models.UserRelation
+	switch reqType {
+
+	case "all":
+		rel1 = models.RelationFriend
+		rel2 = models.RelationFriend
+
+	case "outcoming":
+		rel1 = models.RelationFollowing
+		rel2 = models.RelationFollowedBy
+
+	case "incoming":
+		rel1 = models.RelationFollowedBy
+		rel2 = models.RelationFollowing
+	}
+
 	logger.Info(ctx, fmt.Sprintf("Trying to get friends info for user %s", userID))
 
-	rows, err := p.connPool.QueryContext(ctx, GetFriendsInfoQuery, userID, limit+1, offset, models.RelationFriend)
+	rows, err := p.connPool.QueryContext(ctx, GetFriendsInfoQuery, userID, rel1, rel2, limit, offset)
 	friendsInfo := make([]models.FriendInfo, 0)
 
 	if err != nil {

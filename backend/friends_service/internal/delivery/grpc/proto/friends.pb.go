@@ -163,6 +163,7 @@ type GetFriendsInfoRequest struct {
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Limit         string                 `protobuf:"bytes,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset        string                 `protobuf:"bytes,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	ReqType       string                 `protobuf:"bytes,4,opt,name=reqType,proto3" json:"reqType,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -214,6 +215,13 @@ func (x *GetFriendsInfoRequest) GetLimit() string {
 func (x *GetFriendsInfoRequest) GetOffset() string {
 	if x != nil {
 		return x.Offset
+	}
+	return ""
+}
+
+func (x *GetFriendsInfoRequest) GetReqType() string {
+	if x != nil {
+		return x.ReqType
 	}
 	return ""
 }
@@ -376,11 +384,12 @@ const file_friends_proto_rawDesc = "" +
 	"avatar_url\x18\x05 \x01(\tR\tavatarUrl\x12\x1e\n" +
 	"\n" +
 	"university\x18\x06 \x01(\tR\n" +
-	"university\"^\n" +
+	"university\"x\n" +
 	"\x15GetFriendsInfoRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\tR\x05limit\x12\x16\n" +
-	"\x06offset\x18\x03 \x01(\tR\x06offset\"s\n" +
+	"\x06offset\x18\x03 \x01(\tR\x06offset\x12\x18\n" +
+	"\areqType\x18\x04 \x01(\tR\areqType\"s\n" +
 	"\x16GetFriendsInfoResponse\x128\n" +
 	"\afriends\x18\x01 \x03(\v2\x1e.friends_service.GetFriendInfoR\afriends\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\x05R\n" +
