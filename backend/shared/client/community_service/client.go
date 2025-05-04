@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"quickflow/shared/client/file_service"
@@ -18,59 +19,60 @@ type Client struct {
 }
 
 func NewCommunityServiceClient(conn *grpc.ClientConn) *Client {
-	return &Client{
-		client: pb.NewCommunityServiceClient(conn),
-	}
+	return &Client{client: pb.NewCommunityServiceClient(conn)}
 }
 
 func (c *Client) CreateCommunity(ctx context.Context, community *models.Community) (*models.Community, error) {
-	res, err := c.client.CreateCommunity(ctx, &pb.CreateCommunityRequest{
-		Name:        community.Name,
-		Description: community.Description,
-		AvatarUrl:   community.AvatarUrl,
+	resp, err := c.client.CreateCommunity(ctx, &pb.CreateCommunityRequest{
+		Name:        community.BasicInfo.Name,
+		Nickname:    community.NickName,
+		Description: community.BasicInfo.Description,
+		AvatarUrl:   community.BasicInfo.AvatarUrl,
+		CoverUrl:    community.BasicInfo.CoverUrl,
 		Avatar:      file_service.ModelFileToProto(community.Avatar),
+		Cover:       file_service.ModelFileToProto(community.Cover),
 		OwnerId:     community.OwnerID.String(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return MapProtoCommunityToModel(res.Community)
+	return MapProtoCommunityToModel(resp.Community)
 }
 
 func (c *Client) GetCommunityById(ctx context.Context, id uuid.UUID) (*models.Community, error) {
-	res, err := c.client.GetCommunityById(ctx, &pb.GetCommunityByIdRequest{CommunityId: id.String()})
+	resp, err := c.client.GetCommunityById(ctx, &pb.GetCommunityByIdRequest{CommunityId: id.String()})
 	if err != nil {
 		return nil, err
 	}
-	return MapProtoCommunityToModel(res.Community)
+	return MapProtoCommunityToModel(resp.Community)
 }
 
 func (c *Client) GetCommunityByName(ctx context.Context, name string) (*models.Community, error) {
-	res, err := c.client.GetCommunityByName(ctx, &pb.GetCommunityByNameRequest{CommunityName: name})
+	resp, err := c.client.GetCommunityByName(ctx, &pb.GetCommunityByNameRequest{CommunityName: name})
 	if err != nil {
 		return nil, err
 	}
-	return MapProtoCommunityToModel(res.Community)
+	return MapProtoCommunityToModel(resp.Community)
 }
 
 func (c *Client) IsCommunityMember(ctx context.Context, userId, communityId uuid.UUID) (bool, *models.CommunityRole, error) {
-	res, err := c.client.IsCommunityMember(ctx, &pb.IsCommunityMemberRequest{
+	resp, err := c.client.IsCommunityMember(ctx, &pb.IsCommunityMemberRequest{
 		UserId:      userId.String(),
 		CommunityId: communityId.String(),
 	})
 	if err != nil {
 		return false, nil, err
 	}
-
-	if res.Role == -1 {
-		return res.IsMember, nil, nil
+	var role *models.CommunityRole
+	if resp.Role >= 0 {
+		converted := ConvertRoleFromProto(resp.Role)
+		role = &converted
 	}
-	role := convertRoleFromProto(res.Role)
-	return res.IsMember, &role, nil
+	return resp.IsMember, role, nil
 }
 
 func (c *Client) GetCommunityMembers(ctx context.Context, communityId uuid.UUID, count int, ts time.Time) ([]*models.CommunityMember, error) {
-	res, err := c.client.GetCommunityMembers(ctx, &pb.GetCommunityMembersRequest{
+	resp, err := c.client.GetCommunityMembers(ctx, &pb.GetCommunityMembersRequest{
 		CommunityId: communityId.String(),
 		Count:       int32(count),
 		Ts:          timestamppb.New(ts),
@@ -78,15 +80,15 @@ func (c *Client) GetCommunityMembers(ctx context.Context, communityId uuid.UUID,
 	if err != nil {
 		return nil, err
 	}
-	var result []*models.CommunityMember
-	for _, protoMember := range res.Members {
-		m, err := MapProtoMemberToModel(protoMember)
+	var members []*models.CommunityMember
+	for _, m := range resp.Members {
+		member, err := MapProtoMemberToModel(m)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, m)
+		members = append(members, member)
 	}
-	return result, nil
+	return members, nil
 }
 
 func (c *Client) DeleteCommunity(ctx context.Context, communityId uuid.UUID, userId uuid.UUID) error {
@@ -98,18 +100,22 @@ func (c *Client) DeleteCommunity(ctx context.Context, communityId uuid.UUID, use
 }
 
 func (c *Client) UpdateCommunity(ctx context.Context, community *models.Community, userId uuid.UUID) (*models.Community, error) {
-	res, err := c.client.UpdateCommunity(ctx, &pb.UpdateCommunityRequest{
+	resp, err := c.client.UpdateCommunity(ctx, &pb.UpdateCommunityRequest{
 		Id:          community.ID.String(),
-		Name:        community.Name,
-		Description: community.Description,
-		AvatarUrl:   community.AvatarUrl,
-		Avatar:      file_service.ModelFileToProto(community.Avatar),
 		UserId:      userId.String(),
+		Name:        community.BasicInfo.Name,
+		Nickname:    community.NickName,
+		Description: community.BasicInfo.Description,
+		AvatarUrl:   community.BasicInfo.AvatarUrl,
+		CoverUrl:    community.BasicInfo.CoverUrl,
+		Avatar:      file_service.ModelFileToProto(community.Avatar),
+		Cover:       file_service.ModelFileToProto(community.Cover),
+		ContactInfo: MapContactInfoToDTO(community.ContactInfo),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return MapProtoCommunityToModel(res.Community)
+	return MapProtoCommunityToModel(resp.Community)
 }
 
 func (c *Client) JoinCommunity(ctx context.Context, member *models.CommunityMember) error {
@@ -121,14 +127,14 @@ func (c *Client) JoinCommunity(ctx context.Context, member *models.CommunityMemb
 
 func (c *Client) LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error {
 	_, err := c.client.LeaveCommunity(ctx, &pb.LeaveCommunityRequest{
-		CommunityId: communityId.String(),
 		UserId:      userId.String(),
+		CommunityId: communityId.String(),
 	})
 	return err
 }
 
 func (c *Client) GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]*models.Community, error) {
-	res, err := c.client.GetUserCommunities(ctx, &pb.GetUserCommunitiesRequest{
+	resp, err := c.client.GetUserCommunities(ctx, &pb.GetUserCommunitiesRequest{
 		UserId: userId.String(),
 		Count:  int32(count),
 		Ts:     timestamppb.New(ts),
@@ -137,7 +143,7 @@ func (c *Client) GetUserCommunities(ctx context.Context, userId uuid.UUID, count
 		return nil, err
 	}
 	var result []*models.Community
-	for _, protoComm := range res.Communities {
+	for _, protoComm := range resp.Communities {
 		m, err := MapProtoCommunityToModel(protoComm)
 		if err != nil {
 			return nil, err
@@ -148,7 +154,7 @@ func (c *Client) GetUserCommunities(ctx context.Context, userId uuid.UUID, count
 }
 
 func (c *Client) SearchSimilarCommunities(ctx context.Context, name string, count int) ([]*models.Community, error) {
-	res, err := c.client.SearchSimilarCommunities(ctx, &pb.SearchSimilarCommunitiesRequest{
+	resp, err := c.client.SearchSimilarCommunities(ctx, &pb.SearchSimilarCommunitiesRequest{
 		Name:  name,
 		Count: int32(count),
 	})
@@ -156,7 +162,7 @@ func (c *Client) SearchSimilarCommunities(ctx context.Context, name string, coun
 		return nil, err
 	}
 	var result []*models.Community
-	for _, protoComm := range res.Communities {
+	for _, protoComm := range resp.Communities {
 		m, err := MapProtoCommunityToModel(protoComm)
 		if err != nil {
 			return nil, err

@@ -14,14 +14,23 @@ const (
 	CommunityRoleOwner  CommunityRole = "owner"
 )
 
-type Community struct {
-	ID          uuid.UUID
+type BasicCommunityInfo struct {
 	Name        string
 	Description string
-	CreatedAt   time.Time
-	Avatar      *File
 	AvatarUrl   string
+	CoverUrl    string
+}
+
+type Community struct {
+	ID       uuid.UUID
+	NickName string
+
+	BasicInfo   *BasicCommunityInfo
+	Avatar      *File
+	Cover       *File
 	OwnerID     uuid.UUID
+	CreatedAt   time.Time
+	ContactInfo *ContactInfo
 }
 
 type CommunityMember struct {

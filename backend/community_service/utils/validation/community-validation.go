@@ -24,15 +24,15 @@ func (p *CommunityValidator) ValidateCommunity(community *models.Community) erro
 	if community == nil {
 		return errors.New("community cannot be nil")
 	}
-
-	if len(community.Name) <= p.communityConfig.CommunityNameMinLength {
+	// TODO
+	if len(community.NickName) <= p.communityConfig.CommunityNameMinLength {
 		return community_errors.ErrorCommunityNameTooShort
 	}
-	if len(community.Name) > p.communityConfig.CommunityNameMaxLength {
+	if len(community.NickName) > p.communityConfig.CommunityNameMaxLength {
 		return community_errors.ErrorCommunityNameTooLong
 	}
 
-	if len(community.Description) > p.communityConfig.CommunityDescriptionMaxLength {
+	if community.BasicInfo != nil && len(community.BasicInfo.Description) > p.communityConfig.CommunityDescriptionMaxLength {
 		return community_errors.ErrorCommunityDescriptionTooLong
 	}
 

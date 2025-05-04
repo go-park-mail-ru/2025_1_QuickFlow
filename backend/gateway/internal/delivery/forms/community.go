@@ -11,19 +11,41 @@ import (
 )
 
 type CreateCommunityForm struct {
+	Nickname    string       `json:"nickname"`
 	Name        string       `json:"name" validate:"required"`
 	Description string       `json:"description,omitempty"`
 	Avatar      *models.File `json:"avatar"`
+	Cover       *models.File `json:"cover"`
+}
+
+type CommunityInfo struct {
+	NickName    string `json:"nickname"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	AvatarUrl   string `json:"avatar_url"`
+	CoverUrl    string `json:"cover_url"`
+}
+
+func CommunityInfoFromModel(communityInfo models.BasicCommunityInfo, nickName string) *CommunityInfo {
+	return &CommunityInfo{
+		NickName:    nickName,
+		Name:        communityInfo.Name,
+		Description: communityInfo.Description,
+		AvatarUrl:   communityInfo.AvatarUrl,
+		CoverUrl:    communityInfo.CoverUrl,
+	}
 }
 
 type CommunityForm struct {
-	Id          string `json:"id,omitempty"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	AvatarUrl   string `json:"avatar_url,omitempty"`
-	OwnerId     string `json:"owner_id"`
-	CreatedAt   string `json:"created_at"`
-	Role        string `json:"role,omitempty"`
+	Id        string       `json:"id"`
+	OwnerId   string       `json:"owner_id"`
+	CreatedAt string       `json:"created_at"`
+	Avatar    *models.File `json:"-"`
+	Cover     *models.File `json:"-"`
+	Role      string       `json:"role,omitempty"`
+
+	CommunityInfo *CommunityInfo `json:"community"`
+	ContactInfo   *ContactInfo   `json:"contact_info,omitempty"`
 }
 
 type PaginationForm struct {
@@ -40,23 +62,24 @@ type CommunityMemberOut struct {
 }
 
 func (f *CreateCommunityForm) CreateFormToModel() models.Community {
-	community := models.Community{
-		Name:        f.Name,
-		Description: f.Description,
-		Avatar:      f.Avatar,
+	return models.Community{
+		NickName: f.Nickname,
+		BasicInfo: &models.BasicCommunityInfo{
+			Name:        f.Name,
+			Description: f.Description,
+		},
+		Avatar: f.Avatar,
+		Cover:  f.Cover,
 	}
-
-	return community
 }
 
 func ToCommunityForm(community models.Community) CommunityForm {
 	return CommunityForm{
-		Id:          community.ID.String(),
-		Name:        community.Name,
-		Description: community.Description,
-		AvatarUrl:   community.AvatarUrl,
-		OwnerId:     community.OwnerID.String(),
-		CreatedAt:   community.CreatedAt.Format(time_config.TimeStampLayout),
+		Id:            community.ID.String(),
+		OwnerId:       community.OwnerID.String(),
+		CreatedAt:     community.CreatedAt.Format(time_config.TimeStampLayout),
+		CommunityInfo: CommunityInfoFromModel(*community.BasicInfo, community.NickName),
+		ContactInfo:   ContactInfoToForm(community.ContactInfo),
 	}
 }
 

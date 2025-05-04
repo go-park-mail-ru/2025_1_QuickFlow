@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"quickflow/community_service/internal/delivery/grpc/dto"
+	dto "quickflow/shared/client/community_service"
 	"quickflow/shared/client/file_service"
 	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
@@ -50,16 +50,20 @@ func (s *CommunityServiceServer) CreateCommunity(ctx context.Context, req *pb.Cr
 		return nil, status.Error(codes.InvalidArgument, "invalid owner ID")
 	}
 
-	community := &models.Community{
-		Name:        req.Name,
-		Description: req.Description,
-		OwnerID:     ownerId,
-		CreatedAt:   time.Now(),
-		AvatarUrl:   req.AvatarUrl,
-		Avatar:      file_service.ProtoFileToModel(req.Avatar),
+	community := models.Community{
+		NickName: req.Nickname,
+		OwnerID:  ownerId,
+		Avatar:   file_service.ProtoFileToModel(req.Avatar),
+		Cover:    file_service.ProtoFileToModel(req.Cover),
+		BasicInfo: &models.BasicCommunityInfo{
+			Name:        req.Name,
+			Description: req.Description,
+			CoverUrl:    req.CoverUrl,
+			AvatarUrl:   req.AvatarUrl,
+		},
 	}
 
-	newCommunity, err := s.communityUseCase.CreateCommunity(ctx, *community)
+	newCommunity, err := s.communityUseCase.CreateCommunity(ctx, community)
 	if err != nil {
 		return nil, err
 	}
@@ -171,11 +175,18 @@ func (s *CommunityServiceServer) UpdateCommunity(ctx context.Context, req *pb.Up
 	}
 
 	updatedCommunity, err := s.communityUseCase.UpdateCommunity(ctx, models.Community{
-		ID:          id,
-		Name:        req.Name,
-		Description: req.Description,
-		AvatarUrl:   req.AvatarUrl,
-		Avatar:      file_service.ProtoFileToModel(req.Avatar),
+		ID:       id,
+		OwnerID:  userId,
+		NickName: req.Nickname,
+		Avatar:   file_service.ProtoFileToModel(req.Avatar),
+		Cover:    file_service.ProtoFileToModel(req.Cover),
+		BasicInfo: &models.BasicCommunityInfo{
+			Name:        req.Name,
+			Description: req.Description,
+			CoverUrl:    req.CoverUrl,
+			AvatarUrl:   req.AvatarUrl,
+		},
+		ContactInfo: dto.MapContactInfoDTOToModel(req.ContactInfo),
 	}, userId)
 
 	if err != nil {

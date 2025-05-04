@@ -152,10 +152,13 @@ create table if not exists message_file(
 create table if not exists community(
                                         id uuid primary key,
                                         owner_id uuid references "user"(id) on delete cascade,
+                                        nickname text not null unique,
                                         name text not null unique,
                                         description text,
                                         created_at timestamptz not null default now(),
-                                        avatar_url text
+                                        avatar_url text,
+                                        cover_url text,
+                                        contact_info int references contact_info(id) on delete set null
 );
 
 create table if not exists community_user(

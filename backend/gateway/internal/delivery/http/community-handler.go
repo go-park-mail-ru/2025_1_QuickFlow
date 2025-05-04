@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -71,6 +72,7 @@ func (c *CommunityHandler) CreateCommunity(w http.ResponseWriter, r *http.Reques
 
 	// parsing JSON
 	var communityForm forms.CreateCommunityForm
+	communityForm.Nickname = r.FormValue("nickname")
 	communityForm.Name = r.FormValue("name")
 	communityForm.Description = r.FormValue("description")
 
@@ -86,6 +88,13 @@ func (c *CommunityHandler) CreateCommunity(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get avatar: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to get avatar", http.StatusBadRequest)
+		return
+	}
+
+	communityForm.Cover, err = http2.GetFile(r, "cover")
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get cover: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get cover", http.StatusBadRequest)
 		return
 	}
 	logger.Info(ctx, fmt.Sprintf("Recieved community: %+v", communityForm))
@@ -104,6 +113,7 @@ func (c *CommunityHandler) CreateCommunity(w http.ResponseWriter, r *http.Reques
 
 	// Create response
 	communityOut := forms.ToCommunityForm(*newCommunity)
+	communityOut.Role = string(models.CommunityRoleOwner)
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.CommunityForm]{Payload: communityOut})
@@ -349,6 +359,7 @@ func (c *CommunityHandler) UpdateCommunity(w http.ResponseWriter, r *http.Reques
 
 	// parsing JSON
 	var communityForm forms.CreateCommunityForm
+	communityForm.Nickname = r.FormValue("nickname")
 	communityForm.Name = r.FormValue("name")
 	communityForm.Description = r.FormValue("description")
 
@@ -366,10 +377,26 @@ func (c *CommunityHandler) UpdateCommunity(w http.ResponseWriter, r *http.Reques
 		http2.WriteJSONError(w, "Failed to get avatar", http.StatusBadRequest)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("Recieved community: %+v", communityForm))
+
+	communityForm.Cover, err = http2.GetFile(r, "cover")
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get cover: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get cover", http.StatusBadRequest)
+		return
+	}
 
 	community := communityForm.CreateFormToModel()
 	community.ID = communityId
+
+	// getting additional info
+	var contactInfo forms.ContactInfo
+	err = json.NewDecoder(strings.NewReader(r.FormValue("contact_info"))).Decode(&contactInfo)
+	if err == nil {
+		community.ContactInfo = forms.ContactInfoFormToModel(&contactInfo)
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Recieved community: %+v", communityForm))
+
 	newCommunity, err := c.communityService.UpdateCommunity(ctx, &community, user.Id)
 	if err != nil {
 		err := errors2.FromGRPCError(err)
@@ -494,6 +521,16 @@ func (c *CommunityHandler) GetUserCommunities(w http.ResponseWriter, r *http.Req
 	out := make([]forms.CommunityForm, len(communities))
 	for i, community := range communities {
 		out[i] = forms.ToCommunityForm(*community)
+		isMember, role, err := c.communityService.IsCommunityMember(ctx, user.Id, community.ID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to check community membership: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to check community membership", err.HTTPStatus)
+			return
+		}
+		if isMember && role != nil {
+			out[i].Role = string(*role)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

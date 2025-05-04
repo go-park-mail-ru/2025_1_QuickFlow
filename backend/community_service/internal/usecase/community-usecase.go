@@ -21,7 +21,9 @@ type CommunityRepository interface {
 	GetCommunityMembers(ctx context.Context, id uuid.UUID, numMembers int, ts time.Time) ([]models.CommunityMember, error)
 	IsCommunityMember(ctx context.Context, userId, communityId uuid.UUID) (bool, *models.CommunityRole, error)
 	DeleteCommunity(ctx context.Context, id uuid.UUID) error
-	UpdateCommunity(ctx context.Context, community models.Community) error
+	UpdateCommunityTextInfo(ctx context.Context, community models.Community) error
+	UpdateCommunityAvatar(ctx context.Context, communityId uuid.UUID, avatarUrl string) error
+	UpdateCommunityCover(ctx context.Context, communityId uuid.UUID, coverUrl string) error
 	JoinCommunity(ctx context.Context, member models.CommunityMember) error
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
@@ -57,8 +59,13 @@ func (c *CommunityUseCase) CreateCommunity(ctx context.Context, community models
 		return nil, err
 	}
 
+	if community.BasicInfo == nil {
+		logger.Error(ctx, "community basic info cannot be nil")
+		return nil, fmt.Errorf("community basic info cannot be nil")
+	}
+
 	// check if community with this name already exists
-	_, err := c.repo.GetCommunityByName(ctx, community.Name)
+	_, err := c.repo.GetCommunityByName(ctx, community.BasicInfo.Name)
 	if err != nil && !errors.Is(err, community_errors.ErrNotFound) {
 		logger.Error(ctx, fmt.Sprintf("failed to check if community exists: %v", err))
 		return nil, err
@@ -77,9 +84,17 @@ func (c *CommunityUseCase) CreateCommunity(ctx context.Context, community models
 
 	// upload file if necessary
 	if community.Avatar != nil {
-		community.AvatarUrl, err = c.fileService.UploadFile(ctx, community.Avatar)
+		community.BasicInfo.AvatarUrl, err = c.fileService.UploadFile(ctx, community.Avatar)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("failed to upload community avatar: %v", err))
+			return nil, err
+		}
+	}
+
+	if community.Cover != nil {
+		community.BasicInfo.CoverUrl, err = c.fileService.UploadFile(ctx, community.Cover)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("failed to upload community cover: %v", err))
 			return nil, err
 		}
 	}
@@ -161,18 +176,26 @@ func (c *CommunityUseCase) DeleteCommunity(ctx context.Context, id uuid.UUID) er
 		return err
 	}
 
+	if err := c.repo.DeleteCommunity(ctx, id); err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to delete community: %v", err))
+		return err
+	}
+
 	// delete file if necessary
-	if len(community.AvatarUrl) > 0 {
-		err = c.fileService.DeleteFile(ctx, path.Base(community.AvatarUrl))
+	if len(community.BasicInfo.AvatarUrl) > 0 {
+		err = c.fileService.DeleteFile(ctx, path.Base(community.BasicInfo.AvatarUrl))
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("failed to delete community avatar: %v", err))
 			return err
 		}
 	}
 
-	if err := c.repo.DeleteCommunity(ctx, id); err != nil {
-		logger.Error(ctx, fmt.Sprintf("failed to delete community: %v", err))
-		return err
+	if len(community.BasicInfo.CoverUrl) > 0 {
+		err = c.fileService.DeleteFile(ctx, path.Base(community.BasicInfo.CoverUrl))
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("failed to delete community cover: %v", err))
+			return err
+		}
 	}
 	return nil
 }
@@ -189,7 +212,7 @@ func (c *CommunityUseCase) UpdateCommunity(ctx context.Context, community models
 	}
 
 	// check if community with this name already exists
-	existingCommunity, err := c.repo.GetCommunityByName(ctx, community.Name)
+	existingCommunity, err := c.repo.GetCommunityByName(ctx, community.BasicInfo.Name)
 	if err != nil && !errors.Is(err, community_errors.ErrNotFound) {
 		logger.Error(ctx, fmt.Sprintf("failed to check if community exists: %v", err))
 		return nil, err
@@ -222,18 +245,35 @@ func (c *CommunityUseCase) UpdateCommunity(ctx context.Context, community models
 		return nil, err
 	}
 
+	if err := c.repo.UpdateCommunityTextInfo(ctx, community); err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to update community: %v", err))
+		return nil, err
+	}
+
 	// upload new picture if necessary
 	if community.Avatar != nil {
-		community.AvatarUrl, err = c.fileService.UploadFile(ctx, community.Avatar)
+		community.BasicInfo.AvatarUrl, err = c.fileService.UploadFile(ctx, community.Avatar)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("failed to upload community avatar: %v", err))
 			return nil, err
 		}
+
+		if err := c.repo.UpdateCommunityAvatar(ctx, community.ID, community.BasicInfo.AvatarUrl); err != nil {
+			logger.Error(ctx, fmt.Sprintf("failed to update community avatar: %v", err))
+			return nil, err
+		}
 	}
 
-	if err := c.repo.UpdateCommunity(ctx, community); err != nil {
-		logger.Error(ctx, fmt.Sprintf("failed to update community: %v", err))
-		return nil, err
+	if community.Cover != nil {
+		community.BasicInfo.CoverUrl, err = c.fileService.UploadFile(ctx, community.Cover)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("failed to upload community cover: %v", err))
+			return nil, err
+		}
+		if err := c.repo.UpdateCommunityCover(ctx, community.ID, community.BasicInfo.CoverUrl); err != nil {
+			logger.Error(ctx, fmt.Sprintf("failed to update community cover: %v", err))
+			return nil, err
+		}
 	}
 
 	// return updated community
@@ -243,10 +283,17 @@ func (c *CommunityUseCase) UpdateCommunity(ctx context.Context, community models
 		return nil, err
 	}
 
-	if len(oldCommunity.AvatarUrl) > 0 && oldCommunity.AvatarUrl != community.AvatarUrl {
-		err = c.fileService.DeleteFile(ctx, path.Base(oldCommunity.AvatarUrl))
+	if len(oldCommunity.BasicInfo.AvatarUrl) > 0 && oldCommunity.BasicInfo.AvatarUrl != community.BasicInfo.AvatarUrl {
+		err = c.fileService.DeleteFile(ctx, path.Base(oldCommunity.BasicInfo.AvatarUrl))
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("failed to delete community avatar: %v", err))
+			return nil, err
+		}
+	}
+	if len(oldCommunity.BasicInfo.CoverUrl) > 0 && oldCommunity.BasicInfo.CoverUrl != community.BasicInfo.CoverUrl {
+		err = c.fileService.DeleteFile(ctx, path.Base(oldCommunity.BasicInfo.CoverUrl))
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("failed to delete community cover: %v", err))
 			return nil, err
 		}
 	}

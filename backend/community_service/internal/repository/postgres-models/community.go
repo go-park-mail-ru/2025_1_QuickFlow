@@ -6,13 +6,23 @@ import (
 	"quickflow/shared/models"
 )
 
+type ContactInfoPostgres struct {
+	City  pgtype.Text
+	Email pgtype.Text
+	Phone pgtype.Text
+}
+
 type CommunityPostgres struct {
 	Id          pgtype.UUID
 	OwnerId     pgtype.UUID
 	Name        pgtype.Text
+	NickName    pgtype.Text
 	Description pgtype.Text
 	CreatedAt   pgtype.Timestamptz
 	AvatarUrl   pgtype.Text
+	CoverUrl    pgtype.Text
+
+	ContactInfo *ContactInfoPostgres
 }
 
 func CommunityModelToPostgres(community *models.Community) CommunityPostgres {
@@ -23,25 +33,37 @@ func CommunityModelToPostgres(community *models.Community) CommunityPostgres {
 	return CommunityPostgres{
 		Id:          pgtype.UUID{Bytes: community.ID, Valid: true},
 		OwnerId:     pgtype.UUID{Bytes: community.OwnerID, Valid: true},
-		Name:        convertStringToPostgresText(community.Name),
-		Description: convertStringToPostgresText(community.Description),
+		Name:        convertStringToPostgresText(community.BasicInfo.Name),
+		Description: convertStringToPostgresText(community.BasicInfo.Description),
 		CreatedAt:   pgtype.Timestamptz{Time: community.CreatedAt, Valid: true},
-		AvatarUrl:   convertStringToPostgresText(community.AvatarUrl),
+		AvatarUrl:   convertStringToPostgresText(community.BasicInfo.AvatarUrl),
+		CoverUrl:    convertStringToPostgresText(community.BasicInfo.CoverUrl),
+		NickName:    convertStringToPostgresText(community.NickName),
 	}
 }
 
 func (pgCommunity *CommunityPostgres) PostgresToCommunityModel() models.Community {
 	community := models.Community{
-		ID:          pgCommunity.Id.Bytes,
-		OwnerID:     pgCommunity.OwnerId.Bytes,
-		Name:        pgCommunity.Name.String,
-		Description: pgCommunity.Description.String,
-		CreatedAt:   pgCommunity.CreatedAt.Time,
+		ID:        pgCommunity.Id.Bytes,
+		OwnerID:   pgCommunity.OwnerId.Bytes,
+		CreatedAt: pgCommunity.CreatedAt.Time,
+		NickName:  pgCommunity.NickName.String,
+		BasicInfo: &models.BasicCommunityInfo{
+			Name:        pgCommunity.Name.String,
+			Description: pgCommunity.Description.String,
+			AvatarUrl:   pgCommunity.AvatarUrl.String,
+			CoverUrl:    pgCommunity.CoverUrl.String,
+		},
 	}
 
-	if pgCommunity.AvatarUrl.Valid {
-		community.AvatarUrl = pgCommunity.AvatarUrl.String
+	if pgCommunity.ContactInfo != nil {
+		community.ContactInfo = &models.ContactInfo{
+			City:  pgCommunity.ContactInfo.City.String,
+			Email: pgCommunity.ContactInfo.Email.String,
+			Phone: pgCommunity.ContactInfo.Phone.String,
+		}
 	}
+
 	return community
 }
 

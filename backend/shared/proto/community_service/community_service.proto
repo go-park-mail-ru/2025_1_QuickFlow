@@ -11,14 +11,25 @@ enum CommunityRole {
   COMMUNITY_ROLE_ADMIN = 2;
 }
 
+message ContactInfo {
+  string city = 1;
+  string phone_number = 2;
+  string email = 3;
+}
+
 message Community {
   string id = 1;
   string name = 2;
+  string nickname = 12;
   string description = 3;
   string avatar_url = 4;
+  string cover_url = 13;
   file_service.File avatar = 5;
+  file_service.File cover = 14;
   google.protobuf.Timestamp created_at = 6;
   string owner_id = 7;
+
+  ContactInfo contact_info = 8;
 }
 
 message CommunityMember {
@@ -30,9 +41,12 @@ message CommunityMember {
 
 message CreateCommunityRequest {
   string name = 2;
+  string nickname = 12;
   string description = 3;
   string avatar_url = 4;
+  string cover_url = 13;
   file_service.File avatar = 5;
+  file_service.File cover = 14;
   string owner_id = 7;
 }
 
@@ -88,9 +102,13 @@ message DeleteCommunityResponse {
 message UpdateCommunityRequest {
   string id = 1;
   string name = 2;
+  string nickname = 12;
   string description = 3;
   string avatar_url = 4;
+  string cover_url = 13;
   file_service.File avatar = 5;
+  file_service.File cover = 14;
+  ContactInfo contact_info = 8;
   string user_id = 6;
 }
 
