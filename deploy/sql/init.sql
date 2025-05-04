@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS education (
 
 create table if not exists post(
                                    id uuid primary key,
-                                   creator_id uuid references "user"(id) on delete cascade,
+                                   creator_id uuid not null,
+                                   creator_type text not null check (creator_type in ('user', 'community')),
                                    text text,
                                    created_at timestamptz not null default now(),
                                    updated_at timestamptz not null default now(),
@@ -153,14 +154,15 @@ create table if not exists community(
                                         owner_id uuid references "user"(id) on delete cascade,
                                         name text not null unique,
                                         description text,
-                                        created_at timestamptz not null default now()
+                                        created_at timestamptz not null default now(),
+                                        avatar_url text
 );
 
 create table if not exists community_user(
                                              id int generated always as identity primary key,
                                              community_id uuid references community(id) on delete cascade,
                                              user_id uuid references "user"(id) on delete cascade,
-                                             role int not null default 0,
+                                             role text not null default 'member',
                                              joined_at timestamptz not null default now(),
                                              unique (community_id, user_id)
 );
@@ -203,3 +205,29 @@ CREATE TRIGGER trg_update_post_like_count
     AFTER INSERT OR DELETE ON like_post
     FOR EACH ROW
 EXECUTE FUNCTION update_post_like_count();
+
+
+CREATE OR REPLACE FUNCTION check_owner_exists()
+    RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.creator_type = 'user' THEN
+        IF NOT EXISTS (SELECT 1 FROM "user" WHERE id = NEW.creator_id) THEN
+            RAISE EXCEPTION 'User with id % does not exist', NEW.creator_id;
+        END IF;
+    ELSIF NEW.creator_type = 'community' THEN
+        IF NOT EXISTS (SELECT 1 FROM community WHERE id = NEW.creator_id) THEN
+            RAISE EXCEPTION 'Community with id % does not exist', NEW.creator_id;
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'Invalid owner_type: %', NEW.creator_type;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER validate_post_owner
+    BEFORE INSERT OR UPDATE ON post
+    FOR EACH ROW
+EXECUTE FUNCTION check_owner_exists();
+

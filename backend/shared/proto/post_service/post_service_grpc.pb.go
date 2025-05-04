@@ -74,7 +74,7 @@ func (c *postServiceClient) FetchRecommendations(ctx context.Context, in *FetchR
 
 func (c *postServiceClient) FetchUserPosts(ctx context.Context, in *FetchUserPostsRequest, opts ...grpc.CallOption) (*FetchUserPostsResponse, error) {
 	out := new(FetchUserPostsResponse)
-	err := c.cc.Invoke(ctx, "/file_service.PostService/FetchUserPosts", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/file_service.PostService/FetchCreatorPosts", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (UnimplementedPostServiceServer) FetchRecommendations(context.Context, *Fet
 	return nil, status.Errorf(codes.Unimplemented, "method FetchRecommendations not implemented")
 }
 func (UnimplementedPostServiceServer) FetchUserPosts(context.Context, *FetchUserPostsRequest) (*FetchUserPostsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FetchUserPosts not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method FetchCreatorPosts not implemented")
 }
 func (UnimplementedPostServiceServer) UpdatePost(context.Context, *UpdatePostRequest) (*UpdatePostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePost not implemented")
@@ -246,7 +246,7 @@ func _PostService_FetchUserPosts_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/file_service.PostService/FetchUserPosts",
+		FullMethod: "/file_service.PostService/FetchCreatorPosts",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PostServiceServer).FetchUserPosts(ctx, req.(*FetchUserPostsRequest))
@@ -332,7 +332,7 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PostService_FetchRecommendations_Handler,
 		},
 		{
-			MethodName: "FetchUserPosts",
+			MethodName: "FetchCreatorPosts",
 			Handler:    _PostService_FetchUserPosts_Handler,
 		},
 		{

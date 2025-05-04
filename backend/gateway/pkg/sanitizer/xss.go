@@ -57,3 +57,8 @@ func SanitizeUniversityInfo(universityInfo *forms.UniversityEducationForm, polic
 func SanitizeFeedbackText(feedback *forms.FeedbackForm, policy *bluemonday.Policy) {
 	feedback.Text = policy.Sanitize(feedback.Text)
 }
+
+func SanitizeCommunityCreation(community *forms.CreateCommunityForm, policy *bluemonday.Policy) {
+	community.Name = policy.Sanitize(community.Name)
+	community.Description = policy.Sanitize(community.Description)
+}

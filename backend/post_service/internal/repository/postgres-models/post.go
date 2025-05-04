@@ -9,6 +9,7 @@ import (
 type PostPostgres struct {
 	Id           pgtype.UUID
 	CreatorId    pgtype.UUID
+	CreatorType  pgtype.Text
 	Desc         pgtype.Text
 	ImagesURLs   []pgtype.Text
 	CreatedAt    pgtype.Timestamptz
@@ -31,6 +32,7 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 	return PostPostgres{
 		Id:           pgtype.UUID{Bytes: post.Id, Valid: true},
 		CreatorId:    pgtype.UUID{Bytes: post.CreatorId, Valid: true},
+		CreatorType:  convertStringToPostgresText(string(post.CreatorType)),
 		Desc:         convertStringToPostgresText(post.Desc),
 		ImagesURLs:   pics,
 		CreatedAt:    pgtype.Timestamptz{Time: post.CreatedAt, Valid: true},
@@ -53,6 +55,7 @@ func (p *PostPostgres) ToPost() models.Post {
 	return models.Post{
 		Id:           p.Id.Bytes,
 		CreatorId:    p.CreatorId.Bytes,
+		CreatorType:  models.PostCreatorType(p.CreatorType.String),
 		Desc:         p.Desc.String,
 		ImagesURL:    picsSlice,
 		CreatedAt:    p.CreatedAt.Time,

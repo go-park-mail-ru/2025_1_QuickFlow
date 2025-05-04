@@ -18,4 +18,7 @@ const (
 
 	DefaultFriendsServiceAddrEnv = "FRIENDS_SERVICE_ADDR"
 	DefaultFriendsServicePort    = 8086
+
+	DefaultCommunityServiceAddrEnv = "COMMUNITY_SERVICE_ADDR"
+	DefaultCommunityServicePort    = 8087
 )

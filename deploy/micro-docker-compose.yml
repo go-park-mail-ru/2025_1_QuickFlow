@@ -151,6 +151,26 @@ services:
     env_file:
       - .env
 
+  community_service:
+    build:
+      context: ../backend
+      dockerfile: community_service/Dockerfile
+    container_name: community_service
+    volumes:
+      - ../deploy/config:/config
+    ports:
+      - "8087:8087"
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    restart: always
+    env_file:
+      - .env
+
   postgres:
     image: postgres:15
     container_name: postgres

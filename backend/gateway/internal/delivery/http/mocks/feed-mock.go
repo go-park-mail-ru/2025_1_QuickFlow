@@ -99,7 +99,7 @@ func (mr *MockPostUseCaseMockRecorder) FetchRecommendations(ctx, user, numPosts,
 // FetchUserPosts mocks base method.
 func (m *MockPostUseCase) FetchUserPosts(ctx context.Context, user models.User, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchUserPosts", ctx, user, numPosts, timestamp)
+	ret := m.ctrl.Call(m, "FetchCreatorPosts", ctx, user, numPosts, timestamp)
 	ret0, _ := ret[0].([]models.Post)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -108,7 +108,7 @@ func (m *MockPostUseCase) FetchUserPosts(ctx context.Context, user models.User, 
 // FetchUserPosts indicates an expected call of FetchUserPosts.
 func (mr *MockPostUseCaseMockRecorder) FetchUserPosts(ctx, user, numPosts, timestamp interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserPosts", reflect.TypeOf((*MockPostUseCase)(nil).FetchUserPosts), ctx, user, numPosts, timestamp)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchCreatorPosts", reflect.TypeOf((*MockPostUseCase)(nil).FetchUserPosts), ctx, user, numPosts, timestamp)
 }
 
 // UpdatePost mocks base method.

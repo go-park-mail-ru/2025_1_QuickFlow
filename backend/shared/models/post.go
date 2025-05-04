@@ -6,9 +6,17 @@ import (
 	"github.com/google/uuid"
 )
 
+type PostCreatorType string
+
+const (
+	PostUser      PostCreatorType = "user"
+	PostCommunity PostCreatorType = "community"
+)
+
 type Post struct {
 	Id           uuid.UUID
 	CreatorId    uuid.UUID
+	CreatorType  PostCreatorType
 	Desc         string
 	Images       []*File
 	ImagesURL    []string

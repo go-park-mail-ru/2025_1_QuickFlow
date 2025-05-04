@@ -21,17 +21,20 @@ import (
 )
 
 type PostHandler struct {
-	postUseCase    PostService
-	profileUseCase ProfileUseCase
-	policy         *bluemonday.Policy
+	postUseCase      PostService
+	profileUseCase   ProfileUseCase
+	communityService CommunityService
+	policy           *bluemonday.Policy
 }
 
 // NewPostHandler creates new post handler.
-func NewPostHandler(postUseCase PostService, profileUseCase ProfileUseCase, policy *bluemonday.Policy) *PostHandler {
+func NewPostHandler(postUseCase PostService, profileUseCase ProfileUseCase,
+	communityService CommunityService, policy *bluemonday.Policy) *PostHandler {
 	return &PostHandler{
-		postUseCase:    postUseCase,
-		profileUseCase: profileUseCase,
-		policy:         policy,
+		postUseCase:      postUseCase,
+		profileUseCase:   profileUseCase,
+		communityService: communityService,
+		policy:           policy,
 	}
 }
 
@@ -69,6 +72,31 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	var postForm forms.PostForm
 	postForm.Text = r.FormValue("text")
 	isRepostString := r.FormValue("is_repost")
+	creatorType := r.FormValue("author_type")
+	creatorId := r.FormValue("author_id")
+	if len(creatorType) == 0 {
+		postForm.CreatorType = models.PostUser
+		postForm.CreatorId = user.Id
+	} else {
+		postForm.CreatorType, err = forms.ParseCreationType(creatorType)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to parse creator type: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+
+		if postForm.CreatorType == models.PostCommunity {
+			id, err := uuid.Parse(creatorId)
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("Failed to parse creator id: %s", err.Error()))
+				http2.WriteJSONError(w, "Failed to parse form", http.StatusBadRequest)
+				return
+			}
+			postForm.CreatorId = id
+		} else {
+			postForm.CreatorId = user.Id
+		}
+	}
 
 	if utf8.RuneCountInString(postForm.Text) > 4000 {
 		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(postForm.Text)))
@@ -99,7 +127,7 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info(ctx, fmt.Sprintf("Recieved post: %+v", postForm))
 
-	post := postForm.ToPostModel(user.Id)
+	post := postForm.ToPostModel()
 
 	newPost, err := p.postUseCase.AddPost(ctx, post)
 	if err != nil {
@@ -112,14 +140,27 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 
 	var postOut forms.PostOut
 	postOut.FromPost(*newPost)
-	publicUserInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, user.Id)
-	if err != nil {
-		err := errors2.FromGRPCError(err)
-		logger.Error(ctx, fmt.Sprintf("Failed to get public user info: %s", err.Error()))
-		http2.WriteJSONError(w, "Failed to get public user info", err.HTTPStatus)
-		return
+	if newPost.CreatorType == models.PostUser {
+		publicUserInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, user.Id)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get public user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get public user info", err.HTTPStatus)
+			return
+		}
+		info := forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+		postOut.Creator = &info
+	} else {
+		community, err := p.communityService.GetCommunityById(ctx, post.CreatorId)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get community: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get community", err.HTTPStatus)
+			return
+		}
+
+		postOut.Creator = forms.ToCommunityForm(*community)
 	}
-	postOut.Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
@@ -262,7 +303,8 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		http2.WriteJSONError(w, "Failed to get public user info", err.HTTPStatus)
 		return
 	}
-	postOut.Creator = forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+	info := forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
+	postOut.Creator = &info
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
 	if err != nil {

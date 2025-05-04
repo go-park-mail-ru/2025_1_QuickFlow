@@ -140,7 +140,7 @@ func (p *PostServiceServer) FetchRecommendations(ctx context.Context, req *pb.Fe
 }
 
 func (p *PostServiceServer) FetchUserPosts(ctx context.Context, req *pb.FetchUserPostsRequest) (*pb.FetchUserPostsResponse, error) {
-	logger.Info(ctx, "FetchUserPosts called")
+	logger.Info(ctx, "FetchCreatorPosts called")
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)

@@ -47,6 +47,7 @@ func ProtoPostToModel(p *pb.Post) (*shared_models.Post, error) {
 	return &shared_models.Post{
 		Id:           id,
 		CreatorId:    creatorId,
+		CreatorType:  shared_models.PostCreatorType(p.CreatorType),
 		Desc:         p.Description,
 		Images:       ProtoFilesToModel(p.Images),
 		ImagesURL:    p.ImagesUrl,
@@ -110,6 +111,7 @@ func ModelPostToProto(p *shared_models.Post) *pb.Post {
 	return &pb.Post{
 		Id:           p.Id.String(),
 		CreatorId:    p.CreatorId.String(),
+		CreatorType:  string(p.CreatorType),
 		Description:  p.Desc,
 		Images:       ModelFilesToProto(p.Images),
 		ImagesUrl:    p.ImagesURL,

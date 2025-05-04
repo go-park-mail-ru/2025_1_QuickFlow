@@ -17,7 +17,7 @@ import (
 )
 
 const getPostsQuery = `
-	select p.id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	select p.id, creator_id, creator_type, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
 	from post p
 	where p.id = $1
 `
@@ -29,7 +29,7 @@ const getPhotosQuery = `
 `
 
 const getRecommendationsForUserOlder = `
-	select id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	select id, creator_id, creator_type, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
 	from post 
 	where created_at < $1 
 	order by created_at desc
@@ -37,7 +37,7 @@ const getRecommendationsForUserOlder = `
 `
 
 const getUserPostsOlder = `
-	select id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	select id, creator_id, creator_type, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
 	from post
 	where creator_id = $1 and created_at < $2
 	order by created_at desc
@@ -55,8 +55,12 @@ const getPostsForUserOlder = `
 		where user1_id = $1 and (status = $4 or status = $6) -- friends or following
 		union
 		select $1 as id
+		union
+		select community_id as id
+		from community_user
+		where user_id = $1
 	)
-	select p.id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
+	select p.id, creator_id, creator_type, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost
 	from post p
 	join followed_by_user fbu on p.creator_id = fbu.id
 	where created_at < $2
@@ -65,8 +69,8 @@ const getPostsForUserOlder = `
 `
 
 const insertPostQuery = `
-	insert into post (id, creator_id, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost)
-	values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	insert into post (id, creator_id, creator_type, text, created_at, updated_at, like_count, repost_count, comment_count, is_repost)
+	values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 const insertPhotoQuery = `
@@ -109,7 +113,7 @@ func (p *PostgresPostRepository) Close() {
 func (p *PostgresPostRepository) AddPost(ctx context.Context, post models.Post) error {
 	postPostgres := pgmodels.ConvertPostToPostgres(post)
 	_, err := p.connPool.ExecContext(ctx, insertPostQuery,
-		postPostgres.Id, postPostgres.CreatorId, postPostgres.Desc,
+		postPostgres.Id, postPostgres.CreatorId, postPostgres.CreatorType, postPostgres.Desc,
 		postPostgres.CreatedAt, postPostgres.UpdatedAt, postPostgres.LikeCount, postPostgres.RepostCount,
 		postPostgres.CommentCount, postPostgres.IsRepost)
 	if err != nil {
@@ -158,7 +162,7 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 	row := p.connPool.QueryRowContext(ctx, getPostsQuery, postId)
 	var postPostgres pgmodels.PostPostgres
 	err := row.Scan(
-		&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+		&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.CreatorType, &postPostgres.Desc,
 		&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
 		&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
 	if err != nil {
@@ -203,7 +207,7 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 	for rows.Next() {
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
-			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.CreatorType, &postPostgres.Desc,
 			&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
 			&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
 		if err != nil {
@@ -249,7 +253,7 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 	for rows.Next() {
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
-			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.CreatorType, &postPostgres.Desc,
 			&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
 			&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
 		if err != nil {
@@ -296,7 +300,7 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 	for rows.Next() {
 		var postPostgres pgmodels.PostPostgres
 		err = rows.Scan(
-			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.Desc,
+			&postPostgres.Id, &postPostgres.CreatorId, &postPostgres.CreatorType, &postPostgres.Desc,
 			&postPostgres.CreatedAt, &postPostgres.UpdatedAt, &postPostgres.LikeCount,
 			&postPostgres.RepostCount, &postPostgres.CommentCount, &postPostgres.IsRepost)
 		if err != nil {

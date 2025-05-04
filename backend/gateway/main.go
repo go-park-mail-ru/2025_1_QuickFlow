@@ -26,6 +26,7 @@ func resolveConfigPath(rel string) string {
 	}
 	return filepath.Join("../deploy/config", rel)
 }
+
 func initCfg() (*config.Config, error) {
 
 	serverConfigPath := flag.String("server-config", "feeder/config.toml", "Path to config file")
