@@ -37,7 +37,7 @@ const (
 		left join education e on e.profile_id = p.id
 		left join faculty f on f.id = e.faculty_id
 		left join university univ on f.university_id = univ.id
-		where u.id in (select friend_id from friends)
+		where u.id in (select related_id from related_users)
 		order by p.lastname, p.firstname
 		limit $4
 		offset $5
