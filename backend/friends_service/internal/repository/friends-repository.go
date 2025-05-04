@@ -152,7 +152,7 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 	logger.Info(ctx, fmt.Sprintf("Trying to get total amount of friends for user: %s", userID))
 
 	var friendsCount int
-	err = p.connPool.QueryRowContext(ctx, GetFriendsCountQuery, userID, models.RelationFriend).Scan(&friendsCount)
+	err = p.connPool.QueryRowContext(ctx, GetFriendsCountQuery, userID, models.RelationFriend, models.RelationFriend).Scan(&friendsCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logger.Info(ctx, fmt.Sprintf("user: %s has no friends", userID))
