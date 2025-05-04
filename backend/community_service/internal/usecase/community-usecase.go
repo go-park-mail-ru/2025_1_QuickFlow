@@ -25,6 +25,7 @@ type CommunityRepository interface {
 	JoinCommunity(ctx context.Context, member models.CommunityMember) error
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
+	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error)
 }
 
 type CommunityValidator interface {
@@ -296,6 +297,26 @@ func (c *CommunityUseCase) GetUserCommunities(ctx context.Context, userId uuid.U
 	communities, err := c.repo.GetUserCommunities(ctx, userId, count, ts)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("failed to get user communities: %v", err))
+		return nil, err
+	}
+
+	return communities, nil
+}
+
+func (c *CommunityUseCase) SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error) {
+	if len(name) == 0 {
+		logger.Error(ctx, "community name cannot be empty")
+		return nil, fmt.Errorf("community name cannot be empty")
+	}
+
+	if count <= 0 {
+		logger.Error(ctx, "count must be greater than 0")
+		return nil, fmt.Errorf("count must be greater than 0")
+	}
+
+	communities, err := c.repo.SearchSimilarCommunities(ctx, name, count)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to search similar communities: %v", err))
 		return nil, err
 	}
 

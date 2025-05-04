@@ -125,6 +125,15 @@ message GetUserCommunitiesResponse {
   repeated Community communities = 1;
 }
 
+message SearchSimilarCommunitiesRequest {
+  string name = 1;
+  int32 count = 2;
+}
+
+message SearchSimilarCommunitiesResponse {
+  repeated Community communities = 1;
+}
+
 service CommunityService {
   rpc CreateCommunity(CreateCommunityRequest) returns (CreateCommunityResponse);
   rpc GetCommunityById(GetCommunityByIdRequest) returns (GetCommunityByIdResponse);
@@ -136,4 +145,5 @@ service CommunityService {
   rpc JoinCommunity(JoinCommunityRequest) returns (JoinCommunityResponse);
   rpc LeaveCommunity(LeaveCommunityRequest) returns (LeaveCommunityResponse);
   rpc GetUserCommunities(GetUserCommunitiesRequest) returns (GetUserCommunitiesResponse);
+  rpc SearchSimilarCommunities(SearchSimilarCommunitiesRequest) returns (SearchSimilarCommunitiesResponse);
 }

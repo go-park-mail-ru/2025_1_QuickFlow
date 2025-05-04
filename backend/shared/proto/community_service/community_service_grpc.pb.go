@@ -28,6 +28,7 @@ type CommunityServiceClient interface {
 	JoinCommunity(ctx context.Context, in *JoinCommunityRequest, opts ...grpc.CallOption) (*JoinCommunityResponse, error)
 	LeaveCommunity(ctx context.Context, in *LeaveCommunityRequest, opts ...grpc.CallOption) (*LeaveCommunityResponse, error)
 	GetUserCommunities(ctx context.Context, in *GetUserCommunitiesRequest, opts ...grpc.CallOption) (*GetUserCommunitiesResponse, error)
+	SearchSimilarCommunities(ctx context.Context, in *SearchSimilarCommunitiesRequest, opts ...grpc.CallOption) (*SearchSimilarCommunitiesResponse, error)
 }
 
 type communityServiceClient struct {
@@ -128,6 +129,15 @@ func (c *communityServiceClient) GetUserCommunities(ctx context.Context, in *Get
 	return out, nil
 }
 
+func (c *communityServiceClient) SearchSimilarCommunities(ctx context.Context, in *SearchSimilarCommunitiesRequest, opts ...grpc.CallOption) (*SearchSimilarCommunitiesResponse, error) {
+	out := new(SearchSimilarCommunitiesResponse)
+	err := c.cc.Invoke(ctx, "/file_service.CommunityService/SearchSimilarCommunities", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CommunityServiceServer is the server API for CommunityService service.
 // All implementations must embed UnimplementedCommunityServiceServer
 // for forward compatibility
@@ -142,6 +152,7 @@ type CommunityServiceServer interface {
 	JoinCommunity(context.Context, *JoinCommunityRequest) (*JoinCommunityResponse, error)
 	LeaveCommunity(context.Context, *LeaveCommunityRequest) (*LeaveCommunityResponse, error)
 	GetUserCommunities(context.Context, *GetUserCommunitiesRequest) (*GetUserCommunitiesResponse, error)
+	SearchSimilarCommunities(context.Context, *SearchSimilarCommunitiesRequest) (*SearchSimilarCommunitiesResponse, error)
 	mustEmbedUnimplementedCommunityServiceServer()
 }
 
@@ -178,6 +189,9 @@ func (UnimplementedCommunityServiceServer) LeaveCommunity(context.Context, *Leav
 }
 func (UnimplementedCommunityServiceServer) GetUserCommunities(context.Context, *GetUserCommunitiesRequest) (*GetUserCommunitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserCommunities not implemented")
+}
+func (UnimplementedCommunityServiceServer) SearchSimilarCommunities(context.Context, *SearchSimilarCommunitiesRequest) (*SearchSimilarCommunitiesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchSimilarCommunities not implemented")
 }
 func (UnimplementedCommunityServiceServer) mustEmbedUnimplementedCommunityServiceServer() {}
 
@@ -372,6 +386,24 @@ func _CommunityService_GetUserCommunities_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CommunityService_SearchSimilarCommunities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchSimilarCommunitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommunityServiceServer).SearchSimilarCommunities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/file_service.CommunityService/SearchSimilarCommunities",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommunityServiceServer).SearchSimilarCommunities(ctx, req.(*SearchSimilarCommunitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CommunityService_ServiceDesc is the grpc.ServiceDesc for CommunityService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +450,10 @@ var CommunityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserCommunities",
 			Handler:    _CommunityService_GetUserCommunities_Handler,
+		},
+		{
+			MethodName: "SearchSimilarCommunities",
+			Handler:    _CommunityService_SearchSimilarCommunities_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

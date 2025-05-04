@@ -7,8 +7,8 @@ import (
 )
 
 type SearchForm struct {
-	ToSearch   string `json:"string" validate:"required"`
-	UsersCount uint   `json:"users_count" validate:"required"`
+	ToSearch string `json:"string" validate:"required"`
+	Count    uint   `json:"count" validate:"required"`
 }
 
 func (s *SearchForm) Unpack(values url.Values) error {
@@ -16,18 +16,18 @@ func (s *SearchForm) Unpack(values url.Values) error {
 		return errors.New("username parameter missing")
 	}
 
-	if !values.Has("users_count") {
-		return errors.New("users_count parameter missing")
+	if !values.Has("count") {
+		return errors.New("count parameter missing")
 	}
 
 	s.ToSearch = values.Get("string")
 
-	usersCount, err := strconv.Atoi(values.Get("users_count"))
+	usersCount, err := strconv.Atoi(values.Get("count"))
 	if err != nil {
-		return errors.New("failed to parse users_count")
+		return errors.New("failed to parse count")
 	}
 
-	s.UsersCount = uint(usersCount)
+	s.Count = uint(usersCount)
 
 	return nil
 }

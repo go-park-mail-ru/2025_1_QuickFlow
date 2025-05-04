@@ -31,6 +31,7 @@ type CommunityService interface {
 	JoinCommunity(ctx context.Context, member *models.CommunityMember) error
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]*models.Community, error)
+	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]*models.Community, error)
 }
 
 type CommunityHandler struct {

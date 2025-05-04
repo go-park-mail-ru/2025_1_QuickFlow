@@ -146,3 +146,22 @@ func (c *Client) GetUserCommunities(ctx context.Context, userId uuid.UUID, count
 	}
 	return result, nil
 }
+
+func (c *Client) SearchSimilarCommunities(ctx context.Context, name string, count int) ([]*models.Community, error) {
+	res, err := c.client.SearchSimilarCommunities(ctx, &pb.SearchSimilarCommunitiesRequest{
+		Name:  name,
+		Count: int32(count),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var result []*models.Community
+	for _, protoComm := range res.Communities {
+		m, err := MapProtoCommunityToModel(protoComm)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, m)
+	}
+	return result, nil
+}

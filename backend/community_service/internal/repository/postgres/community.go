@@ -76,6 +76,18 @@ const (
 	order by cu.joined_at desc
 	limit $2;
 `
+
+	searchSimilarCommunities = `
+	SELECT c.id, c.owner_id, c.name, c.description, c.created_at, c.avatar_url
+	FROM (
+		SELECT id, owner_id, name, description, created_at, avatar_url,
+			   similarity(lower(name), lower($1)) AS sim_factor_name
+		FROM community
+	) c
+	WHERE c.sim_factor_name > 0.3
+	ORDER BY sim_factor_name DESC
+	LIMIT $2;
+`
 )
 
 type SqlCommunityRepository struct {
@@ -277,6 +289,32 @@ func (c *SqlCommunityRepository) GetUserCommunities(ctx context.Context, userId 
 			return nil, err
 		}
 		communities = append(communities, communityDTO.PostgresToCommunityModel())
+	}
+
+	return communities, nil
+}
+
+func (c *SqlCommunityRepository) SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error) {
+	rows, err := c.connPool.QueryContext(ctx, searchSimilarCommunities, name, count)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("unable to search similar communities: %v", err))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var communities []models.Community
+	for rows.Next() {
+		var communityDTO postgres_models.CommunityPostgres
+		if err := rows.Scan(&communityDTO.Id, &communityDTO.OwnerId, &communityDTO.Name,
+			&communityDTO.Description, &communityDTO.CreatedAt, &communityDTO.AvatarUrl); err != nil {
+			logger.Error(ctx, fmt.Sprintf("unable to scan similar community: %v", err))
+			return nil, err
+		}
+		communities = append(communities, communityDTO.PostgresToCommunityModel())
+	}
+	if err := rows.Err(); err != nil {
+		logger.Error(ctx, fmt.Sprintf("error iterating over similar communities: %v", err))
+		return nil, err
 	}
 
 	return communities, nil

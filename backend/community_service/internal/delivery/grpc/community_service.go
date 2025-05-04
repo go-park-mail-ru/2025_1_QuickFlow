@@ -26,6 +26,7 @@ type CommunityUseCase interface {
 	JoinCommunity(ctx context.Context, member models.CommunityMember) error
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
+	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error)
 }
 
 type UserUseCase interface {
@@ -243,6 +244,22 @@ func (s *CommunityServiceServer) GetUserCommunities(ctx context.Context, req *pb
 	}
 
 	return &pb.GetUserCommunitiesResponse{
+		Communities: protoCommunities,
+	}, nil
+}
+
+func (s *CommunityServiceServer) SearchSimilarCommunities(ctx context.Context, req *pb.SearchSimilarCommunitiesRequest) (*pb.SearchSimilarCommunitiesResponse, error) {
+	communities, err := s.communityUseCase.SearchSimilarCommunities(ctx, req.Name, int(req.Count))
+	if err != nil {
+		return nil, err
+	}
+
+	protoCommunities := make([]*pb.Community, len(communities))
+	for i, community := range communities {
+		protoCommunities[i] = dto.MapModelCommunityToProto(&community)
+	}
+
+	return &pb.SearchSimilarCommunitiesResponse{
 		Communities: protoCommunities,
 	}, nil
 }
