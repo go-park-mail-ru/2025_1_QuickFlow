@@ -20,7 +20,7 @@ import (
 type PostUseCase interface {
 	FetchFeed(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	FetchRecommendations(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
-	FetchUserPosts(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	FetchUserPosts(ctx context.Context, userId uuid.UUID, requesterId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	AddPost(ctx context.Context, post models.Post) (*models.Post, error)
 	DeletePost(ctx context.Context, userId uuid.UUID, postId uuid.UUID) error
 	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (*models.Post, error)
@@ -146,7 +146,13 @@ func (p *PostServiceServer) FetchUserPosts(ctx context.Context, req *pb.FetchUse
 		logger.Error(ctx, "Invalid user ID:", err)
 		return nil, grpcErrorFromAppError(err)
 	}
-	posts, err := p.postUseCase.FetchUserPosts(ctx, userId, int(req.NumPosts), req.Timestamp.AsTime())
+	requesterId, err := uuid.Parse(req.RequesterId)
+	if err != nil {
+		logger.Error(ctx, "Invalid requester ID:", err)
+		return nil, grpcErrorFromAppError(err)
+	}
+
+	posts, err := p.postUseCase.FetchUserPosts(ctx, userId, requesterId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		logger.Error(ctx, "Failed to fetch user posts:", err)
 		return nil, grpcErrorFromAppError(err)

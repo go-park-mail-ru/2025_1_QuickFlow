@@ -28,7 +28,7 @@ type PostRepository interface {
 	BelongsTo(ctx context.Context, userId uuid.UUID, postId uuid.UUID) (bool, error)
 	GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error)
 	GetPostsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
-	GetUserPosts(ctx context.Context, id uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
+	GetUserPosts(ctx context.Context, id uuid.UUID, requesterId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	GetRecommendationsForUId(ctx context.Context, uid uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error)
 	GetPostFiles(ctx context.Context, postId uuid.UUID) ([]string, error)
 	CheckIfPostLiked(ctx context.Context, postId uuid.UUID, userId uuid.UUID) (bool, error)
@@ -153,7 +153,7 @@ func (p *PostUseCase) FetchRecommendations(ctx context.Context, userId uuid.UUID
 	return posts, nil
 }
 
-func (p *PostUseCase) FetchUserPosts(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (p *PostUseCase) FetchUserPosts(ctx context.Context, userId, requesterId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	// validate params
 	err := p.validator.ValidateFeedParams(numPosts, timestamp)
 	if errors.Is(err, validation.ErrInvalidNumPosts) {
@@ -165,7 +165,7 @@ func (p *PostUseCase) FetchUserPosts(ctx context.Context, userId uuid.UUID, numP
 	}
 
 	// fetch posts
-	posts, err := p.postRepo.GetUserPosts(ctx, userId, numPosts, timestamp)
+	posts, err := p.postRepo.GetUserPosts(ctx, userId, requesterId, numPosts, timestamp)
 	if err != nil {
 		return []models.Post{}, fmt.Errorf("p.repo.GetPostsForUId: %w", err)
 	}

@@ -60,6 +60,7 @@ func ProtoPostToModel(p *pb.Post) (*models.Post, error) {
 		RepostCount:  int(p.RepostCount),
 		CommentCount: int(p.CommentCount),
 		IsRepost:     p.IsRepost,
+		IsLiked:      p.IsLiked,
 	}, nil
 }
 
@@ -110,6 +111,7 @@ func ModelPostToProto(p *models.Post) *pb.Post {
 		RepostCount:  int64(p.RepostCount),
 		CommentCount: int64(p.CommentCount),
 		IsRepost:     p.IsRepost,
+		IsLiked:      p.IsLiked,
 	}
 }
 

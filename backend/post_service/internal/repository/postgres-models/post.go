@@ -18,6 +18,7 @@ type PostPostgres struct {
 	RepostCount  pgtype.Int8
 	CommentCount pgtype.Int8
 	IsRepost     pgtype.Bool
+	IsLiked      pgtype.Bool
 }
 
 // ConvertPostToPostgres converts models.Post to PostPostgres.
@@ -41,6 +42,7 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 		RepostCount:  pgtype.Int8{Int64: int64(post.RepostCount), Valid: true},
 		CommentCount: pgtype.Int8{Int64: int64(post.CommentCount), Valid: true},
 		IsRepost:     pgtype.Bool{Bool: post.IsRepost, Valid: true},
+		IsLiked:      pgtype.Bool{Bool: post.IsLiked, Valid: true},
 	}
 }
 
@@ -64,6 +66,7 @@ func (p *PostPostgres) ToPost() models.Post {
 		RepostCount:  int(p.RepostCount.Int64),
 		CommentCount: int(p.CommentCount.Int64),
 		IsRepost:     p.IsRepost.Bool,
+		IsLiked:      p.IsLiked.Bool,
 	}
 }
 

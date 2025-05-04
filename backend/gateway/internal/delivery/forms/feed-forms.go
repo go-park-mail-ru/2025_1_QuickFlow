@@ -108,6 +108,7 @@ type PostOut struct {
     RepostCount  int         `json:"repost_count"`
     CommentCount int         `json:"comment_count"`
     IsRepost     bool        `json:"is_repost"`
+    IsLiked      bool        `json:"is_liked"`
 }
 
 func (p *PostOut) FromPost(post models.Post) {
@@ -129,6 +130,7 @@ func (p *PostOut) FromPost(post models.Post) {
     p.RepostCount = post.RepostCount
     p.CommentCount = post.CommentCount
     p.IsRepost = post.IsRepost
+    p.IsLiked = post.IsLiked
 }
 
 type UpdatePostForm struct {

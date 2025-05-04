@@ -84,12 +84,13 @@ func (c *PostServiceClient) FetchRecommendations(ctx context.Context, numPosts i
 	return convertProtoPosts(resp.Posts)
 }
 
-func (c *PostServiceClient) FetchCreatorPosts(ctx context.Context, userId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
+func (c *PostServiceClient) FetchCreatorPosts(ctx context.Context, userId uuid.UUID, requesterId uuid.UUID, numPosts int, timestamp time.Time) ([]models.Post, error) {
 	logger.Info(ctx, "Sending request to fetch user posts: %v", numPosts)
 	resp, err := c.client.FetchUserPosts(ctx, &pb.FetchUserPostsRequest{
-		UserId:    userId.String(),
-		NumPosts:  int32(numPosts),
-		Timestamp: ToTimestamp(timestamp),
+		UserId:      userId.String(),
+		NumPosts:    int32(numPosts),
+		Timestamp:   ToTimestamp(timestamp),
+		RequesterId: requesterId.String(),
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to fetch user posts: %v", err)

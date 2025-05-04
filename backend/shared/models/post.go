@@ -26,6 +26,7 @@ type Post struct {
 	RepostCount  int
 	CommentCount int
 	IsRepost     bool
+	IsLiked      bool
 }
 
 type PostUpdate struct {
