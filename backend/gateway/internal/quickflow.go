@@ -128,7 +128,6 @@ func Run(cfg *config.Config) error {
 	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))
 
 	apiGetRouter := r.PathPrefix("/").Subrouter()
-	apiGetRouter.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
 
 	// validating that the content type is application/json for every route but /hello
 
@@ -168,6 +167,7 @@ func Run(cfg *config.Config) error {
 	protectedGet.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/members", newCommunityHandler.GetCommunityMembers).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/profiles/{username}/communities", newCommunityHandler.GetUserCommunities).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/communities/{name}/posts", newFeedHandler.FetchCommunityPosts).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager, pingHandler))
