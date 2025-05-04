@@ -151,6 +151,7 @@ func Run(cfg *config.Config) error {
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}", newCommunityHandler.UpdateCommunity).Methods(http.MethodPut)
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/join", newCommunityHandler.JoinCommunity).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/leave", newCommunityHandler.LeaveCommunity).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/members/{user_id:{id:[0-9a-fA-F-]{36}}", newCommunityHandler.ChangeUserRole).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(UserService))

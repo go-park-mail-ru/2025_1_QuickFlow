@@ -171,3 +171,13 @@ func (c *Client) SearchSimilarCommunities(ctx context.Context, name string, coun
 	}
 	return result, nil
 }
+
+func (c *Client) ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole, requester uuid.UUID) error {
+	_, err := c.client.ChangeUserRole(ctx, &pb.ChangeUserRoleRequest{
+		UserId:      userId.String(),
+		CommunityId: communityId.String(),
+		Role:        ConvertRoleToProto(role),
+		RequesterId: requester.String(),
+	})
+	return err
+}

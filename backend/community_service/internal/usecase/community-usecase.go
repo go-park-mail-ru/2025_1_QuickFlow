@@ -28,6 +28,7 @@ type CommunityRepository interface {
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
 	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error)
+	ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole) error
 }
 
 type CommunityValidator interface {
@@ -368,4 +369,32 @@ func (c *CommunityUseCase) SearchSimilarCommunities(ctx context.Context, name st
 	}
 
 	return communities, nil
+}
+
+func (c *CommunityUseCase) ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole, requester uuid.UUID) error {
+	if userId == uuid.Nil || communityId == uuid.Nil || requester == uuid.Nil {
+		logger.Error(ctx, "user ID and community ID cannot be empty")
+		return fmt.Errorf("user ID and community ID cannot be empty")
+	}
+
+	// check if requester is admin or owner
+	isMember, requesterRole, err := c.repo.IsCommunityMember(ctx, requester, communityId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to check if user is a community member: %v", err))
+		return err
+	}
+	if !isMember || requesterRole == nil {
+		logger.Error(ctx, "requester is not a member of the community")
+		return community_errors.ErrNotParticipant
+	}
+	if *requesterRole != models.CommunityRoleAdmin && *requesterRole != models.CommunityRoleOwner {
+		logger.Error(ctx, "requester is not admin or owner")
+		return community_errors.ErrForbidden
+	}
+
+	if err := c.repo.ChangeUserRole(ctx, userId, communityId, role); err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to change user role: %v", err))
+		return err
+	}
+	return nil
 }

@@ -433,3 +433,30 @@ func (c *SqlCommunityRepository) updateContactInfo(ctx context.Context, contactI
 
 	return contactInfoId, nil
 }
+
+func (c *SqlCommunityRepository) ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole) error {
+	if userId == uuid.Nil || communityId == uuid.Nil {
+		logger.Error(ctx, "user ID and community ID cannot be empty")
+		return fmt.Errorf("user ID and community ID cannot be empty")
+	}
+
+	res, err := c.connPool.ExecContext(ctx, `
+	update community_user set role=$1 where user_id=$2 and community_id=$3;
+`, string(role), userId, communityId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("unable to change user role: %v", err))
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("unable to get rows affected: %v", err))
+		return err
+	}
+	if rows == 0 {
+		logger.Error(ctx, "no rows affected")
+		return community_errors.ErrNotFound
+	}
+
+	return nil
+}

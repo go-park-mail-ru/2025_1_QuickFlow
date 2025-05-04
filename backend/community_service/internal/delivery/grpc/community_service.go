@@ -27,6 +27,7 @@ type CommunityUseCase interface {
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
 	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error)
+	ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole, requester uuid.UUID) error
 }
 
 type UserUseCase interface {
@@ -272,5 +273,33 @@ func (s *CommunityServiceServer) SearchSimilarCommunities(ctx context.Context, r
 
 	return &pb.SearchSimilarCommunitiesResponse{
 		Communities: protoCommunities,
+	}, nil
+}
+
+func (s *CommunityServiceServer) ChangeUserRole(ctx context.Context, req *pb.ChangeUserRoleRequest) (*pb.ChangeUserRoleResponse, error) {
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	communityId, err := uuid.Parse(req.CommunityId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid community ID")
+	}
+
+	requesterId, err := uuid.Parse(req.RequesterId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid requester ID")
+	}
+
+	role := dto.ConvertRoleFromProto(req.Role)
+
+	err = s.communityUseCase.ChangeUserRole(ctx, userId, communityId, role, requesterId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ChangeUserRoleResponse{
+		Success: true,
 	}, nil
 }

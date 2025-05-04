@@ -33,6 +33,7 @@ type CommunityService interface {
 	LeaveCommunity(ctx context.Context, userId, communityId uuid.UUID) error
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]*models.Community, error)
 	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]*models.Community, error)
+	ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole, requester uuid.UUID) error
 }
 
 type CommunityHandler struct {
@@ -540,4 +541,73 @@ func (c *CommunityHandler) GetUserCommunities(w http.ResponseWriter, r *http.Req
 		http2.WriteJSONError(w, "Failed to encode user communities", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (c *CommunityHandler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while changing community role")
+		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		return
+	}
+	logger.Info(ctx, fmt.Sprintf("User %s requested to change community role", user.Username))
+
+	communityIdStr := mux.Vars(r)["id"]
+	if len(communityIdStr) == 0 {
+		http2.WriteJSONError(w, "Community ID is required", http.StatusBadRequest)
+		return
+	}
+
+	communityId, err := uuid.Parse(communityIdStr)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Invalid community ID: %s", err.Error()))
+		http2.WriteJSONError(w, "Invalid community ID", http.StatusBadRequest)
+		return
+	}
+
+	userId := mux.Vars(r)["user_id"]
+	if len(userId) == 0 {
+		logger.Error(ctx, "User ID is required")
+		http2.WriteJSONError(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	userIdParsed, err := uuid.Parse(userId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Invalid user ID: %s", err.Error()))
+		http2.WriteJSONError(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	role := r.URL.Query().Get("role")
+	if len(role) == 0 {
+		logger.Error(ctx, "Role is required")
+		http2.WriteJSONError(w, "Role is required", http.StatusBadRequest)
+		return
+	}
+
+	switch role {
+	case "member":
+		role = string(models.CommunityRoleMember)
+	case "admin":
+		role = string(models.CommunityRoleAdmin)
+	case "owner":
+		role = string(models.CommunityRoleOwner)
+	default:
+		logger.Error(ctx, "Invalid role provided", http.StatusBadRequest)
+		http2.WriteJSONError(w, "Invalid role", http.StatusBadRequest)
+		return
+	}
+
+	roleParsed := models.CommunityRole(role)
+
+	err = c.communityService.ChangeUserRole(ctx, userIdParsed, communityId, roleParsed, user.Id)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Failed to change community role: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to change community role", err.HTTPStatus)
+		return
+	}
+	logger.Info(ctx, "Successfully changed community role")
 }

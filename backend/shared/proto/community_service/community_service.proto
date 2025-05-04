@@ -152,6 +152,17 @@ message SearchSimilarCommunitiesResponse {
   repeated Community communities = 1;
 }
 
+message ChangeUserRoleRequest {
+  string community_id = 1;
+  string user_id = 2;
+  CommunityRole role = 3;
+  string requester_id = 4;
+}
+
+message ChangeUserRoleResponse {
+  bool success = 1;
+}
+
 service CommunityService {
   rpc CreateCommunity(CreateCommunityRequest) returns (CreateCommunityResponse);
   rpc GetCommunityById(GetCommunityByIdRequest) returns (GetCommunityByIdResponse);
@@ -164,4 +175,5 @@ service CommunityService {
   rpc LeaveCommunity(LeaveCommunityRequest) returns (LeaveCommunityResponse);
   rpc GetUserCommunities(GetUserCommunitiesRequest) returns (GetUserCommunitiesResponse);
   rpc SearchSimilarCommunities(SearchSimilarCommunitiesRequest) returns (SearchSimilarCommunitiesResponse);
+  rpc ChangeUserRole(ChangeUserRoleRequest) returns (ChangeUserRoleResponse);
 }

@@ -29,6 +29,7 @@ type CommunityServiceClient interface {
 	LeaveCommunity(ctx context.Context, in *LeaveCommunityRequest, opts ...grpc.CallOption) (*LeaveCommunityResponse, error)
 	GetUserCommunities(ctx context.Context, in *GetUserCommunitiesRequest, opts ...grpc.CallOption) (*GetUserCommunitiesResponse, error)
 	SearchSimilarCommunities(ctx context.Context, in *SearchSimilarCommunitiesRequest, opts ...grpc.CallOption) (*SearchSimilarCommunitiesResponse, error)
+	ChangeUserRole(ctx context.Context, in *ChangeUserRoleRequest, opts ...grpc.CallOption) (*ChangeUserRoleResponse, error)
 }
 
 type communityServiceClient struct {
@@ -138,6 +139,15 @@ func (c *communityServiceClient) SearchSimilarCommunities(ctx context.Context, i
 	return out, nil
 }
 
+func (c *communityServiceClient) ChangeUserRole(ctx context.Context, in *ChangeUserRoleRequest, opts ...grpc.CallOption) (*ChangeUserRoleResponse, error) {
+	out := new(ChangeUserRoleResponse)
+	err := c.cc.Invoke(ctx, "/file_service.CommunityService/ChangeUserRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CommunityServiceServer is the server API for CommunityService service.
 // All implementations must embed UnimplementedCommunityServiceServer
 // for forward compatibility
@@ -153,6 +163,7 @@ type CommunityServiceServer interface {
 	LeaveCommunity(context.Context, *LeaveCommunityRequest) (*LeaveCommunityResponse, error)
 	GetUserCommunities(context.Context, *GetUserCommunitiesRequest) (*GetUserCommunitiesResponse, error)
 	SearchSimilarCommunities(context.Context, *SearchSimilarCommunitiesRequest) (*SearchSimilarCommunitiesResponse, error)
+	ChangeUserRole(context.Context, *ChangeUserRoleRequest) (*ChangeUserRoleResponse, error)
 	mustEmbedUnimplementedCommunityServiceServer()
 }
 
@@ -192,6 +203,9 @@ func (UnimplementedCommunityServiceServer) GetUserCommunities(context.Context, *
 }
 func (UnimplementedCommunityServiceServer) SearchSimilarCommunities(context.Context, *SearchSimilarCommunitiesRequest) (*SearchSimilarCommunitiesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchSimilarCommunities not implemented")
+}
+func (UnimplementedCommunityServiceServer) ChangeUserRole(context.Context, *ChangeUserRoleRequest) (*ChangeUserRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeUserRole not implemented")
 }
 func (UnimplementedCommunityServiceServer) mustEmbedUnimplementedCommunityServiceServer() {}
 
@@ -404,6 +418,24 @@ func _CommunityService_SearchSimilarCommunities_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CommunityService_ChangeUserRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeUserRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommunityServiceServer).ChangeUserRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/file_service.CommunityService/ChangeUserRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommunityServiceServer).ChangeUserRole(ctx, req.(*ChangeUserRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CommunityService_ServiceDesc is the grpc.ServiceDesc for CommunityService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -454,6 +486,10 @@ var CommunityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchSimilarCommunities",
 			Handler:    _CommunityService_SearchSimilarCommunities_Handler,
+		},
+		{
+			MethodName: "ChangeUserRole",
+			Handler:    _CommunityService_ChangeUserRole_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
