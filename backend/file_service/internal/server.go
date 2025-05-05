@@ -78,8 +78,9 @@ func main() {
 
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		interceptor.ErrorInterceptor,
-		interceptors.RequestIDServerInterceptor(),
-	))
+		interceptors.RequestIDServerInterceptor()),
+		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
 	proto.RegisterFileServiceServer(server, grpc2.NewFileServiceServer(fileUseCase))
 
 	log.Printf("Server is listening on %s", listener.Addr().String())

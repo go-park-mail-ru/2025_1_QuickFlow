@@ -35,12 +35,14 @@ func main() {
 		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	grpcConnUserService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultUserServiceAddrEnv, micro_addr.DefaultUserServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	if err != nil {
@@ -59,7 +61,10 @@ func main() {
 	postUseCase := usecase.NewPostUseCase(postRepo, fileService, postValidator)
 	userUseCase := user_service.NewUserClient(grpcConnUserService)
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()))
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()),
+		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
 	proto.RegisterPostServiceServer(server, grpc3.NewPostServiceServer(postUseCase, userUseCase))
 	log.Printf("Server is listening on %s", listener.Addr().String())
 

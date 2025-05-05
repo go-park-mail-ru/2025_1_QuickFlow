@@ -21,4 +21,6 @@ const (
 
 	DefaultCommunityServiceAddrEnv = "COMMUNITY_SERVICE_ADDR"
 	DefaultCommunityServicePort    = 8087
+
+	MaxMessageSize = 15 * 1024 * 1024
 )

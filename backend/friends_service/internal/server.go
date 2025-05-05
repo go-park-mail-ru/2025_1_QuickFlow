@@ -38,6 +38,8 @@ func main() {
 		grpc.ChainUnaryInterceptor(
 			interceptors.RequestIDServerInterceptor(),
 		),
+		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize),
 	)
 
 	log.Printf("Server is listening on %s", listener.Addr().String())

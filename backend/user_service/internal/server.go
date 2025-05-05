@@ -34,6 +34,7 @@ func main() {
 		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	if err != nil {
@@ -53,7 +54,10 @@ func main() {
 	userUserCase := usecase.NewUserUseCase(userRepo, redisRepo, profileRepo)
 	profileUseCase := usecase.NewProfileService(profileRepo, userRepo, fileService)
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()))
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()),
+		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
 	proto.RegisterUserServiceServer(server, grpc2.NewUserServiceServer(userUserCase))
 	proto.RegisterProfileServiceServer(server, grpc2.NewProfileServiceServer(profileUseCase))
 	log.Printf("Server is listening on %s", listener.Addr().String())

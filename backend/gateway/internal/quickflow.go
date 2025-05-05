@@ -34,6 +34,7 @@ func Run(cfg *config.Config) error {
 		get_env.GetServiceAddr(micro_addr.DefaultPostServiceAddrEnv, micro_addr.DefaultPostServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to post service: %w", err)
@@ -43,6 +44,7 @@ func Run(cfg *config.Config) error {
 		get_env.GetServiceAddr(micro_addr.DefaultUserServiceAddrEnv, micro_addr.DefaultUserServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to user service: %w", err)
@@ -52,22 +54,26 @@ func Run(cfg *config.Config) error {
 		get_env.GetServiceAddr(micro_addr.DefaultMessengerServiceAddrEnv, micro_addr.DefaultMessengerServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	grpcConnFeedbackService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultFeedbackServiceAddrEnv, micro_addr.DefaultFeedbackServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	grpcConnFriendsService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultFriendsServiceAddrEnv, micro_addr.DefaultFriendsServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	grcpConnCommunityService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultCommunityServiceAddrEnv, micro_addr.DefaultCommunityServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	// services

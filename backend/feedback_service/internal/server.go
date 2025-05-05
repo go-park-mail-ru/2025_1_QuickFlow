@@ -32,6 +32,7 @@ func main() {
 		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
 	)
 
 	if err != nil {
@@ -48,7 +49,10 @@ func main() {
 	feedbackRepository := postgres2.NewFeedbackRepository(db)
 	feedbackUseCase := usecase.NewFeedBackUseCase(feedbackRepository)
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()))
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()),
+		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
 	proto.RegisterFeedbackServiceServer(server, grpc3.NewFeedbackServiceServer(feedbackUseCase, profileService))
 	log.Printf("Server is listening on %s", listener.Addr().String())
 
