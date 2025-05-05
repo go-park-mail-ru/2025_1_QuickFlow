@@ -2,6 +2,7 @@ package validation
 
 import (
 	"errors"
+	"strings"
 
 	cfg "quickflow/file_service/config/validation"
 	qf_errors "quickflow/file_service/internal/errors"
@@ -72,7 +73,7 @@ func (f *FileValidator) validateFileMimeType(mimeType string) error {
 	}
 
 	for _, ext := range f.fileConfig.AllowedFileExt {
-		if mimeType == ext {
+		if strings.ToLower(mimeType) == ext {
 			return nil
 		}
 	}

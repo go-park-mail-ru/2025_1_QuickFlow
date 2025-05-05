@@ -2,13 +2,7 @@ package grpc
 
 import (
 	"context"
-	"errors"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"quickflow/file_service/internal/delivery/grpc/dto"
-	qf_errors "quickflow/file_service/internal/errors"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/file_service"
@@ -37,7 +31,7 @@ func (s *FileServiceServer) UploadFile(ctx context.Context, req *pb.UploadFileRe
 	fileURL, err := s.fileUC.UploadFile(ctx, dto.MapDTOFileToModel(dtoFile))
 	if err != nil {
 		logger.Error(ctx, "Failed to upload file: ", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	logger.Info(ctx, "Successfully uploaded file")
@@ -56,7 +50,7 @@ func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadM
 	fileURLs, err := s.fileUC.UploadManyFiles(ctx, files)
 	if err != nil {
 		logger.Error(ctx, "Failed to upload many files: ", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	logger.Info(ctx, "Successfully uploaded multiple files")
@@ -69,25 +63,9 @@ func (s *FileServiceServer) DeleteFile(ctx context.Context, req *pb.DeleteFileRe
 	err := s.fileUC.DeleteFile(ctx, req.FileUrl)
 	if err != nil {
 		logger.Error(ctx, "Failed to delete file: ", err)
-		return &pb.DeleteFileResponse{Success: false}, grpcErrorFromAppError(err)
+		return &pb.DeleteFileResponse{Success: false}, err
 	}
 
 	logger.Info(ctx, "Successfully deleted file")
 	return &pb.DeleteFileResponse{Success: true}, nil
-}
-
-func grpcErrorFromAppError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	switch {
-	case errors.Is(err, qf_errors.ErrInvalidFileName),
-		errors.Is(err, qf_errors.ErrInvalidFileSize),
-		errors.Is(err, qf_errors.ErrUnsupportedFileType),
-		errors.Is(err, qf_errors.ErrTooManyFiles):
-		return status.Error(codes.InvalidArgument, err.Error())
-	default:
-		return status.Error(codes.Internal, err.Error())
-	}
 }
