@@ -201,7 +201,7 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		infosMap[infosCommunityMap[communityId].OwnerID], err = f.profileUseCase.GetPublicUserInfo(ctx, communityId)
+		infosMap[infosCommunityMap[communityId].OwnerID], err = f.profileUseCase.GetPublicUserInfo(ctx, infosCommunityMap[communityId].OwnerID)
 		if err != nil {
 			err := errors2.FromGRPCError(err)
 			http2.WriteJSONError(w, fmt.Sprintf("Failed to load user info: %s", err.Error()), err.HTTPStatus)
@@ -227,6 +227,7 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 			postsOut[i].Creator = forms.ToCommunityForm(*infosCommunityMap[communities[i-numUser]], infosMap[infosCommunityMap[communities[i-numUser]].OwnerID])
 			numComm++
 		}
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")
