@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"quickflow/shared/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -323,7 +324,14 @@ func (f *FeedHandler) FetchCommunityPosts(w http.ResponseWriter, r *http.Request
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
-		postOut.Creator = forms.ToCommunityForm(*community)
+		info, err := f.profileUseCase.GetPublicUserInfo(ctx, community.OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+		}
+
+		postOut.Creator = forms.ToCommunityForm(*community, info)
 		postsOut = append(postsOut, postOut)
 	}
 

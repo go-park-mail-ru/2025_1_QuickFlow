@@ -90,7 +90,7 @@ func Run(cfg *config.Config) error {
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
 	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, connManager)
 	newFriendsHandler := qfhttp.NewFriendsHandler(FriendsService, connManager)
-	newSearchHandler := qfhttp.NewSearchHandler(UserService, communityService)
+	newSearchHandler := qfhttp.NewSearchHandler(UserService, communityService, profileService)
 	newCommunityHandler := qfhttp.NewCommunityHandler(communityService, profileService, connManager, UserService, sanitizerPolicy)
 
 	CSRFHandler := qfhttp.NewCSRFHandler()

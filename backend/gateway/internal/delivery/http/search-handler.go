@@ -20,12 +20,14 @@ type SearchUseCase interface {
 type SearchHandler struct {
 	searchUseCase    SearchUseCase
 	communityService CommunityService
+	profileService   ProfileUseCase
 }
 
-func NewSearchHandler(searchUseCase SearchUseCase, communityService CommunityService) *SearchHandler {
+func NewSearchHandler(searchUseCase SearchUseCase, communityService CommunityService, profileService ProfileUseCase) *SearchHandler {
 	return &SearchHandler{
 		searchUseCase:    searchUseCase,
 		communityService: communityService,
+		profileService:   profileService,
 	}
 }
 
@@ -78,7 +80,13 @@ func (s *SearchHandler) SearchSimilarCommunities(w http.ResponseWriter, r *http.
 
 	out := make([]forms.CommunityForm, len(communities))
 	for i, community := range communities {
-		out[i] = forms.ToCommunityForm(*community)
+		info, err := s.profileService.GetPublicUserInfo(r.Context(), community.OwnerID)
+		if err != nil {
+			err := errors.FromGRPCError(err)
+			logger.Error(r.Context(), fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+		}
+		out[i] = forms.ToCommunityForm(*community, info)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

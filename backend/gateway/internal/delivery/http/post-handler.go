@@ -159,7 +159,13 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		postOut.Creator = forms.ToCommunityForm(*community)
+		info, err := p.profileUseCase.GetPublicUserInfo(ctx, community.OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+		}
+		postOut.Creator = forms.ToCommunityForm(*community, info)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
