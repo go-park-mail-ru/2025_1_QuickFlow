@@ -174,13 +174,24 @@ func (p *PostUseCase) FetchUserPosts(ctx context.Context, userId, requesterId uu
 }
 
 func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpdate, userId uuid.UUID) (*models.Post, error) {
-	// check if user owns the post
-	belongsTo, err := p.postRepo.BelongsTo(ctx, userId, postUpdate.Id)
+	//// check if user owns the post
+	//belongsTo, err := p.postRepo.BelongsTo(ctx, userId, postUpdate.Id)
+	//if err != nil {
+	//	return nil, fmt.Errorf("p.postRepo.BelongsTo: %w", err)
+	//}
+	//
+	//
+
+	//if !belongsTo {
+	//	return nil, post_errors.ErrPostDoesNotBelongToUser
+	//}
+
+	oldPost, err := p.postRepo.GetPost(ctx, postUpdate.Id)
 	if err != nil {
-		return nil, fmt.Errorf("p.postRepo.BelongsTo: %w", err)
+		return nil, fmt.Errorf("p.postRepo.GetPost: %w", err)
 	}
 
-	if !belongsTo {
+	if oldPost.CreatorId != userId {
 		return nil, post_errors.ErrPostDoesNotBelongToUser
 	}
 
