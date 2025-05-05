@@ -109,7 +109,7 @@ const (
 	select c.id, c.owner_id, c.name, c.description, c.created_at, c.avatar_url, c.cover_url, nickname
 	from community c
 	join community_user cu on c.id = cu.community_id
-	where cu.user_id = $1 and cu.joined_at < $3 and (cu.role == 'admin' or cu.role == 'owner')
+	where cu.user_id = $1 and cu.joined_at < $3 and (cu.role = 'admin' or cu.role = 'owner')
 	order by cu.joined_at desc
 	limit $2;
 `
