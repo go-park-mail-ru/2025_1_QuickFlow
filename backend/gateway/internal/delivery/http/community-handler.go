@@ -113,8 +113,16 @@ func (c *CommunityHandler) CreateCommunity(w http.ResponseWriter, r *http.Reques
 	}
 	logger.Info(ctx, "Successfully added community")
 
+	// owner public info
+	info, err := c.profileService.GetPublicUserInfo(ctx, newCommunity.OwnerID)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+	}
+
 	// Create response
-	communityOut := forms.ToCommunityForm(*newCommunity)
+	communityOut := forms.ToCommunityForm(*newCommunity, info)
 	communityOut.Role = string(models.CommunityRoleOwner)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -164,7 +172,14 @@ func (c *CommunityHandler) GetCommunityById(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	out := forms.ToCommunityForm(*community)
+	info, err := c.profileService.GetPublicUserInfo(ctx, community.OwnerID)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+	}
+
+	out := forms.ToCommunityForm(*community, info)
 	if isMember && role != nil {
 		out.Role = string(*role)
 	}
@@ -210,7 +225,13 @@ func (c *CommunityHandler) GetCommunityByName(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	out := forms.ToCommunityForm(*community)
+	info, err := c.profileService.GetPublicUserInfo(ctx, community.OwnerID)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+	}
+	out := forms.ToCommunityForm(*community, info)
 	if isMember && role != nil {
 		out.Role = string(*role)
 	}
@@ -408,8 +429,15 @@ func (c *CommunityHandler) UpdateCommunity(w http.ResponseWriter, r *http.Reques
 	}
 	logger.Info(ctx, "Successfully updated community")
 
+	info, err := c.profileService.GetPublicUserInfo(ctx, newCommunity.OwnerID)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.CommunityForm]{Payload: forms.ToCommunityForm(*newCommunity)})
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.CommunityForm]{Payload: forms.ToCommunityForm(*newCommunity, info)})
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode community: %s", err.Error()))
 		http2.WriteJSONError(w, "Failed to encode community", http.StatusInternalServerError)
@@ -522,7 +550,14 @@ func (c *CommunityHandler) GetUserCommunities(w http.ResponseWriter, r *http.Req
 
 	out := make([]forms.CommunityForm, len(communities))
 	for i, community := range communities {
-		out[i] = forms.ToCommunityForm(*community)
+		info, err := c.profileService.GetPublicUserInfo(ctx, community.OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+		}
+
+		out[i] = forms.ToCommunityForm(*community, info)
 		isMember, role, err := c.communityService.IsCommunityMember(ctx, user.Id, community.ID)
 		if err != nil {
 			err := errors2.FromGRPCError(err)
@@ -647,7 +682,14 @@ func (c *CommunityHandler) GetControlledCommunities(w http.ResponseWriter, r *ht
 
 	out := make([]forms.CommunityForm, len(communities))
 	for i, community := range communities {
-		out[i] = forms.ToCommunityForm(*community)
+		info, err := c.profileService.GetPublicUserInfo(ctx, community.OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+		}
+
+		out[i] = forms.ToCommunityForm(*community, info)
 		isMember, role, err := c.communityService.IsCommunityMember(ctx, user.Id, community.ID)
 		if err != nil {
 			err := errors2.FromGRPCError(err)
