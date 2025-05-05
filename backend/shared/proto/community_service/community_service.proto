@@ -163,6 +163,16 @@ message ChangeUserRoleResponse {
   bool success = 1;
 }
 
+message GetControlledCommunitiesRequest {
+  string user_id = 1;
+  int32 count = 2;
+  google.protobuf.Timestamp ts = 3;
+}
+
+message GetControlledCommunitiesResponse {
+  repeated Community communities = 1;
+}
+
 service CommunityService {
   rpc CreateCommunity(CreateCommunityRequest) returns (CreateCommunityResponse);
   rpc GetCommunityById(GetCommunityByIdRequest) returns (GetCommunityByIdResponse);
@@ -176,4 +186,5 @@ service CommunityService {
   rpc GetUserCommunities(GetUserCommunitiesRequest) returns (GetUserCommunitiesResponse);
   rpc SearchSimilarCommunities(SearchSimilarCommunitiesRequest) returns (SearchSimilarCommunitiesResponse);
   rpc ChangeUserRole(ChangeUserRoleRequest) returns (ChangeUserRoleResponse);
+  rpc GetControlledCommunities(GetControlledCommunitiesRequest) returns (GetControlledCommunitiesResponse);
 }

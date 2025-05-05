@@ -34,6 +34,7 @@ type CommunityService interface {
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]*models.Community, error)
 	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]*models.Community, error)
 	ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole, requester uuid.UUID) error
+	GetControlledCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]*models.Community, error)
 }
 
 type CommunityHandler struct {
@@ -610,4 +611,60 @@ func (c *CommunityHandler) ChangeUserRole(w http.ResponseWriter, r *http.Request
 		return
 	}
 	logger.Info(ctx, "Successfully changed community role")
+}
+
+func (c *CommunityHandler) GetControlledCommunities(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	username := mux.Vars(r)["username"]
+	if username == "" {
+		http2.WriteJSONError(w, "Failed to get username from URL", http.StatusBadRequest)
+		return
+	}
+
+	user, err := c.authService.GetUserByUsername(ctx, username)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		http2.WriteJSONError(w, fmt.Sprintf("Failed to get user: %s", err.Error()), err.HTTPStatus)
+		return
+	}
+
+	var pagination forms.PaginationForm
+	err = pagination.GetParams(r.URL.Query())
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse query params: %v", err))
+		http2.WriteJSONError(w, "Failed to parse query params", http.StatusBadRequest)
+		return
+	}
+
+	communities, err := c.communityService.GetControlledCommunities(ctx, user.Id, pagination.Count, pagination.Ts)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Failed to get user communities: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to get user communities", err.HTTPStatus)
+		return
+	}
+
+	out := make([]forms.CommunityForm, len(communities))
+	for i, community := range communities {
+		out[i] = forms.ToCommunityForm(*community)
+		isMember, role, err := c.communityService.IsCommunityMember(ctx, user.Id, community.ID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to check community membership: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to check community membership", err.HTTPStatus)
+			return
+		}
+		if isMember && role != nil {
+			out[i].Role = string(*role)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[[]forms.CommunityForm]{Payload: out})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode user communities: %s", err.Error()))
+		http2.WriteJSONError(w, "Failed to encode user communities", http.StatusInternalServerError)
+		return
+	}
 }

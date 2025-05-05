@@ -181,3 +181,23 @@ func (c *Client) ChangeUserRole(ctx context.Context, userId, communityId uuid.UU
 	})
 	return err
 }
+
+func (c *Client) GetControlledCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]*models.Community, error) {
+	resp, err := c.client.GetControlledCommunities(ctx, &pb.GetControlledCommunitiesRequest{
+		UserId: userId.String(),
+		Count:  int32(count),
+		Ts:     timestamppb.New(ts),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var result []*models.Community
+	for _, protoComm := range resp.Communities {
+		m, err := MapProtoCommunityToModel(protoComm)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, m)
+	}
+	return result, nil
+}
