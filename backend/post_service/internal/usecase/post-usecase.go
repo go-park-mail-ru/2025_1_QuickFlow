@@ -191,9 +191,10 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 		return nil, fmt.Errorf("p.postRepo.GetPost: %w", err)
 	}
 
-	if oldPost.CreatorId != userId {
+	if oldPost.CreatorId != userId && oldPost.CreatorType == models.PostUser {
 		return nil, post_errors.ErrPostDoesNotBelongToUser
 	}
+	// TODO validate community update
 
 	// retrieve old post photos
 	oldPics, err := p.postRepo.GetPostFiles(ctx, postUpdate.Id)
