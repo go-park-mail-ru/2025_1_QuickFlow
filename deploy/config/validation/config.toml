@@ -8,4 +8,4 @@ max_post_text_length = 4000
 max_message_text_length = 4000
 
 max_picture_count = 10
-max_picture_size = "5MB"
+max_picture_size = "6MB"
