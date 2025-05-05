@@ -4,7 +4,7 @@
 // - protoc             v5.29.3
 // source: community_service.proto
 
-package community
+package community_service
 
 import (
 	context "context"

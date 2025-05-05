@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package file_service;
-option go_package = "quickflow/shared/proto/community";
+option go_package = "quickflow/shared/proto/community_service";
 import "google/protobuf/timestamp.proto";
 import "file_service/file_service.proto";
 

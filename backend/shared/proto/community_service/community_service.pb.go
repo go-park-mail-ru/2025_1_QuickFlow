@@ -4,7 +4,7 @@
 // 	protoc        v5.29.3
 // source: community_service.proto
 
-package community
+package community_service
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -1839,7 +1839,7 @@ const file_community_service_proto_rawDesc = "" +
 	"\x12GetUserCommunities\x12'.file_service.GetUserCommunitiesRequest\x1a(.file_service.GetUserCommunitiesResponse\x12y\n" +
 	"\x18SearchSimilarCommunities\x12-.file_service.SearchSimilarCommunitiesRequest\x1a..file_service.SearchSimilarCommunitiesResponse\x12[\n" +
 	"\x0eChangeUserRole\x12#.file_service.ChangeUserRoleRequest\x1a$.file_service.ChangeUserRoleResponse\x12y\n" +
-	"\x18GetControlledCommunities\x12-.file_service.GetControlledCommunitiesRequest\x1a..file_service.GetControlledCommunitiesResponseB\"Z quickflow/shared/proto/communityb\x06proto3"
+	"\x18GetControlledCommunities\x12-.file_service.GetControlledCommunitiesRequest\x1a..file_service.GetControlledCommunitiesResponseB*Z(quickflow/shared/proto/community_serviceb\x06proto3"
 
 var (
 	file_community_service_proto_rawDescOnce sync.Once
