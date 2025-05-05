@@ -28,6 +28,7 @@ type CommunityUseCase interface {
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
 	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error)
 	ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole, requester uuid.UUID) error
+	GetControlledCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
 }
 
 type UserUseCase interface {
@@ -301,5 +302,26 @@ func (s *CommunityServiceServer) ChangeUserRole(ctx context.Context, req *pb.Cha
 
 	return &pb.ChangeUserRoleResponse{
 		Success: true,
+	}, nil
+}
+
+func (s *CommunityServiceServer) GetControlledCommunities(ctx context.Context, req *pb.GetControlledCommunitiesRequest) (*pb.GetControlledCommunitiesResponse, error) {
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	communities, err := s.communityUseCase.GetControlledCommunities(ctx, userId, int(req.Count), req.Ts.AsTime())
+	if err != nil {
+		return nil, err
+	}
+
+	protoCommunities := make([]*pb.Community, len(communities))
+	for i, community := range communities {
+		protoCommunities[i] = dto.MapModelCommunityToProto(&community)
+	}
+
+	return &pb.GetControlledCommunitiesResponse{
+		Communities: protoCommunities,
 	}, nil
 }

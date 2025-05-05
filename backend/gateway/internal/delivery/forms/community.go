@@ -37,12 +37,13 @@ func CommunityInfoFromModel(communityInfo models.BasicCommunityInfo, nickName st
 }
 
 type CommunityForm struct {
-	Id        string       `json:"id"`
-	OwnerId   string       `json:"owner_id"`
-	CreatedAt string       `json:"created_at"`
-	Avatar    *models.File `json:"-"`
-	Cover     *models.File `json:"-"`
-	Role      string       `json:"role,omitempty"`
+	Id        string             `json:"id"`
+	Owner     *PublicUserInfoOut `json:"owner"`
+	OwnerId   string             `json:"owner_id"`
+	CreatedAt string             `json:"created_at"`
+	Avatar    *models.File       `json:"-"`
+	Cover     *models.File       `json:"-"`
+	Role      string             `json:"role,omitempty"`
 
 	CommunityInfo *CommunityInfo `json:"community"`
 	ContactInfo   *ContactInfo   `json:"contact_info,omitempty"`
@@ -73,10 +74,17 @@ func (f *CreateCommunityForm) CreateFormToModel() models.Community {
 	}
 }
 
-func ToCommunityForm(community models.Community) CommunityForm {
+func ToCommunityForm(community models.Community, ownerInfo models.PublicUserInfo) CommunityForm {
 	return CommunityForm{
-		Id:            community.ID.String(),
-		OwnerId:       community.OwnerID.String(),
+		Id:      community.ID.String(),
+		OwnerId: community.OwnerID.String(),
+		Owner: &PublicUserInfoOut{
+			ID:        ownerInfo.Id.String(),
+			Username:  ownerInfo.Username,
+			FirstName: ownerInfo.Firstname,
+			LastName:  ownerInfo.Lastname,
+			AvatarURL: ownerInfo.AvatarURL,
+		},
 		CreatedAt:     community.CreatedAt.Format(time_config.TimeStampLayout),
 		CommunityInfo: CommunityInfoFromModel(*community.BasicInfo, community.NickName),
 		ContactInfo:   ContactInfoToForm(community.ContactInfo),

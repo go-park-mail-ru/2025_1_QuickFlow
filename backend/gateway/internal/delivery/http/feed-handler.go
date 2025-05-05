@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"quickflow/shared/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -89,11 +90,16 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 
 	var postsOut []forms.PostOut
 	var authors []uuid.UUID
+	var communities []uuid.UUID
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
 		postsOut = append(postsOut, postOut)
-		authors = append(authors, post.CreatorId)
+		if post.CreatorType == models.PostUser {
+			authors = append(authors, post.CreatorId)
+		} else {
+			communities = append(communities, post.CreatorId)
+		}
 	}
 
 	publicAuthorsInfo, err := f.profileUseCase.GetPublicUsersInfo(ctx, authors)
@@ -108,21 +114,48 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 		infosMap[info.Id] = info
 	}
 
-	for i := range postsOut {
-		rel, err := f.friendUseCase.GetUserRelation(ctx, user.Id, authors[i])
+	infosCommunityMap := make(map[uuid.UUID]*models.Community)
+	for _, communityId := range communities {
+		infosCommunityMap[communityId], err = f.communityService.GetCommunityById(ctx, communityId)
 		if err != nil {
 			err := errors2.FromGRPCError(err)
-			http2.WriteJSONError(w, fmt.Sprintf("Failed to get user relation: %s", err.Error()), err.HTTPStatus)
+			http2.WriteJSONError(w, fmt.Sprintf("Failed to load community info: %s", err.Error()), err.HTTPStatus)
 			return
 		}
-		info := forms.PublicUserInfoToOut(infosMap[authors[i]], rel)
-		postsOut[i].Creator = &info
+
+		infosMap[infosCommunityMap[communityId].OwnerID], err = f.profileUseCase.GetPublicUserInfo(ctx, infosCommunityMap[communityId].OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			http2.WriteJSONError(w, fmt.Sprintf("Failed to load user info: %s", err.Error()), err.HTTPStatus)
+			return
+		}
+	}
+
+	var numUser, numComm int
+	for i := range postsOut {
+
+		if postsOut[i].CreatorType == "user" {
+			rel, err := f.friendUseCase.GetUserRelation(ctx, user.Id, authors[i-numComm])
+			if err != nil {
+				err := errors2.FromGRPCError(err)
+				http2.WriteJSONError(w, fmt.Sprintf("Failed to get user relation: %s", err.Error()), err.HTTPStatus)
+				return
+			}
+
+			info := forms.PublicUserInfoToOut(infosMap[authors[i-numComm]], rel)
+			postsOut[i].Creator = &info
+			numUser++
+		} else {
+			postsOut[i].Creator = forms.ToCommunityForm(*infosCommunityMap[communities[i-numUser]], infosMap[infosCommunityMap[communities[i-numUser]].OwnerID])
+			numComm++
+		}
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(postsOut)
 	if err != nil {
-		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
+		http2.WriteJSONError(w, "Failed to encode recommendations", http.StatusInternalServerError)
 	}
 }
 
@@ -167,11 +200,16 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 
 	var postsOut []forms.PostOut
 	var authors []uuid.UUID
+	var communities []uuid.UUID
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
 		postsOut = append(postsOut, postOut)
-		authors = append(authors, post.CreatorId)
+		if post.CreatorType == models.PostUser {
+			authors = append(authors, post.CreatorId)
+		} else {
+			communities = append(communities, post.CreatorId)
+		}
 	}
 
 	publicAuthorsInfo, err := f.profileUseCase.GetPublicUsersInfo(ctx, authors)
@@ -186,15 +224,42 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 		infosMap[info.Id] = info
 	}
 
-	for i := range postsOut {
-		rel, err := f.friendUseCase.GetUserRelation(ctx, user.Id, authors[i])
+	infosCommunityMap := make(map[uuid.UUID]*models.Community)
+	for _, communityId := range communities {
+		infosCommunityMap[communityId], err = f.communityService.GetCommunityById(ctx, communityId)
 		if err != nil {
 			err := errors2.FromGRPCError(err)
-			http2.WriteJSONError(w, fmt.Sprintf("Failed to get user relation: %s", err.Error()), err.HTTPStatus)
+			http2.WriteJSONError(w, fmt.Sprintf("Failed to load community info: %s", err.Error()), err.HTTPStatus)
 			return
 		}
-		info := forms.PublicUserInfoToOut(infosMap[authors[i]], rel)
-		postsOut[i].Creator = &info
+
+		infosMap[infosCommunityMap[communityId].OwnerID], err = f.profileUseCase.GetPublicUserInfo(ctx, infosCommunityMap[communityId].OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			http2.WriteJSONError(w, fmt.Sprintf("Failed to load user info: %s", err.Error()), err.HTTPStatus)
+			return
+		}
+	}
+
+	var numUser, numComm int
+	for i := range postsOut {
+
+		if postsOut[i].CreatorType == "user" {
+			rel, err := f.friendUseCase.GetUserRelation(ctx, user.Id, authors[i-numComm])
+			if err != nil {
+				err := errors2.FromGRPCError(err)
+				http2.WriteJSONError(w, fmt.Sprintf("Failed to get user relation: %s", err.Error()), err.HTTPStatus)
+				return
+			}
+
+			info := forms.PublicUserInfoToOut(infosMap[authors[i-numComm]], rel)
+			postsOut[i].Creator = &info
+			numUser++
+		} else {
+			postsOut[i].Creator = forms.ToCommunityForm(*infosCommunityMap[communities[i-numUser]], infosMap[infosCommunityMap[communities[i-numUser]].OwnerID])
+			numComm++
+		}
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -323,7 +388,14 @@ func (f *FeedHandler) FetchCommunityPosts(w http.ResponseWriter, r *http.Request
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
-		postOut.Creator = forms.ToCommunityForm(*community)
+		info, err := f.profileUseCase.GetPublicUserInfo(ctx, community.OwnerID)
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+		}
+
+		postOut.Creator = forms.ToCommunityForm(*community, info)
 		postsOut = append(postsOut, postOut)
 	}
 

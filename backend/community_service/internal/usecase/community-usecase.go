@@ -29,6 +29,7 @@ type CommunityRepository interface {
 	GetUserCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
 	SearchSimilarCommunities(ctx context.Context, name string, count int) ([]models.Community, error)
 	ChangeUserRole(ctx context.Context, userId, communityId uuid.UUID, role models.CommunityRole) error
+	GetControlledCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error)
 }
 
 type CommunityValidator interface {
@@ -397,4 +398,19 @@ func (c *CommunityUseCase) ChangeUserRole(ctx context.Context, userId, community
 		return err
 	}
 	return nil
+}
+
+func (c *CommunityUseCase) GetControlledCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error) {
+	if userId == uuid.Nil {
+		logger.Error(ctx, "user ID cannot be empty")
+		return nil, fmt.Errorf("user ID cannot be empty")
+	}
+
+	communities, err := c.repo.GetControlledCommunities(ctx, userId, count, ts)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to get user communities: %v", err))
+		return nil, err
+	}
+
+	return communities, nil
 }

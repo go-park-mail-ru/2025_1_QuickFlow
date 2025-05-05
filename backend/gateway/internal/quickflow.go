@@ -90,7 +90,7 @@ func Run(cfg *config.Config) error {
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
 	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, connManager)
 	newFriendsHandler := qfhttp.NewFriendsHandler(FriendsService, connManager)
-	newSearchHandler := qfhttp.NewSearchHandler(UserService, communityService)
+	newSearchHandler := qfhttp.NewSearchHandler(UserService, communityService, profileService)
 	newCommunityHandler := qfhttp.NewCommunityHandler(communityService, profileService, connManager, UserService, sanitizerPolicy)
 
 	CSRFHandler := qfhttp.NewCSRFHandler()
@@ -168,6 +168,7 @@ func Run(cfg *config.Config) error {
 	protectedGet.HandleFunc("/communities/{name}", newCommunityHandler.GetCommunityByName).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/members", newCommunityHandler.GetCommunityMembers).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/profiles/{username}/communities", newCommunityHandler.GetUserCommunities).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/profiles/{username}/controlled", newCommunityHandler.GetControlledCommunities).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/communities/{name}/posts", newFeedHandler.FetchCommunityPosts).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
 

@@ -104,6 +104,15 @@ const (
 	phone_number = excluded.phone_number
 	returning id;
 `
+
+	GetControlledCommunitiesQuery = `
+	select c.id, c.owner_id, c.name, c.description, c.created_at, c.avatar_url, c.cover_url, nickname
+	from community c
+	join community_user cu on c.id = cu.community_id
+	where cu.user_id = $1 and cu.joined_at < $3 and (cu.role = 'admin' or cu.role = 'owner')
+	order by cu.joined_at desc
+	limit $2;
+`
 )
 
 type SqlCommunityRepository struct {
@@ -459,4 +468,29 @@ func (c *SqlCommunityRepository) ChangeUserRole(ctx context.Context, userId, com
 	}
 
 	return nil
+}
+
+func (c *SqlCommunityRepository) GetControlledCommunities(ctx context.Context, userId uuid.UUID, count int, ts time.Time) ([]models.Community, error) {
+	rows, err := c.connPool.QueryContext(ctx, GetControlledCommunitiesQuery, userId, count, pgtype.Timestamptz{Time: ts, Valid: true})
+	if errors.Is(err, sql.ErrNoRows) {
+		logger.Info(ctx, "no user communities found")
+		return nil, community_errors.ErrNotFound
+	} else if err != nil {
+		logger.Error(ctx, fmt.Sprintf("unable to get user communities by id: %v", err))
+		return nil, err
+	}
+	defer rows.Close()
+
+	var communities []models.Community
+	for rows.Next() {
+		var communityDTO postgres_models.CommunityPostgres
+		if err := rows.Scan(&communityDTO.Id, &communityDTO.OwnerId, &communityDTO.Name,
+			&communityDTO.Description, &communityDTO.CreatedAt, &communityDTO.AvatarUrl, &communityDTO.CoverUrl, &communityDTO.NickName); err != nil {
+			logger.Error(ctx, fmt.Sprintf("unable to scan user community: %v", err))
+			return nil, err
+		}
+		communities = append(communities, communityDTO.PostgresToCommunityModel())
+	}
+
+	return communities, nil
 }
