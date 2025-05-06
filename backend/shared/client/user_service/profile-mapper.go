@@ -92,6 +92,8 @@ func MapBasicInfoToDTO(basicInfo *shared_models.BasicInfo) *db.BasicInfo {
 		Sex:       int32(basicInfo.Sex),
 		BirthDate: timestamppb.New(basicInfo.DateOfBirth),
 		Bio:       basicInfo.Bio,
+		AvatarUrl: basicInfo.AvatarUrl,
+		CoverUrl:  basicInfo.BackgroundUrl,
 	}
 }
 
