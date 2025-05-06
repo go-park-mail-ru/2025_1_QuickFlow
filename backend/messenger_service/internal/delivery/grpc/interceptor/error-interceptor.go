@@ -66,6 +66,6 @@ func ErrorInterceptor(
 		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "INVALID_NUM_MESSAGES")
 
 	default:
-		return nil, statusWithDetails(codes.Internal, err.Error(), "INTERNAL_ERROR")
+		return nil, statusWithDetails(codes.Internal, err.Error(), "INTERNAL")
 	}
 }

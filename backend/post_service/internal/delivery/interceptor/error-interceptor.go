@@ -16,7 +16,7 @@ func withErrorInfo(code codes.Code, reason, message string) error {
 	st := status.New(code, message)
 
 	detail := &errdetails.ErrorInfo{
-		Reason: reason, // e.g., "ERR_NOT_FOUND"
+		Reason: reason, // e.g., "NOT_FOUND"
 		Domain: "post_service",
 	}
 
@@ -47,23 +47,23 @@ func ErrorInterceptor(
 	switch {
 	case errors.Is(err, post_errors.ErrPostNotFound),
 		errors.Is(err, post_errors.ErrNotFound):
-		return nil, withErrorInfo(codes.NotFound, "ERR_NOT_FOUND", err.Error())
+		return nil, withErrorInfo(codes.NotFound, "NOT_FOUND", err.Error())
 
 	case errors.Is(err, post_errors.ErrInvalidNumPosts),
 		errors.Is(err, post_errors.ErrInvalidTimestamp),
 		errors.Is(err, post_errors.ErrInvalidUUID):
-		return nil, withErrorInfo(codes.InvalidArgument, "ERR_INVALID_ARGUMENT", err.Error())
+		return nil, withErrorInfo(codes.InvalidArgument, "INVALID_ARGUMENT", err.Error())
 
 	case errors.Is(err, post_errors.ErrPostDoesNotBelongToUser):
-		return nil, withErrorInfo(codes.PermissionDenied, "ERR_FORBIDDEN", err.Error())
+		return nil, withErrorInfo(codes.PermissionDenied, "FORBIDDEN", err.Error())
 
 	case errors.Is(err, post_errors.ErrAlreadyExists):
-		return nil, withErrorInfo(codes.AlreadyExists, "ERR_ALREADY_EXISTS", err.Error())
+		return nil, withErrorInfo(codes.AlreadyExists, "ALREADY_EXISTS", err.Error())
 
 	case errors.Is(err, post_errors.ErrUploadFile):
-		return nil, withErrorInfo(codes.Internal, "ERR_UPLOAD_FILE", err.Error())
+		return nil, withErrorInfo(codes.Internal, "UPLOAD_FILE", err.Error())
 
 	default:
-		return nil, withErrorInfo(codes.Internal, "ERR_INTERNAL", err.Error())
+		return nil, withErrorInfo(codes.Internal, "INTERNAL", err.Error())
 	}
 }

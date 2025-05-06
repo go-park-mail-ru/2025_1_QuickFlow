@@ -16,7 +16,7 @@ func withErrorInfo(code codes.Code, reason, message string) error {
 	st := status.New(code, message)
 
 	detail := &errdetails.ErrorInfo{
-		Reason:   reason,              // e.g., "ERR_NOT_FOUND"
+		Reason:   reason,              // e.g., "NOT_FOUND"
 		Domain:   "user_service",      // optional: can be used for service-level
 		Metadata: map[string]string{}, // optional extra context
 	}
@@ -44,19 +44,19 @@ func ErrorInterceptor(
 	case errors.Is(err, user_errors.ErrNotFound),
 		errors.Is(err, user_errors.ErrProfileNotFound),
 		errors.Is(err, user_errors.ErrUserNotFound):
-		return nil, withErrorInfo(codes.NotFound, "ERR_NOT_FOUND", err.Error())
+		return nil, withErrorInfo(codes.NotFound, "NOT_FOUND", err.Error())
 
 	case errors.Is(err, user_errors.ErrAlreadyExists),
 		errors.Is(err, user_errors.ErrUsernameTaken):
-		return nil, withErrorInfo(codes.AlreadyExists, "ERR_ALREADY_EXISTS", err.Error())
+		return nil, withErrorInfo(codes.AlreadyExists, "ALREADY_EXISTS", err.Error())
 
 	case errors.Is(err, user_errors.ErrInvalidUserId),
 		errors.Is(err, user_errors.ErrInvalidProfileInfo),
 		errors.Is(err, user_errors.ErrUserValidation),
 		errors.Is(err, user_errors.ErrProfileValidation):
-		return nil, withErrorInfo(codes.InvalidArgument, "ERR_INVALID_ARGUMENT", err.Error())
+		return nil, withErrorInfo(codes.InvalidArgument, "INVALID_ARGUMENT", err.Error())
 
 	default:
-		return nil, withErrorInfo(codes.Internal, "ERR_INTERNAL", err.Error())
+		return nil, withErrorInfo(codes.Internal, "INTERNAL", err.Error())
 	}
 }

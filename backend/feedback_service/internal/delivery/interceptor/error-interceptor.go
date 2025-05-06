@@ -50,7 +50,7 @@ func ErrorInterceptor(
 
 	switch {
 	case errors.Is(err, feedback_errors.ErrNotFound):
-		return nil, statusWithDetails(codes.NotFound, err.Error(), "FEEDBACK_NOT_FOUND")
+		return nil, statusWithDetails(codes.NotFound, err.Error(), "NOT_FOUND")
 
 	case errors.Is(err, feedback_errors.ErrRespondent):
 		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "INVALID_RESPONDENT")
@@ -62,6 +62,6 @@ func ErrorInterceptor(
 		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "TEXT_TOO_LONG")
 
 	default:
-		return nil, statusWithDetails(codes.Internal, err.Error(), "INTERNAL_ERROR")
+		return nil, statusWithDetails(codes.Internal, err.Error(), "INTERNAL")
 	}
 }

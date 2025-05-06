@@ -56,7 +56,7 @@ func ErrorInterceptor(
 		case errors.Is(err, community_errors.ErrForbidden):
 			return nil, statusWithDetails(codes.PermissionDenied, err.Error(), "FORBIDDEN")
 		default:
-			return nil, statusWithDetails(codes.Internal, err.Error(), "UNKNOWN_ERROR")
+			return nil, statusWithDetails(codes.Internal, err.Error(), "INTERNAL")
 		}
 	}
 
