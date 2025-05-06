@@ -56,14 +56,7 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 		}
 	}
 
-	//id, err := uuid.Parse(f.Id)
-	//if err != nil {
-	//	return models.Profile{}, errors.New("invalid user id")
-	//}
-
-	return models.Profile{
-		//UserId:     id,
-		Username:   f.ProfileInfo.Username,
+	p := models.Profile{
 		BasicInfo:  basicInfo,
 		Avatar:     f.Avatar,
 		Background: f.Background,
@@ -71,7 +64,12 @@ func (f *ProfileForm) FormToModel() (models.Profile, error) {
 		SchoolEducation:     SchoolFormToModel(f.SchoolEducation),
 		UniversityEducation: UniversityFormToModel(f.UniversityEducation),
 		ContactInfo:         contactInfo,
-	}, nil
+	}
+	if f.ProfileInfo != nil {
+		p.Username = f.ProfileInfo.Username
+	}
+
+	return p, nil
 }
 
 func ModelToForm(profile models.Profile, username string, isOnline bool, relation models.UserRelation, uuid *uuid.UUID) ProfileForm {

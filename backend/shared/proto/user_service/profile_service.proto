@@ -24,9 +24,7 @@ message ContactInfo {
   string email = 3;
 }
 
-message Profile {
-  string id = 1;
-  string username = 2;
+message BasicInfo {
   string firstname = 3;
   string lastname = 4;
   int32 sex = 5;
@@ -34,6 +32,12 @@ message Profile {
   string bio = 7;
   string avatar_url = 8;
   string cover_url = 9;
+}
+
+message Profile {
+  string id = 1;
+  string username = 2;
+  BasicInfo basic_info = 3;
   SchoolEducation school_education = 10;
   UniversityEducation university_education = 11;
   ContactInfo contact_info = 12;

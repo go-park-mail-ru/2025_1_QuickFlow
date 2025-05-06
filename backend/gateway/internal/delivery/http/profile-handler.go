@@ -242,6 +242,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profile.UserId = user.Id
 	_, err = p.profileUC.UpdateProfile(ctx, profile)
 	if err != nil {
+		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Failed to update profile: %s", err.Error()))
 		http2.WriteJSONError(w, err)
 		return

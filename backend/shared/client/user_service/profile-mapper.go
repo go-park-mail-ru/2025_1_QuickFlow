@@ -81,6 +81,36 @@ func MapContactInfoDTOToModel(contactInfoDTO *db.ContactInfo) *shared_models.Con
 	}
 }
 
+func MapBasicInfoToDTO(basicInfo *shared_models.BasicInfo) *db.BasicInfo {
+	if basicInfo == nil {
+		return nil
+	}
+
+	return &db.BasicInfo{
+		Firstname: basicInfo.Name,
+		Lastname:  basicInfo.Surname,
+		Sex:       int32(basicInfo.Sex),
+		BirthDate: timestamppb.New(basicInfo.DateOfBirth),
+		Bio:       basicInfo.Bio,
+	}
+}
+
+func MapBasicInfoDTOToModel(basicInfoDTO *db.BasicInfo) *shared_models.BasicInfo {
+	if basicInfoDTO == nil {
+		return nil
+	}
+
+	return &shared_models.BasicInfo{
+		Name:          basicInfoDTO.Firstname,
+		Surname:       basicInfoDTO.Lastname,
+		Sex:           shared_models.Sex(basicInfoDTO.Sex),
+		DateOfBirth:   basicInfoDTO.BirthDate.AsTime(),
+		Bio:           basicInfoDTO.Bio,
+		AvatarUrl:     basicInfoDTO.AvatarUrl,
+		BackgroundUrl: basicInfoDTO.CoverUrl,
+	}
+}
+
 func MapProfileToProfileDTO(profile *shared_models.Profile) *db.Profile {
 	if profile == nil {
 		return nil
@@ -89,13 +119,7 @@ func MapProfileToProfileDTO(profile *shared_models.Profile) *db.Profile {
 	return &db.Profile{
 		Id:                  profile.UserId.String(),
 		Username:            profile.Username,
-		Firstname:           profile.BasicInfo.Name,
-		Lastname:            profile.BasicInfo.Surname,
-		Sex:                 int32(profile.BasicInfo.Sex),
-		BirthDate:           timestamppb.New(profile.BasicInfo.DateOfBirth),
-		Bio:                 profile.BasicInfo.Bio,
-		AvatarUrl:           profile.BasicInfo.AvatarUrl,
-		CoverUrl:            profile.BasicInfo.BackgroundUrl,
+		BasicInfo:           MapBasicInfoToDTO(profile.BasicInfo),
 		Avatar:              file_service.ModelFileToProto(profile.Avatar),
 		Cover:               file_service.ModelFileToProto(profile.Background),
 		SchoolEducation:     MapSchoolEducationToDTO(profile.SchoolEducation),
@@ -115,17 +139,9 @@ func MapProfileDTOToProfile(profileDTO *db.Profile) (*shared_models.Profile, err
 		return nil, err
 	}
 	return &shared_models.Profile{
-		UserId:   id,
-		Username: profileDTO.Username,
-		BasicInfo: &shared_models.BasicInfo{
-			Name:          profileDTO.Firstname,
-			Surname:       profileDTO.Lastname,
-			Sex:           shared_models.Sex(profileDTO.Sex),
-			DateOfBirth:   profileDTO.BirthDate.AsTime(),
-			Bio:           profileDTO.Bio,
-			AvatarUrl:     profileDTO.AvatarUrl,
-			BackgroundUrl: profileDTO.CoverUrl,
-		},
+		UserId:              id,
+		Username:            profileDTO.Username,
+		BasicInfo:           MapBasicInfoDTOToModel(profileDTO.BasicInfo),
 		SchoolEducation:     MapSchoolEducationDTOToModel(profileDTO.SchoolEducation),
 		UniversityEducation: MapUniversityEducationDTOToModel(profileDTO.UniversityEducation),
 		ContactInfo:         MapContactInfoDTOToModel(profileDTO.ContactInfo),

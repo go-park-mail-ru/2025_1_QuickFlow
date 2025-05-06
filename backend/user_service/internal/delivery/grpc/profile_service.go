@@ -5,10 +5,10 @@ import (
 
 	"github.com/google/uuid"
 
+	dto "quickflow/shared/client/user_service"
 	"quickflow/shared/logger"
 	shared_models "quickflow/shared/models"
 	pb "quickflow/shared/proto/user_service"
-	"quickflow/user_service/internal/delivery/grpc/dto"
 	user_errors "quickflow/user_service/internal/errors"
 )
 
