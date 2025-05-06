@@ -11,7 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/models"
+	"quickflow/shared/models"
 )
 
 func TestSaveSession(t *testing.T) {

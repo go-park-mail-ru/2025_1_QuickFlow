@@ -11,9 +11,9 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	post_errors "quickflow/post_service/internal/errors"
+	"quickflow/post_service/utils/validation"
 	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
-	"quickflow/utils/validation"
 )
 
 type PostValidator interface {

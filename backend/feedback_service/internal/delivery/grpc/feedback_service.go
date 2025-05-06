@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"quickflow/feedback_service/internal/delivery/grpc/dto"
 	feedback_errors "quickflow/feedback_service/internal/errors"
+	dto "quickflow/shared/client/feedback_service"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/feedback_service"

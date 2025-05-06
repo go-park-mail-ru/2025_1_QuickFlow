@@ -13,9 +13,9 @@ import (
 
 	micro_addr "quickflow/config/micro-addr"
 	postgres_config "quickflow/config/postgres"
+	file_client "quickflow/shared/client/file_service"
 	"quickflow/shared/interceptors"
 	proto "quickflow/shared/proto/user_service"
-	"quickflow/user_service/internal/client/file_sevice"
 	grpc2 "quickflow/user_service/internal/delivery/grpc"
 	"quickflow/user_service/internal/delivery/interceptor"
 	"quickflow/user_service/internal/repository/postgres"
@@ -48,7 +48,7 @@ func main() {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
 
-	fileService := file_sevice.NewFileClient(grpcConn)
+	fileService := file_client.NewFileClient(grpcConn)
 	userRepo := postgres.NewPostgresUserRepository(db)
 	profileRepo := postgres.NewPostgresProfileRepository(db)
 	redisRepo := redis.NewRedisSessionRepository()

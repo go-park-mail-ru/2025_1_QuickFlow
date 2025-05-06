@@ -6,14 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	myhttp "quickflow/internal/delivery/http"
+
+	myhttp "quickflow/gateway/internal/delivery/http"
 )
 
 func TestGetCSRF_Success(t *testing.T) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/csrf", nil)
 
-	myhttp.GetCSRF(rr, req)
+	handler := &myhttp.CSRFHandler{}
+	handler.GetCSRF(rr, req)
 
 	tokenHeader := rr.Header().Get("X-CSRF-Token")
 	assert.NotEmpty(t, tokenHeader, "X-CSRF-Token header should not be empty")

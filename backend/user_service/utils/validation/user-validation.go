@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"quickflow/utils"
+	"quickflow/user_service/utils"
 )
 
 const (

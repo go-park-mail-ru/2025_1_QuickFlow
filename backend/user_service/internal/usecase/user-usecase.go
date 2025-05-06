@@ -8,6 +8,7 @@ import (
 
 	shared_models "quickflow/shared/models"
 	user_errors "quickflow/user_service/internal/errors"
+	"quickflow/user_service/internal/models"
 	"quickflow/user_service/utils/validation"
 )
 
@@ -50,11 +51,16 @@ func (u *UserUseCase) CreateUser(ctx context.Context, user shared_models.User, p
 	if err = validation.ValidateUser(user.Username, user.Password); err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("%w: validation.ValidateUser: %w", user_errors.ErrUserValidation, err)
 	}
+
+	if profile.BasicInfo == nil {
+		return uuid.Nil, shared_models.Session{}, fmt.Errorf("%w: profile.BasicInfo is nil", user_errors.ErrProfileValidation)
+	}
+
 	if err = validation.ValidateProfile(profile.BasicInfo.Name, profile.BasicInfo.Surname); err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("%w: validation.ValidateProfile: %w", user_errors.ErrProfileValidation, err)
 	}
 
-	if user, err = shared_models.CreateUser(user); err != nil {
+	if user, err = models.CreateUser(user); err != nil {
 		return uuid.Nil, shared_models.Session{}, fmt.Errorf("shared_models.CreateUser: %w", err)
 	}
 

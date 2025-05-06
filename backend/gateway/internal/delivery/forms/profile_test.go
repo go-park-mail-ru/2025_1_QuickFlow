@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/models"
+	"quickflow/shared/models"
 )
 
 func TestProfileForm_FormToModel(t *testing.T) {

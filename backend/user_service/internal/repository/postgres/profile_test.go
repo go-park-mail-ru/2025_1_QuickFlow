@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/models"
+	"quickflow/shared/models"
 )
 
 func TestSaveProfile(t *testing.T) {

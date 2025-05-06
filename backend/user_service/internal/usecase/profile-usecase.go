@@ -10,7 +10,7 @@ import (
 
 	shared_models "quickflow/shared/models"
 	user_errors "quickflow/user_service/internal/errors"
-	"quickflow/utils/validation"
+	"quickflow/user_service/utils/validation"
 )
 
 type ProfileRepository interface {

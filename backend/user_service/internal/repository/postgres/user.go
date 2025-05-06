@@ -96,7 +96,7 @@ func (u *PostgresUserRepository) SaveUser(ctx context.Context, user models.User)
 func (u *PostgresUserRepository) GetUser(ctx context.Context, loginData models.LoginData) (models.User, error) {
 	var userPostgres pgmodels.UserPostgres
 
-	err := u.connPool.QueryRowContext(ctx, getUserByUsername, loginData.Login).Scan(
+	err := u.connPool.QueryRowContext(ctx, getUserByUsername, loginData.Username).Scan(
 		&userPostgres.Id, &userPostgres.Username,
 		&userPostgres.Password, &userPostgres.Salt)
 	if err != nil {

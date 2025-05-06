@@ -14,11 +14,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
+	"quickflow/gateway/internal/delivery/forms"
+	http2 "quickflow/gateway/internal/delivery/http"
+	"quickflow/gateway/internal/delivery/http/mocks"
+	"quickflow/shared/models"
 )
 
 func TestChatHandler_GetUserChats(t *testing.T) {

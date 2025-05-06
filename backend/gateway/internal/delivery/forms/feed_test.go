@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/delivery/forms"
-	"quickflow/internal/models"
+	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/shared/models"
 )
 
 func TestPostForm_ToPostModel(t *testing.T) {
@@ -26,7 +26,8 @@ func TestPostForm_ToPostModel(t *testing.T) {
 		{Name: "image1.jpg", Reader: strings.NewReader("hi")},
 	}
 
-	post := postForm.ToPostModel(userID)
+	post := postForm.ToPostModel()
+	post.CreatorId = userID
 
 	assert.Equal(t, post.Desc, "Hello, world!")
 	assert.Equal(t, post.CreatorId, userID)
@@ -130,7 +131,6 @@ func TestPostOut_FromPost(t *testing.T) {
 	postOut.FromPost(post)
 
 	assert.Equal(t, postOut.Id, postID.String())
-	assert.Equal(t, postOut.Creator.ID, userID.String())
 	assert.Equal(t, postOut.Desc, "Sample post")
 	assert.Len(t, postOut.Pics, 1)
 	assert.Equal(t, postOut.Pics[0], "http://example.com/image.jpg")

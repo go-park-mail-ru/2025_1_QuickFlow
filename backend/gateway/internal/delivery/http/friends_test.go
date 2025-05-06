@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"quickflow/internal/models"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
+	"quickflow/gateway/internal/delivery/ws/mocks"
+	"quickflow/shared/models"
 )
 
 func TestFriendsHandler_GetFriends(t *testing.T) {

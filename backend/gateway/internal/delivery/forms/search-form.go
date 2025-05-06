@@ -22,12 +22,14 @@ func (s *SearchForm) Unpack(values url.Values) error {
 
 	s.ToSearch = values.Get("string")
 
-	usersCount, err := strconv.Atoi(values.Get("count"))
+	usersCount, err := strconv.ParseInt(values.Get("count"), 10, 64)
 	if err != nil {
 		return errors.New("failed to parse count")
 	}
+	if usersCount < 0 {
+		return errors.New("count must be positive")
+	}
 
 	s.Count = uint(usersCount)
-
 	return nil
 }

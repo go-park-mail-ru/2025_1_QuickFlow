@@ -1,35 +1,19 @@
 package models
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 
-	"quickflow/utils"
+	"quickflow/shared/models"
+	"quickflow/user_service/utils"
 )
-
-type Sex int
-
-const (
-	MALE = iota
-	FEMALE
-)
-
-type User struct {
-	Id       uuid.UUID
-	Username string
-	Password string
-	Salt     string
-	LastSeen time.Time
-}
 
 // CreateUser creates new user.
-func CreateUser(user User) (User, error) {
+func CreateUser(user models.User) (models.User, error) {
 	id := uuid.New()
 	salt := utils.GenSalt()
 	hashedPassword := utils.HashPassword(user.Password, salt)
 
-	newUser := User{
+	newUser := models.User{
 		Id:       id,
 		Username: user.Username,
 		Password: hashedPassword,

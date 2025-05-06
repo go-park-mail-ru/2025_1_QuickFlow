@@ -14,10 +14,10 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
+	"quickflow/gateway/internal/delivery/forms"
+	http2 "quickflow/gateway/internal/delivery/http"
+	"quickflow/gateway/internal/delivery/http/mocks"
+	"quickflow/shared/models"
 )
 
 func TestAuthHandler_SignUp(t *testing.T) {
@@ -59,7 +59,7 @@ func TestAuthHandler_SignUp(t *testing.T) {
 		},
 		{
 			name:               "Bad JSON",
-			inputBody:          `{"Login": "broken",`,
+			inputBody:          `{"Username": "broken",`,
 			mockBehavior:       func(mockUC *mocks.MockAuthUseCase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
@@ -147,7 +147,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		},
 		{
 			name:               "Bad JSON",
-			inputBody:          `{"Login":"broken",`,
+			inputBody:          `{"Username":"broken",`,
 			mockBehavior:       func(mockUC *mocks.MockAuthUseCase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},

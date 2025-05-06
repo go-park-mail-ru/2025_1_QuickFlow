@@ -177,7 +177,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// converting transport form to domain model
 	loginData := models.LoginData{
-		Login:    form.Login,
+		Username: form.Login,
 		Password: form.Password,
 	}
 

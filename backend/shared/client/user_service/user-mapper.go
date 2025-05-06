@@ -47,7 +47,7 @@ func MapSignInToSignInDTO(signIn *pb.SignIn) *shared_models.LoginData {
 	}
 
 	return &shared_models.LoginData{
-		Login:    signIn.Username,
+		Username: signIn.Username,
 		Password: signIn.Password,
 	}
 }

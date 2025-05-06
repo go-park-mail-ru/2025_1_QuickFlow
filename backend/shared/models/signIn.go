@@ -1,6 +1,6 @@
 package models
 
 type LoginData struct {
-	Login    string
+	Username string
 	Password string
 }

@@ -16,9 +16,9 @@ func withErrorInfo(code codes.Code, reason, message string) error {
 	st := status.New(code, message)
 
 	detail := &errdetails.ErrorInfo{
-		Reason:   reason,              // e.g., "NOT_FOUND"
-		Domain:   "user_service",      // optional: can be used for service-level
-		Metadata: map[string]string{}, // optional extra context
+		Reason:   reason,
+		Domain:   "user_service",
+		Metadata: map[string]string{},
 	}
 
 	stWithDetails, err := st.WithDetails(detail)

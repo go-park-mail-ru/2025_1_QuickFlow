@@ -52,7 +52,7 @@ func (c *Client) CreateUser(ctx context.Context, user shared_models.User, profil
 func (c *Client) AuthUser(ctx context.Context, authData shared_models.LoginData) (shared_models.Session, error) {
 	req := &pb.SignInRequest{
 		SignIn: &pb.SignIn{
-			Username: authData.Login,
+			Username: authData.Username,
 			Password: authData.Password,
 		},
 	}

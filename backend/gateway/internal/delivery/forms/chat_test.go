@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/forms"
 )
 
 func TestGetChatsForm_GetParams(t *testing.T) {

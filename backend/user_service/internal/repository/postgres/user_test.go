@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/models"
+	"quickflow/shared/models"
 )
 
 func TestSaveUser(t *testing.T) {
@@ -92,7 +92,7 @@ func TestGetUser(t *testing.T) {
 		{
 			name: "Successfully get user",
 			loginData: models.LoginData{
-				Login:    "johndoe",
+				Username: "johndoe",
 				Password: "hashed_password",
 			},
 			mock: func(mock sqlmock.Sqlmock) {
@@ -113,7 +113,7 @@ func TestGetUser(t *testing.T) {
 		{
 			name: "Failed to get user (incorrect password)",
 			loginData: models.LoginData{
-				Login:    "johndoe",
+				Username: "johndoe",
 				Password: "wrongpassword",
 			},
 			mock: func(mock sqlmock.Sqlmock) {
@@ -128,7 +128,7 @@ func TestGetUser(t *testing.T) {
 		{
 			name: "Failed to get user (user not found)",
 			loginData: models.LoginData{
-				Login:    "nonexistentuser",
+				Username: "nonexistentuser",
 				Password: "password123",
 			},
 			mock: func(mock sqlmock.Sqlmock) {

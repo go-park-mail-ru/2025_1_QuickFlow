@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/internal/models"
+	"quickflow/shared/models"
 )
 
 func TestPostOut_FromPost(t *testing.T) {
@@ -47,9 +47,6 @@ func TestPostOut_FromPost(t *testing.T) {
 			// Проверка Id и CreatorId (UUID)
 			if postOut.Id != tt.post.Id.String() {
 				t.Errorf("FromPost() Id = %v, want %v", postOut.Id, tt.post.Id.String())
-			}
-			if postOut.Creator.ID != tt.post.CreatorId.String() {
-				t.Errorf("FromPost() CreatorId = %v, want %v", postOut.Creator.ID, tt.post.CreatorId.String())
 			}
 
 			// Проверка остальных полей

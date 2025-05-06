@@ -13,7 +13,6 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"quickflow/community_service/internal/client/file_sevice"
 	grpc3 "quickflow/community_service/internal/delivery/grpc"
 	"quickflow/community_service/internal/delivery/grpc/interceptor"
 	"quickflow/community_service/internal/repository/postgres"
@@ -21,6 +20,7 @@ import (
 	"quickflow/community_service/utils/validation"
 	micro_addr "quickflow/config/micro-addr"
 	postgres_config "quickflow/config/postgres"
+	file_sevice "quickflow/shared/client/file_service"
 
 	"quickflow/community_service/config"
 	"quickflow/shared/interceptors"
