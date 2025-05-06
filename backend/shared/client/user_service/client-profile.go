@@ -28,7 +28,7 @@ func (c *ProfileClient) CreateProfile(ctx context.Context, profile shared_models
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to create profile: %v", err)
-		return shared_models.Profile{}, unwrapGRPCError(err)
+		return shared_models.Profile{}, err
 	}
 
 	newProfile, err := MapProfileDTOToProfile(resp.Profile)
@@ -47,7 +47,7 @@ func (c *ProfileClient) UpdateProfile(ctx context.Context, profile shared_models
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to update profile: %v", err)
-		return nil, unwrapGRPCError(err)
+		return nil, err
 	}
 	return MapProfileDTOToProfile(resp.Profile)
 }
@@ -59,7 +59,7 @@ func (c *ProfileClient) GetProfile(ctx context.Context, userID uuid.UUID) (share
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to get profile: %v", err)
-		return shared_models.Profile{}, unwrapGRPCError(err)
+		return shared_models.Profile{}, err
 	}
 	profile, err := MapProfileDTOToProfile(resp.Profile)
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *ProfileClient) GetProfileByUsername(ctx context.Context, username strin
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to get profile by username: %v", err)
-		return shared_models.Profile{}, unwrapGRPCError(err)
+		return shared_models.Profile{}, err
 	}
 	profile, err := MapProfileDTOToProfile(resp.Profile)
 	if err != nil {
@@ -93,7 +93,7 @@ func (c *ProfileClient) UpdateLastSeen(ctx context.Context, userID uuid.UUID) er
 	_, err := c.client.UpdateLastSeen(ctx, &pb.UpdateLastSeenRequest{
 		UserId: userID.String(),
 	})
-	return unwrapGRPCError(err)
+	return err
 }
 
 func (c *ProfileClient) GetPublicUserInfo(ctx context.Context, userID uuid.UUID) (shared_models.PublicUserInfo, error) {
@@ -103,7 +103,7 @@ func (c *ProfileClient) GetPublicUserInfo(ctx context.Context, userID uuid.UUID)
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to get public user info: %v", err)
-		return shared_models.PublicUserInfo{}, unwrapGRPCError(err)
+		return shared_models.PublicUserInfo{}, err
 	}
 
 	info, err := MapPublicUserInfoDTOToModel(resp.UserInfo)
@@ -126,7 +126,7 @@ func (c *ProfileClient) GetPublicUsersInfo(ctx context.Context, userIDs []uuid.U
 	})
 	if err != nil {
 		logger.Error(ctx, "Failed to get public user info: %v", err)
-		return nil, unwrapGRPCError(err)
+		return nil, err
 	}
 
 	publicInfos := make([]shared_models.PublicUserInfo, len(resp.UsersInfo))
