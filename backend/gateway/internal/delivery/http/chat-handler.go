@@ -62,7 +62,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching messages")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
@@ -70,7 +70,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	err := chatForm.GetParams(r.URL.Query())
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse query params: %v", err))
-		http2.WriteJSONError(w, "Failed to parse query params", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New("BAD_REQUEST", "Failed to parse query params", http.StatusBadRequest))
 		return
 	}
 
@@ -79,9 +79,8 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 
 	chats, err := c.chatUseCase.GetUserChats(ctx, user.Id, chatForm.ChatsCount, chatForm.Ts)
 	if err != nil {
-		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Failed to fetch chats: %v", err))
-		http2.WriteJSONError(w, err.Message, err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -97,7 +96,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 		publicInfos, err = c.profileUseCase.GetPublicUsersInfo(ctx, senders)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
-			http2.WriteJSONError(w, "Failed to fetch last messages users info", http.StatusInternalServerError)
+			http2.WriteJSONError(w, err)
 			return
 		}
 	}
@@ -127,7 +126,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 			otherUser, err := c.getOtherPrivateChatParticipant(ctx, chat.ID, user.Id)
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("Failed to get other participant: %v", err))
-				http2.WriteJSONError(w, "Failed to get other participant", http.StatusInternalServerError)
+				http2.WriteJSONError(w, err)
 				return
 			}
 			_, isOnline = c.connService.IsConnected(otherUser)
@@ -135,7 +134,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 			otherUserInfo, err := c.profileUseCase.GetPublicUserInfo(ctx, otherUser)
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("Failed to get other user info: %v", err))
-				http2.WriteJSONError(w, "Failed to get other user info", http.StatusInternalServerError)
+				http2.WriteJSONError(w, err)
 				return
 			}
 			lastSeen = otherUserInfo.LastSeen
@@ -153,7 +152,7 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(chatsOut)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode chats: %s", err.Error()))
-		http2.WriteJSONError(w, "Failed to encode chats", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode chats", http.StatusInternalServerError))
 		return
 	}
 }

@@ -53,7 +53,7 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching friends")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
@@ -73,21 +73,21 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 
 	if !validation.ValidateFriendReqType(reqType) {
 		logger.Error(ctx, fmt.Sprintf("Invalid request type: %s", reqType))
-		http2.WriteJSONError(w, "Invalid request type", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Invalid request type", http.StatusBadRequest))
 		return
 	}
 
 	logger.Info(ctx, fmt.Sprintf("User %s requested friends", targetUserID))
 
 	friendsInfo, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset, reqType)
-
 	if err != nil {
-		err := errors.FromGRPCError(err)
+		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Unable to get list of friends for user %s: %s", user.Username, err.Error()))
-		http2.WriteJSONError(w, "Failed to get friends", err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
-	logger.Info(ctx, fmt.Sprintf("Successfully get friends info for user %s", user.Username))
+
+	logger.Info(ctx, fmt.Sprintf("Successfully got friends info for user %s", user.Username))
 
 	var friendsOnline []bool
 	for _, friend := range friendsInfo {
@@ -101,11 +101,11 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(friendsInfoOut.ToJson(friendsInfo, friendsOnline, friendsCount))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to encode friends info to json: %s", err))
-		http2.WriteJSONError(w, "Unable to encode friends info to json", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Unable to encode friends info to json", http.StatusInternalServerError))
 		return
 	}
 
-	logger.Info(ctx, fmt.Sprintf("Successfully proccessed friends requset for user: %s", user.Username))
+	logger.Info(ctx, fmt.Sprintf("Successfully processed friends request for user: %s", user.Username))
 }
 
 // SendFriendRequest отправояет заявку в друзья
@@ -123,8 +123,8 @@ func (f *FriendHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request
 
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
-		logger.Error(ctx, "Failed to get user from context while fetching friends")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		logger.Error(ctx, "Failed to get user from context while sending friend request")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
@@ -134,32 +134,16 @@ func (f *FriendHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to decode request body: %s", err))
-		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Unable to decode request body", http.StatusBadRequest))
 		return
 	}
 
-	logger.Info(ctx, "Successfully parsed request body")
-	//logger.Info(ctx, fmt.Sprintf("Trying to check relation between sender %s and receiver %s", user.Username, req.ReceiverID))
-	//
-	//isExists, err := f.FriendsUseCase.IsExistsFriendRequest(ctx, user.Id.String(), req.ReceiverID)
-	//if err != nil {
-	//	err := errors.FromGRPCError(err)
-	//	logger.Error(ctx, fmt.Sprintf("Unable to check relation between sender: %s and receiver: %s. Error: %s", user.Username, req.ReceiverID, err.Error()))
-	//	http2.WriteJSONError(w, "Failed to check relation", err.HTTPStatus)
-	//	return
-	//}
-	//
-	//if isExists {
-	//	http2.WriteJSONError(w, "Relationship between sender and receiver already exists", http.StatusConflict)
-	//	return
-	//}
-
-	logger.Info(ctx, fmt.Sprintf("User %s trying to add friend %s ", user.Username, req.ReceiverID))
+	logger.Info(ctx, fmt.Sprintf("User %s trying to add friend %s", user.Username, req.ReceiverID))
 
 	if err = f.FriendsUseCase.SendFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
-		err := errors.FromGRPCError(err)
+		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Unable to send friend request: %s", err))
-		http2.WriteJSONError(w, "Failed to send friend request", err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -171,8 +155,8 @@ func (f *FriendHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Reque
 
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
-		logger.Error(ctx, "Failed to get user from context while fetching friends")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		logger.Error(ctx, "Failed to get user from context while accepting friend request")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
@@ -182,17 +166,16 @@ func (f *FriendHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Reque
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to decode request body: %s", err))
-		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Unable to decode request body", http.StatusBadRequest))
 		return
 	}
 
-	logger.Info(ctx, "Successfully parsed request body")
-	logger.Info(ctx, fmt.Sprintf("User %s trying to accept friend %s ", user.Username, req.ReceiverID))
+	logger.Info(ctx, fmt.Sprintf("User %s trying to accept friend %s", user.Username, req.ReceiverID))
 
 	if err = f.FriendsUseCase.AcceptFriendRequest(ctx, user.Id.String(), req.ReceiverID); err != nil {
-		err := errors.FromGRPCError(err)
+		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Unable to accept friend request: %s", err))
-		http2.WriteJSONError(w, "Failed to accept friend request", err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -204,8 +187,8 @@ func (f *FriendHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
-		logger.Error(ctx, "Failed to get user from context while fetching friends")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		logger.Error(ctx, "Failed to get user from context while deleting friend")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
@@ -215,17 +198,16 @@ func (f *FriendHandler) DeleteFriend(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to decode request body: %s", err))
-		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Unable to decode request body", http.StatusBadRequest))
 		return
 	}
 
-	logger.Info(ctx, "Successfully parsed request body")
-	logger.Info(ctx, fmt.Sprintf("User %s trying to delete friend %s ", user.Username, req.FriendID))
+	logger.Info(ctx, fmt.Sprintf("User %s trying to delete friend %s", user.Username, req.FriendID))
 
 	if err = f.FriendsUseCase.DeleteFriend(ctx, user.Id.String(), req.FriendID); err != nil {
-		err := errors.FromGRPCError(err)
-		logger.Error(ctx, fmt.Sprintf("Unable to delete friend request: %s", err))
-		http2.WriteJSONError(w, "Failed to accept friend request", err.HTTPStatus)
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Unable to delete friend: %s", err))
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -237,8 +219,8 @@ func (f *FriendHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
-		logger.Error(ctx, "Failed to get user from context while fetching friends")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		logger.Error(ctx, "Failed to get user from context while unfollowing user")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
@@ -248,19 +230,18 @@ func (f *FriendHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to decode request body: %s", err))
-		http2.WriteJSONError(w, "Unable to decode request body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Unable to decode request body", http.StatusBadRequest))
 		return
 	}
 
-	logger.Info(ctx, "Successfully parsed request body")
-	logger.Info(ctx, fmt.Sprintf("User: %s trying to unfollow user %s ", user.Username, req.FriendID))
+	logger.Info(ctx, fmt.Sprintf("User %s trying to unfollow user %s", user.Username, req.FriendID))
 
 	if err = f.FriendsUseCase.Unfollow(ctx, user.Id.String(), req.FriendID); err != nil {
-		err := errors.FromGRPCError(err)
-		logger.Error(ctx, fmt.Sprintf("Unable to unfollow friend request: %s", err))
-		http2.WriteJSONError(w, "Failed to unfollow user", err.HTTPStatus)
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Unable to unfollow user: %s", err))
+		http2.WriteJSONError(w, err)
 		return
 	}
 
-	logger.Info(ctx, fmt.Sprintf("Successfully unfollowed friend from user %s", req.FriendID))
+	logger.Info(ctx, fmt.Sprintf("Successfully unfollowed user %s", req.FriendID))
 }

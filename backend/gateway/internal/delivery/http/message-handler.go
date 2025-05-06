@@ -51,25 +51,25 @@ func NewMessageHandler(messageUseCase MessageService, authUseCase AuthUseCase, p
 // @Router /api/chats/{chat_id}/messages [get]
 // GetMessagesForChat godoc
 func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// extracting user from context
+	ctx := http2.SetRequestId(r.Context())
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while fetching messages")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
+
 	chat := mux.Vars(r)["chat_id"]
 	if len(chat) == 0 {
 		logger.Info(ctx, "Fetch messages request without chat_id")
-		http2.WriteJSONError(w, "chat_id is required", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "chat_id is required", http.StatusBadRequest))
 		return
 	}
 
 	chatId, err := uuid.Parse(chat)
 	if err != nil {
 		logger.Info(ctx, fmt.Sprintf("Failed to parse chat_id (uuid: %s): %s", chat, err.Error()))
-		http2.WriteJSONError(w, "chat_id is not valid", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "chat_id is not valid", http.StatusBadRequest))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 	err = messageForm.GetParams(r.URL.Query())
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse query params: %v", err))
-		http2.WriteJSONError(w, "Failed to parse query params", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse query params", http.StatusBadRequest))
 		return
 	}
 
@@ -87,7 +87,8 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Failed to fetch messages: %v", err))
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to fetch messages: %v", err.Error()), err.HTTPStatus)
+		http2.WriteJSONError(w, err)
+		return
 	}
 
 	logger.Info(ctx, fmt.Sprintf("Fetched %d messages for user %s", len(messages), user.Username))
@@ -103,13 +104,14 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			err := errors2.FromGRPCError(err)
 			logger.Error(ctx, fmt.Sprintf("Error while fetching last messages users info: %v", err))
-			http2.WriteJSONError(w, fmt.Sprintf("Failed to fetch last messages users info: %s", err.Error()), err.HTTPStatus)
+			http2.WriteJSONError(w, err)
 			return
 		}
 		for _, info := range publicInfo {
 			publicInfoMap[info.Id] = info
 		}
 	}
+
 	getLastReadTs, err := m.messageUseCase.GetLastReadTs(ctx, chatId, user.Id)
 
 	out := forms.MessagesOut{
@@ -118,11 +120,12 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 	if err == nil {
 		out.LastReadTs = getLastReadTs.Format(time2.TimeStampLayout)
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(out)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode feed: %s", err.Error()))
-		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode feed", http.StatusInternalServerError))
 		return
 	}
 }
@@ -141,19 +144,20 @@ func (m *MessageHandler) GetMessagesForChat(w http.ResponseWriter, r *http.Reque
 // @Failure 500 {object} forms.ErrorForm "Server error"
 // @Router /api/messages/{username} [post]
 func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx := http2.SetRequestId(r.Context())
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while sending message")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
+
 	logger.Info(ctx, fmt.Sprintf("User %s requested to send message", user.Username))
 
 	username := mux.Vars(r)["username"]
 	if len(username) == 0 {
 		logger.Info(ctx, "Send message request without username")
-		http2.WriteJSONError(w, "username is required", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "username is required", http.StatusBadRequest))
 		return
 	}
 
@@ -161,35 +165,33 @@ func (m *MessageHandler) SendMessageToUsername(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		err := errors2.FromGRPCError(err)
 		logger.Info(ctx, fmt.Sprintf("User %s not found", username))
-		http2.WriteJSONError(w, "user not found", err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
-	// parse JSON
 	var messageForm forms.MessageForm
 	err = json.NewDecoder(r.Body).Decode(&messageForm)
 	if err != nil {
 		logger.Error(ctx, "Failed to parse message body")
-		http2.WriteJSONError(w, "Failed to parse message body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse message body", http.StatusBadRequest))
 		return
 	}
 
 	if utf8.RuneCountInString(messageForm.Text) > 4000 {
 		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(messageForm.Text)))
-		http2.WriteJSONError(w, "Text must be between 1 and 4096 characters", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Text must be between 1 and 4096 characters", http.StatusBadRequest))
 		return
 	}
 
 	sanitizer.SanitizeMessage(&messageForm, m.policy)
-
 	messageForm.SenderId = user.Id
 	messageForm.ReceiverId = userRecipient.Id
 
 	message := messageForm.ToMessageModel()
 	_, err = m.messageUseCase.SendMessage(ctx, &message, user.Id)
 	if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Failed to save message: %v", message))
-		http2.WriteJSONError(w, "Failed to save message", http.StatusInternalServerError)
+		logger.Error(ctx, fmt.Sprintf("Failed to save message: %v", err))
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to save message", http.StatusInternalServerError))
 		return
 	}
 }

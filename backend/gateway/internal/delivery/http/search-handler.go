@@ -36,15 +36,14 @@ func (s *SearchHandler) SearchSimilarUsers(w http.ResponseWriter, r *http.Reques
 	err := searchForm.Unpack(r.URL.Query())
 	if err != nil {
 		logger.Error(r.Context(), "Failed to decode request body for user search: "+err.Error())
-		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to decode request body", http.StatusBadRequest))
 		return
 	}
 
 	users, err := s.searchUseCase.SearchSimilarUser(r.Context(), searchForm.ToSearch, searchForm.Count)
 	if err != nil {
-		err := errors.FromGRPCError(err)
 		logger.Error(r.Context(), fmt.Sprintf("Failed to search similar users: %s", err.Error()))
-		http.Error(w, "Failed to search similar users", err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -56,7 +55,7 @@ func (s *SearchHandler) SearchSimilarUsers(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[[]forms.PublicUserInfoOut]{Payload: publicUsersInfoOut})
 	if err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode user communities", http.StatusInternalServerError))
 		return
 	}
 }
@@ -66,15 +65,14 @@ func (s *SearchHandler) SearchSimilarCommunities(w http.ResponseWriter, r *http.
 	err := searchForm.Unpack(r.URL.Query())
 	if err != nil {
 		logger.Error(r.Context(), "Failed to decode request body for user search: "+err.Error())
-		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to decode request body", http.StatusBadRequest))
 		return
 	}
 
 	communities, err := s.communityService.SearchSimilarCommunities(r.Context(), searchForm.ToSearch, int(searchForm.Count))
 	if err != nil {
-		err := errors.FromGRPCError(err)
 		logger.Error(r.Context(), fmt.Sprintf("Failed to search similar communities: %s", err.Error()))
-		http.Error(w, "Failed to search similar communities", err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -82,9 +80,8 @@ func (s *SearchHandler) SearchSimilarCommunities(w http.ResponseWriter, r *http.
 	for i, community := range communities {
 		info, err := s.profileService.GetPublicUserInfo(r.Context(), community.OwnerID)
 		if err != nil {
-			err := errors.FromGRPCError(err)
 			logger.Error(r.Context(), fmt.Sprintf("Failed to get user info: %s", err.Error()))
-			http2.WriteJSONError(w, "Failed to get user info", err.HTTPStatus)
+			http2.WriteJSONError(w, err)
 		}
 		out[i] = forms.ToCommunityForm(*community, info)
 	}
@@ -93,7 +90,7 @@ func (s *SearchHandler) SearchSimilarCommunities(w http.ResponseWriter, r *http.
 	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[[]forms.CommunityForm]{Payload: out})
 	if err != nil {
 		logger.Error(r.Context(), fmt.Sprintf("Failed to encode user communities: %s", err.Error()))
-		http2.WriteJSONError(w, "Failed to encode user communities", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode user communities", http.StatusInternalServerError))
 		return
 	}
 }

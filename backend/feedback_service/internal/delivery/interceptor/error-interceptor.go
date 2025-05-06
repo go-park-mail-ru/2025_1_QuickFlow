@@ -9,20 +9,21 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	file_errors "quickflow/file_service/internal/errors"
+	feedback_errors "quickflow/feedback_service/internal/errors"
 )
 
+// helper: создает gRPC error с деталями
 func statusWithDetails(code codes.Code, msg, reason string) error {
 	st := status.New(code, msg)
 
 	detail := &errdetails.ErrorInfo{
 		Reason: reason,
-		Domain: "file_service",
+		Domain: "feedback_service",
 	}
 
 	stWithDetails, err := st.WithDetails(detail)
 	if err != nil {
-		// fallback if details fail
+		// если что-то пошло не так, fallback
 		return st.Err()
 	}
 
@@ -48,17 +49,17 @@ func ErrorInterceptor(
 	}
 
 	switch {
-	case errors.Is(err, file_errors.ErrTooManyFiles):
-		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "TOO_MANY_FILES")
+	case errors.Is(err, feedback_errors.ErrNotFound):
+		return nil, statusWithDetails(codes.NotFound, err.Error(), "FEEDBACK_NOT_FOUND")
 
-	case errors.Is(err, file_errors.ErrInvalidFileName):
-		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "INVALID_FILE_NAME")
+	case errors.Is(err, feedback_errors.ErrRespondent):
+		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "INVALID_RESPONDENT")
 
-	case errors.Is(err, file_errors.ErrUnsupportedFileType):
-		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "UNSUPPORTED_FILE_TYPE")
+	case errors.Is(err, feedback_errors.ErrRating):
+		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "INVALID_RATING")
 
-	case errors.Is(err, file_errors.ErrInvalidFileSize):
-		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "INVALID_FILE_SIZE")
+	case errors.Is(err, feedback_errors.ErrTextTooLong):
+		return nil, statusWithDetails(codes.InvalidArgument, err.Error(), "TEXT_TOO_LONG")
 
 	default:
 		return nil, statusWithDetails(codes.Internal, err.Error(), "INTERNAL_ERROR")

@@ -2,12 +2,14 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 
 	http2 "quickflow/gateway/internal/delivery/http"
 	"quickflow/gateway/internal/delivery/ws"
+	errors2 "quickflow/gateway/internal/errors"
 	httpUtils "quickflow/gateway/utils/http"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
@@ -27,15 +29,16 @@ func WebSocketMiddleware(connManager http2.IWebSocketConnectionManager, handler 
 
 			user, ok := r.Context().Value("user").(models.User)
 			if !ok {
-				logger.Error(r.Context(), "Failed to get user from context while adding post")
-				httpUtils.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+				logger.Error(r.Context(), "Failed to get user from context while upgrading to WebSocket")
+				httpUtils.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 				return
 			}
+
 			// Апгрейд соединения на WebSocket
 			conn, err := upgrader.Upgrade(w, r, nil)
 			if err != nil {
-				logger.Info(r.Context(), "Failed to upgrade connection to WebSocket:", err)
-				httpUtils.WriteJSONError(w, "Failed to upgrade to WebSocket", http.StatusBadRequest)
+				logger.Error(r.Context(), fmt.Sprintf("Failed to upgrade connection to WebSocket: %s", err.Error()))
+				httpUtils.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to upgrade to WebSocket", http.StatusBadRequest))
 				return
 			}
 

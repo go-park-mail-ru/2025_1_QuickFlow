@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"quickflow/gateway/internal/delivery/forms"
+	errors2 "quickflow/gateway/internal/errors"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 )
@@ -20,10 +21,16 @@ import (
 var TooManyFilesErr = errors.New("too many files")
 
 // WriteJSONError sends JSON error response.
-func WriteJSONError(w http.ResponseWriter, message string, statusCode int) {
+func WriteJSONError(w http.ResponseWriter, err error) {
+	gwErr := errors2.FromGRPCError(err)
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(forms.ErrorForm{Error: message})
+	w.WriteHeader(gwErr.HTTPStatus)
+
+	_ = json.NewEncoder(w).Encode(forms.ErrorForm{
+		ErrorCode: gwErr.Code,
+		Message:   gwErr.Message,
+	})
 }
 
 func SetRequestId(ctx context.Context) context.Context {

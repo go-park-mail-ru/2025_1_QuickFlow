@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -14,7 +13,6 @@ import (
 	shared_models "quickflow/shared/models"
 	pb "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/delivery/grpc/dto"
-	user_errors "quickflow/user_service/internal/errors"
 )
 
 type UserUseCase interface {
@@ -41,19 +39,19 @@ func (s *UserServiceServer) SignUp(ctx context.Context, req *pb.SignUpRequest) (
 	user, err := dto.MapUserDTOToUser(req.User)
 	if err != nil {
 		logger.Error(ctx, "invalid user data:", err)
-		return nil, grpcErrorFromAppError(fmt.Errorf("invalid user data: %w", err))
+		return nil, fmt.Errorf("invalid user data: %w", err)
 	}
 
 	profile, err := dto.MapProfileDTOToProfile(req.Profile)
 	if err != nil {
 		logger.Error(ctx, "invalid profile data:", err)
-		return nil, grpcErrorFromAppError(fmt.Errorf("invalid profile data: %w", err))
+		return nil, fmt.Errorf("invalid profile data: %w", err)
 	}
 
 	_, session, err := s.authUseCase.CreateUser(ctx, *user, *profile)
 	if err != nil {
 		logger.Error(ctx, "failed to create user:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	return &pb.SignUpResponse{Session: dto.MapSessionToDTO(session)}, nil
@@ -66,7 +64,7 @@ func (s *UserServiceServer) SignIn(ctx context.Context, req *pb.SignInRequest) (
 	session, err := s.authUseCase.AuthUser(ctx, *loginData)
 	if err != nil {
 		logger.Error(ctx, "failed to authenticate user:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	return &pb.SignInResponse{Session: dto.MapSessionToDTO(session)}, nil
@@ -77,7 +75,7 @@ func (s *UserServiceServer) SignOut(ctx context.Context, req *pb.SignOutRequest)
 	err := s.authUseCase.DeleteUserSession(ctx, req.SessionId)
 	if err != nil {
 		logger.Error(ctx, "failed to sign out:", err)
-		return &pb.SignOutResponse{Success: false}, grpcErrorFromAppError(err)
+		return &pb.SignOutResponse{Success: false}, err
 	}
 	return &pb.SignOutResponse{Success: true}, nil
 }
@@ -87,7 +85,7 @@ func (s *UserServiceServer) GetUserByUsername(ctx context.Context, req *pb.GetUs
 	user, err := s.authUseCase.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		logger.Error(ctx, "failed to get user by username:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	return &pb.GetUserByUsernameResponse{User: dto.MapUserToUserDTO(&user)}, nil
 }
@@ -103,7 +101,7 @@ func (s *UserServiceServer) GetUserById(ctx context.Context, req *pb.GetUserById
 	user, err := s.authUseCase.GetUserById(ctx, userId)
 	if err != nil {
 		logger.Error(ctx, "failed to get user by id:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	return &pb.GetUserByIdResponse{User: dto.MapUserToUserDTO(&user)}, nil
 }
@@ -120,7 +118,7 @@ func (s *UserServiceServer) LookupUserSession(ctx context.Context, req *pb.Looku
 	user, err := s.authUseCase.LookupUserSession(ctx, session)
 	if err != nil {
 		logger.Error(ctx, "failed to lookup user session:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	return &pb.LookupUserSessionResponse{
@@ -134,7 +132,7 @@ func (s *UserServiceServer) SearchSimilarUser(ctx context.Context, req *pb.Searc
 	users, err := s.authUseCase.SearchSimilarUser(ctx, req.ToSearch, uint(req.NumUsers))
 	if err != nil {
 		logger.Error(ctx, "failed to search similar user:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	protoUsers := make([]*pb.PublicUserInfo, len(users))
@@ -143,19 +141,4 @@ func (s *UserServiceServer) SearchSimilarUser(ctx context.Context, req *pb.Searc
 	}
 
 	return &pb.SearchSimilarUserResponse{UsersInfo: protoUsers}, nil
-}
-
-func grpcErrorFromAppError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	switch {
-	case errors.Is(err, user_errors.ErrAlreadyExists):
-		return status.Error(codes.AlreadyExists, err.Error())
-	case errors.Is(err, user_errors.ErrNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	default:
-		return status.Error(codes.Internal, err.Error())
-	}
 }

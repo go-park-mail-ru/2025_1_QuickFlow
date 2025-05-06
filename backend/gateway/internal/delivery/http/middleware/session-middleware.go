@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 
 	http2 "quickflow/gateway/internal/delivery/http"
+	errors2 "quickflow/gateway/internal/errors"
 	httpUtils "quickflow/gateway/utils/http"
 	"quickflow/shared/models"
 )
@@ -19,21 +20,21 @@ func SessionMiddleware(authUseCase http2.AuthUseCase) mux.MiddlewareFunc {
 			// Check if session exists
 			session, err := r.Cookie("session")
 			if errors.Is(err, http.ErrNoCookie) {
-				httpUtils.WriteJSONError(w, "Authorization needed", http.StatusUnauthorized)
+				httpUtils.WriteJSONError(w, errors2.New(errors2.UnauthorizedErrorCode, "Authorization needed", http.StatusUnauthorized))
 				return
 			}
 
 			// parse session
 			sessionUuid, err := uuid.Parse(session.Value)
 			if err != nil {
-				httpUtils.WriteJSONError(w, "Failed to parse session", http.StatusBadRequest)
+				httpUtils.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse session", http.StatusBadRequest))
 				return
 			}
 
 			// lookup user by session
 			user, err := authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid})
 			if err != nil {
-				httpUtils.WriteJSONError(w, "Failed to authorize user", http.StatusUnauthorized)
+				httpUtils.WriteJSONError(w, errors2.New(errors2.UnauthorizedErrorCode, "Failed to authorize user", http.StatusUnauthorized))
 				return
 			}
 

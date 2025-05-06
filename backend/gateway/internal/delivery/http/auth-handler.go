@@ -12,6 +12,7 @@ import (
 
 	time2 "quickflow/config/time"
 	"quickflow/gateway/internal/delivery/forms"
+	errors2 "quickflow/gateway/internal/errors"
 	"quickflow/gateway/pkg/sanitizer"
 	http2 "quickflow/gateway/utils/http"
 	"quickflow/gateway/utils/validation"
@@ -76,7 +77,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
-		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New("BAD_REQUEST", fmt.Sprintf("Unable to decode request body: %v", err), http.StatusBadRequest))
 		return
 	}
 
@@ -91,7 +92,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	date, err := time.Parse(time2.DateLayout, form.DateOfBirth)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
-		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New("BAD_REQUEST", fmt.Sprintf("Unable to parse date: %v", err), http.StatusBadRequest))
 		return
 	}
 
@@ -107,12 +108,12 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// validation
 	if err := validation.ValidateUser(user.Username, user.Password); err != nil {
-		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New("BAD_REQUEST", fmt.Sprintf("Invalid username or password: %v", err), http.StatusBadRequest))
 		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
 		return
 	}
 	if err = validation.ValidateProfile(profile.BasicInfo.Name, profile.BasicInfo.Surname); err != nil {
-		http2.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New("BAD_REQUEST", fmt.Sprintf("Invalid profile data: %v", err), http.StatusBadRequest))
 		logger.Error(ctx, fmt.Sprintf("Validation error: %s", err.Error()))
 		return
 	}
@@ -121,7 +122,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	id, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Create user error: %s", err.Error()))
-		http2.WriteJSONError(w, err.Error(), http.StatusConflict)
+		http2.WriteJSONError(w, err)
 		return
 	}
 
@@ -140,7 +141,11 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		"user_id": id,
 	}
 
-	json.NewEncoder(w).Encode(&body)
+	err = json.NewEncoder(w).Encode(&body)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
+		http2.WriteJSONError(w, errors2.New("INTERNAL", fmt.Sprintf("Unable to encode respond body: %v", err), http.StatusInternalServerError))
+	}
 	logger.Info(ctx, "Successfully processed signup request")
 }
 
@@ -164,7 +169,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
-		http2.WriteJSONError(w, "Bad request", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New("BAD_REQUEST", fmt.Sprintf("Unable to decode request body: %v", err), http.StatusBadRequest))
 		return
 	}
 
@@ -180,7 +185,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	session, err := a.authUseCase.AuthUser(r.Context(), loginData)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Get User error: %s", err.Error()))
-		http2.WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		http2.WriteJSONError(w, err)
 		return
 	}
 

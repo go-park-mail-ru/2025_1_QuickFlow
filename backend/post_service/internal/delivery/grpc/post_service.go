@@ -2,15 +2,11 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"quickflow/post_service/internal/delivery/grpc/dto"
-	post_errors "quickflow/post_service/internal/errors"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
@@ -50,13 +46,13 @@ func (p *PostServiceServer) AddPost(ctx context.Context, req *pb.AddPostRequest)
 	post, err := dto.ProtoPostToModel(req.Post)
 	if err != nil {
 		logger.Error(ctx, "Failed to convert proto to model:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	result, err := p.postUseCase.AddPost(ctx, *post)
 	if err != nil {
 		logger.Error(ctx, "Failed to add post:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	return &pb.AddPostResponse{Post: dto.ModelPostToProto(result)}, nil
@@ -67,16 +63,16 @@ func (p *PostServiceServer) DeletePost(ctx context.Context, req *pb.DeletePostRe
 	postId, err := uuid.Parse(req.PostId)
 	if err != nil {
 		logger.Error(ctx, "Invalid post ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	if err := p.postUseCase.DeletePost(ctx, userId, postId); err != nil {
 		logger.Error(ctx, "Failed to delete post:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	return &pb.DeletePostResponse{Success: true}, nil
 }
@@ -86,17 +82,17 @@ func (p *PostServiceServer) UpdatePost(ctx context.Context, req *pb.UpdatePostRe
 	update, err := dto.ProtoPostUpdateToModel(req.Post)
 	if err != nil {
 		logger.Error(ctx, "Failed to convert update payload:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	updatedPost, err := p.postUseCase.UpdatePost(ctx, *update, userId)
 	if err != nil {
 		logger.Error(ctx, "Failed to update post:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	return &pb.UpdatePostResponse{Post: dto.ModelPostToProto(updatedPost)}, nil
 }
@@ -106,12 +102,12 @@ func (p *PostServiceServer) FetchFeed(ctx context.Context, req *pb.FetchFeedRequ
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	posts, err := p.postUseCase.FetchFeed(ctx, userId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		logger.Error(ctx, "Failed to fetch feed:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	protoPosts := make([]*pb.Post, len(posts))
 	for i, post := range posts {
@@ -125,12 +121,12 @@ func (p *PostServiceServer) FetchRecommendations(ctx context.Context, req *pb.Fe
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	posts, err := p.postUseCase.FetchRecommendations(ctx, userId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		logger.Error(ctx, "Failed to fetch recommendations:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	protoPosts := make([]*pb.Post, len(posts))
 	for i, post := range posts {
@@ -144,18 +140,18 @@ func (p *PostServiceServer) FetchUserPosts(ctx context.Context, req *pb.FetchUse
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	requesterId, err := uuid.Parse(req.RequesterId)
 	if err != nil {
 		logger.Error(ctx, "Invalid requester ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 
 	posts, err := p.postUseCase.FetchUserPosts(ctx, userId, requesterId, int(req.NumPosts), req.Timestamp.AsTime())
 	if err != nil {
 		logger.Error(ctx, "Failed to fetch user posts:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	protoPosts := make([]*pb.Post, len(posts))
 	for i, post := range posts {
@@ -169,16 +165,16 @@ func (p *PostServiceServer) LikePost(ctx context.Context, req *pb.LikePostReques
 	postId, err := uuid.Parse(req.PostId)
 	if err != nil {
 		logger.Error(ctx, "Invalid post ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	if err := p.postUseCase.LikePost(ctx, postId, userId); err != nil {
 		logger.Error(ctx, "Failed to like post:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	return &pb.LikePostResponse{Success: true}, nil
 }
@@ -188,37 +184,16 @@ func (p *PostServiceServer) UnlikePost(ctx context.Context, req *pb.UnlikePostRe
 	postId, err := uuid.Parse(req.PostId)
 	if err != nil {
 		logger.Error(ctx, "Invalid post ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	userId, err := uuid.Parse(req.UserId)
 	if err != nil {
 		logger.Error(ctx, "Invalid user ID:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	if err := p.postUseCase.UnlikePost(ctx, postId, userId); err != nil {
 		logger.Error(ctx, "Failed to unlike post:", err)
-		return nil, grpcErrorFromAppError(err)
+		return nil, err
 	}
 	return &pb.UnlikePostResponse{Success: true}, nil
-}
-
-func grpcErrorFromAppError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	switch {
-	case errors.Is(err, post_errors.ErrNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, post_errors.ErrInvalidNumPosts) || errors.Is(err, post_errors.ErrInvalidTimestamp):
-		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, post_errors.ErrNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, post_errors.ErrUploadFile):
-		return status.Error(codes.PermissionDenied, err.Error())
-	case errors.Is(err, post_errors.ErrUploadFile):
-		return status.Error(codes.Internal, err.Error())
-	default:
-		return status.Error(codes.Internal, err.Error())
-	}
 }

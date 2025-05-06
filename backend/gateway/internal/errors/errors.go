@@ -1,11 +1,18 @@
-package errors
+package errors2
 
 import (
 	"fmt"
 	"net/http"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	InternalErrorCode     = "INTERNAL"
+	BadRequestErrorCode   = "BAD_REQUEST"
+	UnauthorizedErrorCode = "UNAUTHORIZED"
 )
 
 type GatewayError struct {
@@ -37,22 +44,37 @@ func FromGRPCError(err error) *GatewayError {
 		return New("INTERNAL", err.Error(), http.StatusInternalServerError)
 	}
 
-	switch st.Code() {
+	// Попытка извлечь ErrorInfo
+	code := "INTERNAL"
+	for _, detail := range st.Details() {
+		if info, ok := detail.(*errdetails.ErrorInfo); ok {
+			if info.Reason != "" {
+				code = info.Reason
+			}
+			break
+		}
+	}
+
+	return New(code, st.Message(), grpcCodeToHTTP(st.Code()))
+}
+
+func grpcCodeToHTTP(code codes.Code) int {
+	switch code {
 	case codes.NotFound:
-		return New("NOT_FOUND", st.Message(), http.StatusNotFound)
+		return http.StatusNotFound
 	case codes.InvalidArgument:
-		return New("INVALID_ARGUMENT", st.Message(), http.StatusBadRequest)
+		return http.StatusBadRequest
 	case codes.PermissionDenied:
-		return New("FORBIDDEN", st.Message(), http.StatusForbidden)
+		return http.StatusForbidden
 	case codes.Unauthenticated:
-		return New("UNAUTHORIZED", st.Message(), http.StatusUnauthorized)
+		return http.StatusUnauthorized
 	case codes.AlreadyExists:
-		return New("ALREADY_EXISTS", st.Message(), http.StatusConflict)
+		return http.StatusConflict
 	case codes.DeadlineExceeded:
-		return New("TIMEOUT", st.Message(), http.StatusGatewayTimeout)
+		return http.StatusGatewayTimeout
 	case codes.Unavailable:
-		return New("SERVICE_UNAVAILABLE", st.Message(), http.StatusServiceUnavailable)
+		return http.StatusServiceUnavailable
 	default:
-		return New("INTERNAL", st.Message(), http.StatusInternalServerError)
+		return http.StatusInternalServerError
 	}
 }

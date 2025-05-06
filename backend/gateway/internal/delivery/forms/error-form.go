@@ -1,5 +1,6 @@
 package forms
 
 type ErrorForm struct {
-	Error string `json:"error" example:"error message"`
+	ErrorCode string `json:"error_code"`
+	Message   string `json:"message"`
 }

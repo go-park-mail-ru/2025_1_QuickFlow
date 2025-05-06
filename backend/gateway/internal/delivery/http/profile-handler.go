@@ -69,8 +69,8 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	profileInfo, err := p.profileUC.GetProfileByUsername(ctx, userRequested)
 	if err != nil {
 		err := errors2.FromGRPCError(err)
-		logger.Info(ctx, fmt.Sprintf("Unexpected error: %s", err.Error()))
-		http2.WriteJSONError(w, "error while getting profile", err.HTTPStatus)
+		logger.Error(ctx, fmt.Sprintf("Unexpected error: %s", err.Error()))
+		http2.WriteJSONError(w, err)
 		return
 	}
 	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully fetched", userRequested))
@@ -84,7 +84,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		sessionUuid, err := uuid.Parse(session.Value)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Failed to parse session: %s", err.Error()))
-			http2.WriteJSONError(w, "Failed to parse session", http.StatusBadRequest)
+			http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse session", http.StatusBadRequest))
 			return
 		}
 
@@ -93,14 +93,14 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			err := errors2.FromGRPCError(err)
 			logger.Error(ctx, fmt.Sprintf("Failed to lookup user by session: %s", err.Error()))
-			http2.WriteJSONError(w, "Failed to authorize user", err.HTTPStatus)
+			http2.WriteJSONError(w, err)
 			return
 		}
 
 		rel, err := p.friendsUseCase.GetUserRelation(ctx, user.Id, profileInfo.UserId)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
-			http2.WriteJSONError(w, "Failed to get user relation", http.StatusInternalServerError)
+			http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user relation", http.StatusInternalServerError))
 			return
 		}
 		relation = rel
@@ -110,7 +110,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		appErr := errors2.FromGRPCError(err)
 		if err != nil && appErr.HTTPStatus != http.StatusNotFound {
 			logger.Error(ctx, fmt.Sprintf("Failed to get chat id: %s", appErr.Error()))
-			http2.WriteJSONError(w, "Failed to get chat id", appErr.HTTPStatus)
+			http2.WriteJSONError(w, appErr)
 			return
 		} else {
 			if err == nil {
@@ -123,7 +123,7 @@ func (p *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, userRequested, isOnline, relation, chatId))
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to encode profile: %s", err.Error()))
-		http2.WriteJSONError(w, "Failed to encode feed", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode profile", http.StatusInternalServerError))
 		return
 	}
 }
@@ -149,7 +149,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while updating profile")
-		http2.WriteJSONError(w, "Failed to get user from context", http.StatusInternalServerError)
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 	logger.Info(ctx, fmt.Sprintf("User %s requested to update profile", user.Username))
@@ -158,7 +158,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(15 << 20) // 10 MB
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest))
 		return
 	}
 
@@ -167,7 +167,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profileForm.Avatar, err = http2.GetFile(r, "avatar")
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get avatar: %s", err.Error()))
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, fmt.Sprintf("Failed to get avatar: %v", err), http.StatusBadRequest))
 		return
 	}
 	if profileForm.Avatar != nil {
@@ -177,7 +177,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profileForm.Background, err = http2.GetFile(r, "cover")
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get cover: %s", err.Error()))
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, fmt.Sprintf("Failed to get cover: %v", err), http.StatusBadRequest))
 		return
 	}
 	if profileForm.Background != nil {
@@ -225,7 +225,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	if !recievedValidInfo {
 		logger.Error(ctx, "No valid data provided")
-		http2.WriteJSONError(w, "No valid data provided", http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "No valid data provided", http.StatusBadRequest))
 		return
 	}
 
@@ -233,7 +233,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profile, err := profileForm.FormToModel()
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to convert form to model: %s", err.Error()))
-		http2.WriteJSONError(w, fmt.Sprintf("Failed to parse form: %+v", err), http.StatusBadRequest)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, fmt.Sprintf("Failed to parse form: %+v", err), http.StatusBadRequest))
 		return
 	}
 
@@ -244,7 +244,7 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		err := errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Failed to update profile: %s", err.Error()))
-		http2.WriteJSONError(w, err.Error(), err.HTTPStatus)
+		http2.WriteJSONError(w, err)
 		return
 	}
 

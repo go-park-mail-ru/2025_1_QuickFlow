@@ -74,66 +74,59 @@ func NewMessageListenerWS(profileUseCase ProfileUseCase, webSocketManager IWebSo
 // @Router /api/ws [get]
 func (m *MessageListenerWS) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := http2.SetRequestId(r.Context())
-	// Извлекаем пользователя из контекста
+
 	user, ok := ctx.Value("user").(models.User)
 	if !ok {
 		logger.Error(ctx, "Failed to get user from context while handling messages")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
 		return
 	}
 
 	conn, found := m.WebSocketManager.IsConnected(user.Id)
 	if !found {
-		logger.Error(ctx, "Failed to get WebSocket connection for user:", user)
+		logger.Error(ctx, fmt.Sprintf("WebSocket connection not found for user: %s", user.Id))
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "WebSocket connection not found", http.StatusInternalServerError))
 		return
 	}
 
-	// Завершаем работу по обновлению времени последнего посещения
 	defer func() {
 		if err := m.profileUseCase.UpdateLastSeen(ctx, user.Id); err != nil {
-			err := errors2.FromGRPCError(err)
+			err = errors2.FromGRPCError(err)
 			logger.Error(ctx, fmt.Sprintf("Failed to update last seen: %s", err))
-			http2.WriteJSONError(w, "Failed to update last seen", err.HTTPStatus)
-			return
+			http2.WriteJSONError(w, err)
 		}
 	}()
 
 	for {
 		var messageRequest forms2.MessageRequest
+
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
-				logger.Info(ctx, fmt.Sprintf("Connection closed normally by user %v: %v", user, closeErr))
+				logger.Info(ctx, fmt.Sprintf("WebSocket closed by user %v: %v", user.Id, closeErr))
 			} else {
-				logger.Error(ctx, fmt.Sprintf("Error reading message from user %v: %v", user, err))
+				logger.Error(ctx, fmt.Sprintf("Error reading WS message for user %v: %v", user.Id, err))
 			}
-
 			return
 		}
 
-		// Десериализуем сообщение
-		err = json.Unmarshal(msg, &messageRequest)
-		if err != nil {
-			logger.Error(ctx, "Error unmarshaling message:", err)
+		if err := json.Unmarshal(msg, &messageRequest); err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to unmarshal WS message: %v", err))
 			writeErrorToWS(conn, fmt.Sprintf("Invalid message format: %v", err))
 			continue
 		}
 
-		// Маршрутизируем команду через WebSocketRouter
-		command := messageRequest.Type // предполагается, что в запросе будет команда, например, "message" или "ping"
-		err = m.WebSocketRouter.Route(ctx, command, user, messageRequest.Payload)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Error handling message: %v", err))
+		if err := m.WebSocketRouter.Route(ctx, messageRequest.Type, user, messageRequest.Payload); err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to route WS message: %v", err))
 			writeErrorToWS(conn, fmt.Sprintf("Failed to process message: %v", err))
+			continue
 		}
 	}
 }
 
 func writeErrorToWS(conn *websocket.Conn, errMsg string) {
-	err := conn.WriteJSON(forms.ErrorForm{
-		Error: errMsg,
-	})
-	if err != nil {
-		log.Println("Failed to send error message:", err)
+	if err := conn.WriteJSON(forms.ErrorForm{ErrorCode: errMsg}); err != nil {
+		log.Printf("Failed to send WS error message: %v", err)
 	}
 }
