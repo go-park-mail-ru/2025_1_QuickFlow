@@ -17,6 +17,7 @@ import (
 	proto "quickflow/shared/proto/user_service"
 	"quickflow/user_service/internal/client/file_sevice"
 	grpc2 "quickflow/user_service/internal/delivery/grpc"
+	"quickflow/user_service/internal/delivery/interceptor"
 	"quickflow/user_service/internal/repository/postgres"
 	"quickflow/user_service/internal/repository/redis"
 	"quickflow/user_service/internal/usecase"
@@ -55,7 +56,10 @@ func main() {
 	profileUseCase := usecase.NewProfileService(profileRepo, userRepo, fileService)
 
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptors.RequestIDServerInterceptor()),
+		grpc.ChainUnaryInterceptor(
+			interceptor.ErrorInterceptor,
+			interceptors.RequestIDServerInterceptor(),
+		),
 		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
 		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
 	proto.RegisterUserServiceServer(server, grpc2.NewUserServiceServer(userUserCase))
