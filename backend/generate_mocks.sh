@@ -10,11 +10,11 @@ generate_mock() {
 }
 
 find "$BASE_DIR" -type f -name "*.go" | while read -r file; do
-    if grep -qP "type\s+\w+\s+interface\s+\{" "$file"; then
+    if grep -E "type[[:space:]]+[[:alnum:]_]+[[:space:]]+interface[[:space:]]*{" "$file" >/dev/null; then
         mock_dir="$(dirname "$file")/mocks"
         mkdir -p "$mock_dir"
 
-        mock_file="$mock_dir/$(basename "$file" .go)-mock.go"
+        mock_file="$mock_dir/$(basename "$file" .go)_mock.go"
         generate_mock "$file" "$mock_file"
     fi
 done

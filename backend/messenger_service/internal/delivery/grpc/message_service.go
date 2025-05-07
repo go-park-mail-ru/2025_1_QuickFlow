@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"quickflow/messenger_service/internal/delivery/grpc/dto"
+	dto "quickflow/shared/client/messenger_service"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/messenger_service"

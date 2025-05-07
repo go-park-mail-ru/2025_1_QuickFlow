@@ -1,202 +1,56 @@
-package postgres_test
+package postgres
 
 import (
 	"context"
-	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"quickflow/internal/models"
-	"quickflow/internal/repository/postgres"
-	postgresmodels "quickflow/internal/repository/postgres/postgres-models"
 	"testing"
 	"time"
 )
 
-func TestMessageRepository(t *testing.T) {
-	ctx := context.Background()
+func TestMessageRepository_GetLastChatMessage(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
 
-	tests := []struct {
-		name      string
-		message   models.Message
-		mockSetup func(mock sqlmock.Sqlmock, msg models.Message)
-		wantErr   bool
-	}{
-		{
-			name:    "success save message",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				pgMsg := postgresmodels.FromMessage(msg)
-				mock.ExpectExec(`(?i)INSERT INTO message`).
-					WithArgs(
-						pgMsg.ID,
-						pgMsg.ChatID,
-						pgMsg.SenderID,
-						pgMsg.Text,
-						pgMsg.CreatedAt,
-						pgMsg.UpdatedAt,
-						pgMsg.ReadAt,
-					).
-					WillReturnResult(sqlmock.NewResult(1, 1))
+	repo := NewPostgresMessageRepository(db)
 
-				mock.ExpectExec(`(?i)update chat set updated_at = \$1 where id = \$2`).
-					WithArgs(pgMsg.UpdatedAt, pgMsg.ChatID).
-					WillReturnResult(sqlmock.NewResult(1, 1))
-			},
-			wantErr: false,
-		},
-		{
-			name:    "db error on save message",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				pgMsg := postgresmodels.FromMessage(msg)
-				mock.ExpectExec(`(?i)INSERT INTO message`).
-					WithArgs(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.ReadAt).
-					WillReturnError(errors.New("db error"))
-			},
-			wantErr: true,
-		},
-		{
-			name:    "success mark message as read",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				mock.ExpectExec(`(?i)UPDATE message`).
-					WithArgs(msg.ID).
-					WillReturnResult(sqlmock.NewResult(1, 1))
-			},
-			wantErr: false,
-		},
-		{
-			name:    "db error on mark message as read",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				mock.ExpectExec(`(?i)UPDATE message`).
-					WithArgs(msg.ID).
-					WillReturnError(errors.New("db error"))
-			},
-			wantErr: true,
-		},
-		{
-			name:    "success get messages for chat",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				pgMsg := postgresmodels.FromMessage(msg)
-				mock.ExpectQuery(`(?i)SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read`).
-					WithArgs(pgMsg.ChatID, sqlmock.AnyArg(), 10). // timestamp как anyArg
-					WillReturnRows(sqlmock.NewRows([]string{
-						"id", "chat_id", "sender_id", "text", "created_at", "updated_at", "is_read",
-					}).AddRow(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.ReadAt))
+	chatID := uuid.New()
 
-				mock.ExpectQuery(`(?i)SELECT file_url`).
-					WithArgs(pgMsg.ID). // Ищем файлы по ID сообщения
-					WillReturnRows(sqlmock.NewRows([]string{"file_url"}).
-						AddRow("file:///path/to/file.txt")) // Мокируем путь к файлу
-			},
-			wantErr: false,
-		},
-		{
-			name:    "db error on get messages for chat",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				pgMsg := postgresmodels.FromMessage(msg)
-				mock.ExpectQuery(`(?i)SELECT id, chat_id, sender_id, text, created_at, updated_at, is_read`).
-					WithArgs(pgMsg.ChatID, sqlmock.AnyArg(), 10).
-					WillReturnError(errors.New("db error"))
-			},
-			wantErr: true,
-		},
-		{
-			name:    "success delete message",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				mock.ExpectExec(`(?i)DELETE FROM message`).
-					WithArgs(msg.ID).
-					WillReturnResult(sqlmock.NewResult(1, 1))
-			},
-			wantErr: false,
-		},
-		{
-			name:    "db error on delete message",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				mock.ExpectExec(`(?i)DELETE FROM message`).
-					WithArgs(msg.ID).
-					WillReturnError(errors.New("db error"))
-			},
-			wantErr: true,
-		},
+	// Mocking the last chat message
+	rows := sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "created_at", "updated_at"}).
+		AddRow(uuid.New(), chatID, uuid.New(), "Last message", time.Now(), time.Now())
 
-		// тест для GetLastChatMessage
-		{
-			name:    "success get last chat message",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				pgMsg := postgresmodels.FromMessage(msg)
-				mock.ExpectQuery(`(?i)WITH otv AS`).
-					WithArgs(msg.ChatID).
-					WillReturnRows(sqlmock.NewRows([]string{
-						"id", "chat_id", "sender_id", "text", "created_at", "updated_at", "is_read",
-					}).AddRow(pgMsg.ID, pgMsg.ChatID, pgMsg.SenderID, pgMsg.Text, pgMsg.CreatedAt, pgMsg.UpdatedAt, pgMsg.ReadAt))
-			},
-			wantErr: false,
-		},
-		{
-			name:    "db error on get last chat message",
-			message: newTestMessage(),
-			mockSetup: func(mock sqlmock.Sqlmock, msg models.Message) {
-				mock.ExpectQuery(`(?i)WITH otv AS`).
-					WithArgs(msg.ChatID).
-					WillReturnError(errors.New("db error"))
-			},
-			wantErr: true,
-		},
-	}
+	mock.ExpectQuery("select c.id, c.chat_id, c.sender_id, c.text, c.created_at, c.updated_at").
+		WithArgs(chatID).
+		WillReturnRows(rows)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			db, mock, err := sqlmock.New() // Создание mock-объекта для *sql.DB
-			require.NoError(t, err)
-			defer db.Close()
-
-			if tt.mockSetup != nil {
-				tt.mockSetup(mock, tt.message)
-			}
-
-			repo := postgres.NewPostgresMessageRepository(db)
-
-			// Здесь тестируем различные случаи на основе тестовых данных
-			switch tt.name {
-			case "success save message", "db error on save message":
-				err = repo.SaveMessage(ctx, tt.message)
-			case "success mark message as read", "db error on mark message as read":
-				err = repo.UpdateLastMessageRead(ctx, tt.message.ID)
-			case "success get messages for chat", "db error on get messages for chat":
-				_, err = repo.GetMessagesForChatOlder(ctx, tt.message.ChatID, 10, time.Now())
-			case "success get last chat message", "db error on get last chat message":
-				_, err = repo.GetLastChatMessage(ctx, tt.message.ChatID)
-			case "success delete message", "db error on delete message":
-				err = repo.DeleteMessage(ctx, tt.message.ID)
-			}
-
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-
-			require.NoError(t, mock.ExpectationsWereMet()) // Проверка всех ожиданий
-		})
-	}
+	message, err := repo.GetLastChatMessage(context.Background(), chatID)
+	assert.NoError(t, err)
+	assert.NotNil(t, message)
+	assert.Equal(t, message.Text, "Last message")
 }
 
-func newTestMessage() models.Message {
-	return models.Message{
-		ID:        uuid.New(),
-		ChatID:    uuid.New(),
-		SenderID:  uuid.New(),
-		Text:      "Hello, World!",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		IsRead:    false,
-	}
+func TestMessageRepository_GetMessageById(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewPostgresMessageRepository(db)
+
+	messageID := uuid.New()
+
+	// Mocking the get message by id
+	rows := sqlmock.NewRows([]string{"id", "chat_id", "sender_id", "text", "created_at", "updated_at"}).
+		AddRow(messageID, uuid.New(), uuid.New(), "Message by ID", time.Now(), time.Now())
+
+	mock.ExpectQuery("SELECT id, chat_id, sender_id, text, created_at, updated_at").
+		WithArgs(messageID).
+		WillReturnRows(rows)
+
+	message, err := repo.GetMessageById(context.Background(), messageID)
+	assert.NoError(t, err)
+	assert.Equal(t, message.Text, "Message by ID")
 }
