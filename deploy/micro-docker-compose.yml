@@ -238,13 +238,18 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
+      - GF_SERVER_ROOT_URL=https://quickflowapp.ru/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_DOMAIN=quickflowapp.ru
+      - GF_SERVER_PROTOCOL=https
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=password
     volumes:
       - grafana_data:/var/lib/grafana
-    restart: "always"
+    restart: always
+
 
 volumes:
   postgres_data:
