@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -18,6 +21,26 @@ type statusRecorder struct {
 func (rec *statusRecorder) WriteHeader(code int) {
 	rec.statusCode = code
 	rec.ResponseWriter.WriteHeader(code)
+}
+
+func (rec *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := rec.ResponseWriter.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, fmt.Errorf("underlying ResponseWriter does not implement http.Hijacker")
+}
+
+func (rec *statusRecorder) Flush() {
+	if fl, ok := rec.ResponseWriter.(http.Flusher); ok {
+		fl.Flush()
+	}
+}
+
+func (rec *statusRecorder) Push(target string, opts *http.PushOptions) error {
+	if pusher, ok := rec.ResponseWriter.(http.Pusher); ok {
+		return pusher.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
 
 func getHandlerName(h http.Handler) string {
@@ -43,7 +66,7 @@ func getHandlerName(h http.Handler) string {
 	if lastDot != -1 && lastDot+1 < len(fullName) {
 		name = fullName[lastDot+1:]
 	}
-	
+
 	if len(name) > 3 && name[len(name)-3:] == "-fm" {
 		name = name[:len(name)-3]
 	}
