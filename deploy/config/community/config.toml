@@ -1,0 +1,5 @@
+
+community_name_min_length = 3
+community_name_max_length = 50
+community_description_max_length = 500
+community_avatar_max_size = "5MB"

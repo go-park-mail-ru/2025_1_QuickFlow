@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package file_service;
+option go_package = "quickflow/shared/proto/file_service";
+
+enum AccessMode {
+  ACCESS_PUBLIC = 0;
+  ACCESS_PRIVATE = 1;
+}
+
+message File {
+  string file_name = 1;
+  bytes file = 2;
+  string file_type = 3;
+  int64 file_size = 4;
+  AccessMode access_mode = 5;
+  string url = 6;
+}
+
+message UploadFileRequest {
+  File file = 1;
+}
+
+message UploadFileResponse {
+  string file_url = 1;
+}
+
+message UploadManyFilesRequest {
+  repeated UploadFileRequest files = 1;
+}
+
+message UploadManyFilesResponse {
+  repeated string file_urls = 1;
+}
+
+message DeleteFileRequest {
+  string file_url = 1;
+}
+
+message DeleteFileResponse {
+  bool success = 1;
+}
+
+service FileService {
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
+  rpc UploadManyFiles(UploadManyFilesRequest) returns (UploadManyFilesResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}

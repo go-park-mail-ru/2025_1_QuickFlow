@@ -1,0 +1,79 @@
+package middleware
+
+import (
+	"net/http"
+	"reflect"
+	"runtime"
+	"strconv"
+	"time"
+
+	"quickflow/metrics"
+)
+
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rec *statusRecorder) WriteHeader(code int) {
+	rec.statusCode = code
+	rec.ResponseWriter.WriteHeader(code)
+}
+
+func getHandlerName(h http.Handler) string {
+	var fnPtr uintptr
+
+	switch v := h.(type) {
+	case http.HandlerFunc:
+		fnPtr = reflect.ValueOf(v).Pointer()
+	default:
+		fnPtr = reflect.ValueOf(h).Pointer()
+	}
+
+	fullName := runtime.FuncForPC(fnPtr).Name()
+
+	lastDot := -1
+	for i := len(fullName) - 1; i >= 0; i-- {
+		if fullName[i] == '.' {
+			lastDot = i
+			break
+		}
+	}
+	name := fullName
+	if lastDot != -1 && lastDot+1 < len(fullName) {
+		name = fullName[lastDot+1:]
+	}
+	
+	if len(name) > 3 && name[len(name)-3:] == "-fm" {
+		name = name[:len(name)-3]
+	}
+
+	return name
+}
+
+func MetricsMiddleware(metrics *metrics.Metrics) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		handlerName := getHandlerName(next)
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			rec := &statusRecorder{
+				ResponseWriter: w,
+				statusCode:     http.StatusOK,
+			}
+
+			next.ServeHTTP(rec, r)
+
+			duration := time.Since(start).Seconds()
+			method := r.Method
+			status := strconv.Itoa(rec.statusCode)
+
+			metrics.Hits.WithLabelValues(method, handlerName, status).Inc()
+			metrics.Timings.WithLabelValues(method, handlerName).Observe(duration)
+
+			if rec.statusCode >= 400 {
+				metrics.ErrorCounter.WithLabelValues(method, handlerName, status).Inc()
+			}
+		})
+	}
+}

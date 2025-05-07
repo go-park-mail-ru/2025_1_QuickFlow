@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"quickflow/config"
-	"quickflow/internal/repository/minio"
+	"quickflow/file_service/internal/repository/minio"
 	"quickflow/internal/repository/postgres"
 	"quickflow/internal/repository/redis"
 	"quickflow/internal/usecase"

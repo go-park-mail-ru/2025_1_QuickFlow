@@ -22,7 +22,7 @@ type ServiceFactory interface {
 	ProfileService() *usecase.ProfileService
 	PostService() *usecase.PostService
 	ChatService() *usecase.ChatService
-	MessageService() *usecase.MessageService
+	MessageService() *usecase.MessageUseCase
 	FriendService() *usecase.FriendsService
 	SearchService() *usecase.SearchService
 	FeedBackService() *usecase.FeedbackService

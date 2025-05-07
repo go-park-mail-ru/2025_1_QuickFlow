@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package profile_service;
+option go_package = "quickflow/shared/proto/user_service";
+
+import "google/protobuf/timestamp.proto";
+import "file_service/file_service.proto";
+
+message SchoolEducation {
+  string city = 1;
+  string name = 2;
+}
+
+message UniversityEducation {
+  string city = 1;
+  string university = 2;
+  string faculty = 3;
+  int32 graduation_year = 4;
+}
+
+message ContactInfo {
+  string city = 1;
+  string phone_number = 2;
+  string email = 3;
+}
+
+message BasicInfo {
+  string firstname = 3;
+  string lastname = 4;
+  int32 sex = 5;
+  google.protobuf.Timestamp birth_date = 6;
+  string bio = 7;
+  string avatar_url = 8;
+  string cover_url = 9;
+}
+
+message Profile {
+  string id = 1;
+  string username = 2;
+  BasicInfo basic_info = 3;
+  SchoolEducation school_education = 10;
+  UniversityEducation university_education = 11;
+  ContactInfo contact_info = 12;
+  file_service.File avatar = 13;
+  file_service.File cover = 14;
+  google.protobuf.Timestamp last_seen = 15;
+}
+
+message PublicUserInfo {
+  string id = 1;
+  string username = 2;
+  string firstname = 3;
+  string lastname = 4;
+  string avatar_url = 5;
+  google.protobuf.Timestamp last_seen = 6;
+}
+
+message CreateProfileRequest {
+  Profile profile = 1;
+}
+
+message CreateProfileResponse {
+  Profile profile = 1;
+}
+
+message UpdateProfileRequest {
+  Profile profile = 1;
+}
+
+message UpdateProfileResponse {
+  Profile profile = 1;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message GetProfileResponse {
+  Profile profile = 1;
+}
+
+message GetProfileByUsernameRequest {
+  string username = 1;
+}
+
+message GetProfileByUsernameResponse {
+  Profile profile = 1;
+}
+
+message UpdateLastSeenRequest {
+  string user_id = 1;
+}
+
+message UpdateLastSeenResponse {
+  bool success = 1;
+}
+
+message GetPublicUserInfoRequest {
+  string user_id = 1;
+}
+
+message GetPublicUserInfoResponse {
+  PublicUserInfo user_info = 1;
+}
+
+message GetPublicUsersInfoRequest {
+  repeated string user_ids = 1;
+}
+
+message GetPublicUsersInfoResponse {
+  repeated PublicUserInfo users_info = 1;
+}
+
+service ProfileService {
+  rpc CreateProfile(CreateProfileRequest) returns (CreateProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc GetProfileByUsername(GetProfileByUsernameRequest) returns (GetProfileByUsernameResponse);
+  rpc UpdateLastSeen(UpdateLastSeenRequest) returns (UpdateLastSeenResponse);
+  rpc GetPublicUserInfo(GetPublicUserInfoRequest) returns (GetPublicUserInfoResponse);
+  rpc GetPublicUsersInfo(GetPublicUsersInfoRequest) returns (GetPublicUsersInfoResponse);
+}

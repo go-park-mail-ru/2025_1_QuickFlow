@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package messenger_service;
+option go_package = "quickflow/messenger_service/internal/delivery/grpc/proto";
+
+import "google/protobuf/timestamp.proto";
+import "file_service/file_service.proto";
+
+
+message Message {
+  string id = 1;
+  string chat_id = 2;
+  string sender_id = 3;
+  string receiver_id = 4;
+  string text = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  repeated file_service.File attachments = 8;
+  repeated string attachment_urls = 9;
+}
+
+message GetMessagesForChatRequest {
+  string chat_id = 1;
+  int32 messages_num = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  string user_auth_id = 4;
+}
+
+message GetMessagesForChatResponse {
+  repeated Message messages = 1;
+}
+
+message SendMessageRequest {
+  Message message = 1;
+}
+
+message SendMessageResponse {
+  Message message = 1;
+}
+
+message DeleteMessageRequest {
+  string message_id = 1;
+}
+
+message DeleteMessageResponse {
+  bool success = 1;
+}
+
+message UpdateLastReadTsRequest {
+  string chat_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp last_read_timestamp = 3;
+}
+
+message UpdateLastReadTsResponse {
+  bool success = 1;
+}
+
+message GetLastReadTsRequest {
+  string chat_id = 1;
+  string user_id = 2;
+}
+
+message GetLastReadTsResponse {
+  google.protobuf.Timestamp last_read_ts = 1;
+}
+
+message GetMessageByIdRequest {
+  string message_id = 1;
+}
+
+message GetMessageByIdResponse {
+  Message message = 1;
+}
+
+service MessageService {
+  rpc GetMessagesForChat(GetMessagesForChatRequest) returns (GetMessagesForChatResponse);
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc UpdateLastReadTs(UpdateLastReadTsRequest) returns (UpdateLastReadTsResponse);
+  rpc GetLastReadTs(GetLastReadTsRequest) returns (GetLastReadTsResponse);
+  rpc GetMessageById(GetMessageByIdRequest) returns (GetMessageByIdResponse);
+}

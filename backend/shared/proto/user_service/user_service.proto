@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package user_service;
+option go_package = "quickflow/shared/proto/user_service";
+
+import "google/protobuf/timestamp.proto";
+import "profile_service.proto";
+
+message User {
+  string id = 1;
+  string username = 2;
+  string password = 3;
+  string salt = 4;
+  google.protobuf.Timestamp last_seen = 5;
+}
+
+message SignIn {
+  string username = 1;
+  string password = 2;
+}
+
+message Session {
+  string id = 1;
+  google.protobuf.Timestamp expiry = 2;
+}
+
+message SignUpRequest {
+  User user = 1;
+  profile_service.Profile profile = 2;
+}
+
+message SignUpResponse {
+  Session session = 1;
+}
+
+message SignInRequest {
+  SignIn sign_in = 1;
+}
+
+message SignInResponse {
+  Session session = 1;
+}
+
+message SignOutRequest {
+  string session_id = 1;
+}
+
+message SignOutResponse {
+  bool success = 1;
+}
+
+message GetUserByUsernameRequest {
+  string username = 1;
+}
+
+message GetUserByUsernameResponse {
+  User user = 1;
+}
+
+message GetUserByIdRequest {
+  string id = 1;
+}
+
+message GetUserByIdResponse {
+  User user = 1;
+}
+
+message LookupUserSessionRequest {
+  string session_id = 1;
+}
+
+message LookupUserSessionResponse {
+  string user_id = 1;
+  string username = 2;
+}
+
+message SearchSimilarUserRequest {
+  string to_search = 1;
+  int32 num_users = 2;
+}
+
+message SearchSimilarUserResponse {
+  repeated profile_service.PublicUserInfo users_info = 1;
+}
+
+service UserService {
+  rpc SignUp(SignUpRequest) returns (SignUpResponse);
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+  rpc SignOut(SignOutRequest) returns (SignOutResponse);
+  rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
+  rpc GetUserById(GetUserByIdRequest) returns (GetUserByIdResponse);
+  rpc LookupUserSession(LookupUserSessionRequest) returns (LookupUserSessionResponse);
+  rpc SearchSimilarUser(SearchSimilarUserRequest) returns (SearchSimilarUserResponse);
+}

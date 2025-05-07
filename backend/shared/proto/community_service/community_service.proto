@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package file_service;
+option go_package = "quickflow/shared/proto/community_service";
+import "google/protobuf/timestamp.proto";
+import "file_service/file_service.proto";
+
+enum CommunityRole {
+  COMMUNITY_ROLE_OWNER = 0;
+  COMMUNITY_ROLE_MEMBER = 1;
+  COMMUNITY_ROLE_ADMIN = 2;
+}
+
+message ContactInfo {
+  string city = 1;
+  string phone_number = 2;
+  string email = 3;
+}
+
+message Community {
+  string id = 1;
+  string name = 2;
+  string nickname = 12;
+  string description = 3;
+  string avatar_url = 4;
+  string cover_url = 13;
+  file_service.File avatar = 5;
+  file_service.File cover = 14;
+  google.protobuf.Timestamp created_at = 6;
+  string owner_id = 7;
+
+  ContactInfo contact_info = 8;
+}
+
+message CommunityMember {
+  string community_id = 2;
+  string user_id = 3;
+  CommunityRole role = 4;
+  google.protobuf.Timestamp joined_at = 5;
+}
+
+message CreateCommunityRequest {
+  string name = 2;
+  string nickname = 12;
+  string description = 3;
+  string avatar_url = 4;
+  string cover_url = 13;
+  file_service.File avatar = 5;
+  file_service.File cover = 14;
+  string owner_id = 7;
+}
+
+message CreateCommunityResponse {
+  Community community = 1;
+}
+
+message GetCommunityByIdRequest {
+  string community_id = 1;
+}
+
+message GetCommunityByIdResponse {
+  Community community = 1;
+}
+
+message GetCommunityByNameRequest {
+  string community_name = 1;
+}
+
+message GetCommunityByNameResponse {
+  Community community = 1;
+}
+
+message IsCommunityMemberRequest {
+  string community_id = 1;
+  string user_id = 2;
+}
+
+message IsCommunityMemberResponse {
+  bool is_member = 1;
+  CommunityRole role = 2;
+}
+
+message GetCommunityMembersRequest {
+  string community_id = 1;
+  int32 count = 2;
+  google.protobuf.Timestamp ts = 3;
+}
+
+message GetCommunityMembersResponse {
+  repeated CommunityMember members = 1;
+}
+
+message DeleteCommunityRequest {
+  string community_id = 1;
+  string user_id = 2;
+}
+
+message DeleteCommunityResponse {
+  bool success = 1;
+}
+
+message UpdateCommunityRequest {
+  string id = 1;
+  string name = 2;
+  string nickname = 12;
+  string description = 3;
+  string avatar_url = 4;
+  string cover_url = 13;
+  file_service.File avatar = 5;
+  file_service.File cover = 14;
+  ContactInfo contact_info = 8;
+  string user_id = 6;
+}
+
+message UpdateCommunityResponse {
+  Community community = 1;
+}
+
+message JoinCommunityRequest {
+  CommunityMember new_member = 1;
+}
+
+message JoinCommunityResponse {
+  bool success = 1;
+}
+
+message LeaveCommunityRequest {
+  string community_id = 1;
+  string user_id = 2;
+}
+
+message LeaveCommunityResponse {
+  bool success = 1;
+}
+
+message GetUserCommunitiesRequest {
+  string user_id = 1;
+  int32 count = 2;
+  google.protobuf.Timestamp ts = 3;
+}
+
+message GetUserCommunitiesResponse {
+  repeated Community communities = 1;
+}
+
+message SearchSimilarCommunitiesRequest {
+  string name = 1;
+  int32 count = 2;
+}
+
+message SearchSimilarCommunitiesResponse {
+  repeated Community communities = 1;
+}
+
+message ChangeUserRoleRequest {
+  string community_id = 1;
+  string user_id = 2;
+  CommunityRole role = 3;
+  string requester_id = 4;
+}
+
+message ChangeUserRoleResponse {
+  bool success = 1;
+}
+
+message GetControlledCommunitiesRequest {
+  string user_id = 1;
+  int32 count = 2;
+  google.protobuf.Timestamp ts = 3;
+}
+
+message GetControlledCommunitiesResponse {
+  repeated Community communities = 1;
+}
+
+service CommunityService {
+  rpc CreateCommunity(CreateCommunityRequest) returns (CreateCommunityResponse);
+  rpc GetCommunityById(GetCommunityByIdRequest) returns (GetCommunityByIdResponse);
+  rpc GetCommunityByName(GetCommunityByNameRequest) returns (GetCommunityByNameResponse);
+  rpc IsCommunityMember(IsCommunityMemberRequest) returns (IsCommunityMemberResponse);
+  rpc GetCommunityMembers(GetCommunityMembersRequest) returns (GetCommunityMembersResponse);
+  rpc DeleteCommunity(DeleteCommunityRequest) returns (DeleteCommunityResponse);
+  rpc UpdateCommunity(UpdateCommunityRequest) returns (UpdateCommunityResponse);
+  rpc JoinCommunity(JoinCommunityRequest) returns (JoinCommunityResponse);
+  rpc LeaveCommunity(LeaveCommunityRequest) returns (LeaveCommunityResponse);
+  rpc GetUserCommunities(GetUserCommunitiesRequest) returns (GetUserCommunitiesResponse);
+  rpc SearchSimilarCommunities(SearchSimilarCommunitiesRequest) returns (SearchSimilarCommunitiesResponse);
+  rpc ChangeUserRole(ChangeUserRoleRequest) returns (ChangeUserRoleResponse);
+  rpc GetControlledCommunities(GetControlledCommunitiesRequest) returns (GetControlledCommunitiesResponse);
+}

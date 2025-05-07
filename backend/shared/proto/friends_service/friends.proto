@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package friends_service;
+
+option go_package = "quickflow/friends_service/internal/delivery/grpc/proto";
+
+import "google/protobuf/empty.proto";
+
+message FriendRequest {
+  string user_id = 1;
+  string receiver_id = 2;
+}
+
+message GetFriendInfo {
+  string id = 1;
+  string username = 2;
+  string firstname = 3;
+  string lastname = 4;
+  string avatar_url = 5;
+  string university = 6;
+}
+
+message GetFriendsInfoRequest {
+  string user_id = 1;
+  string limit = 2;
+  string offset = 3;
+  string reqType = 4;
+}
+
+message GetFriendsInfoResponse {
+  repeated GetFriendInfo friends = 1;
+  int32 total_count = 2;
+}
+
+message IsRelationExistsResponse {
+  bool is_exists = 1;
+}
+
+message RelationResponse {
+  string relation = 1;
+}
+
+service FriendsService {
+  rpc GetFriendsInfo(GetFriendsInfoRequest) returns (GetFriendsInfoResponse);
+  rpc SendFriendRequest(FriendRequest) returns (google.protobuf.Empty);
+  rpc AcceptFriendRequest(FriendRequest) returns (google.protobuf.Empty);
+  rpc Unfollow(FriendRequest) returns (google.protobuf.Empty);
+  rpc DeleteFriend(FriendRequest) returns (google.protobuf.Empty);
+  rpc GetUserRelation(FriendRequest) returns (RelationResponse);
+}
+
+
