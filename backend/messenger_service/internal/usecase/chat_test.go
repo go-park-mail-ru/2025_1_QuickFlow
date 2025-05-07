@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"quickflow/internal/usecase/mocks"
+	"quickflow/messenger_service/internal/usecase/mocks"
 	"quickflow/shared/models"
 )
 
@@ -18,8 +18,8 @@ func TestCreateChat_InvalidChatCreationInfo(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockChatRepo := mocks.NewMockChatRepository(ctrl)
-	mockFileRepo := mocks.NewMockFileRepository(ctrl)
-	mockProfileRepo := mocks.NewMockProfileRepository(ctrl)
+	mockFileRepo := mocks.NewMockFileService(ctrl)
+	mockProfileRepo := mocks.NewMockProfileService(ctrl)
 	mockMessageRepo := mocks.NewMockMessageRepository(ctrl)
 
 	usecase := NewChatUseCase(mockChatRepo, mockFileRepo, mockProfileRepo, mockMessageRepo)

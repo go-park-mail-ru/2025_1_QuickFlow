@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"quickflow/internal/delivery/forms"
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
+	"quickflow/gateway/internal/delivery/forms"
+	http2 "quickflow/gateway/internal/delivery/http"
+	"quickflow/gateway/internal/delivery/http/mocks"
+	"quickflow/shared/models"
 )
 
 func TestSearchHandler_SearchSimilar(t *testing.T) {

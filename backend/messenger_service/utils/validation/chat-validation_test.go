@@ -2,10 +2,10 @@ package validation
 
 import (
 	"errors"
+	"quickflow/gateway/utils/validation"
 	"testing"
 
-	"quickflow/internal/models"
-	validation2 "quickflow/utils/validation"
+	"quickflow/shared/models"
 
 	"github.com/stretchr/testify/require"
 )
@@ -81,7 +81,7 @@ func TestValidateChatCreationInfo(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := validation2.ValidateChatCreationInfo(tt.input)
+		err := validation.ValidateChatCreationInfo(tt.input)
 		if tt.expected != nil {
 			require.EqualError(t, err, tt.expected.Error(), tt.name)
 		} else {

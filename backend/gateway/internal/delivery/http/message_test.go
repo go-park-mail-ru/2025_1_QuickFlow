@@ -16,10 +16,9 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/stretchr/testify/assert"
 
-	http2 "quickflow/internal/delivery/http"
-	"quickflow/internal/delivery/http/mocks"
-	"quickflow/internal/models"
-	"quickflow/internal/usecase"
+	http2 "quickflow/gateway/internal/delivery/http"
+	"quickflow/gateway/internal/delivery/http/mocks"
+	"quickflow/shared/models"
 )
 
 func TestMessageHandler_GetMessagesForChat(t *testing.T) {
