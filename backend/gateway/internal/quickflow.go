@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -15,6 +16,7 @@ import (
 	qfhttp "quickflow/gateway/internal/delivery/http"
 	"quickflow/gateway/internal/delivery/http/middleware"
 	"quickflow/gateway/internal/delivery/ws"
+	"quickflow/metrics"
 	"quickflow/shared/client/community_service"
 	"quickflow/shared/client/feedback_service"
 	friendsService "quickflow/shared/client/friends_service"
@@ -29,6 +31,8 @@ func Run(cfg *config.Config) error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
+
+	metrics := metrics.NewMetrics("QuickFlow")
 
 	grpcConnPostService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultPostServiceAddrEnv, micro_addr.DefaultPostServicePort),
@@ -116,6 +120,7 @@ func Run(cfg *config.Config) error {
 	r := mux.NewRouter()
 	r.Use(middleware.RecoveryMiddleware)
 	r.Use(middleware.CORSMiddleware(cfg.CORSConfig))
+	r.Use(middleware.MetricsMiddleware(metrics))
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
@@ -129,6 +134,7 @@ func Run(cfg *config.Config) error {
 
 	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
 	r.HandleFunc("/profiles/{username}", newProfileHandler.GetProfile).Methods(http.MethodGet)
+	r.HandleFunc("/metrics", promhttp.Handler().ServeHTTP).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
 	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))

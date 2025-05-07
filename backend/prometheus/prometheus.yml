@@ -1,0 +1,40 @@
+global:
+  scrape_interval:     10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: "gateway"
+    static_configs:
+      - targets: ['gateway:8080']
+
+  - job_name: "file_service"
+    static_configs:
+      - targets: ['file_service:8081']
+
+  - job_name: "post_service"
+    static_configs:
+      - targets: ['post_service:8082']
+
+  - job_name: "user_service"
+    static_configs:
+      - targets: ['user_service:8083']
+
+  - job_name: "messenger_service"
+    static_configs:
+      - targets: ['messenger_service:8084']
+
+  - job_name: "feedback_service"
+    static_configs:
+      - targets: ['feedback_service:8085']
+
+  - job_name: "friends_service"
+    static_configs:
+      - targets: ['friends_service:8086']
+
+  - job_name: "community_service"
+    static_configs:
+      - targets: ['community_service:8087']
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ['prometheus:9090']
