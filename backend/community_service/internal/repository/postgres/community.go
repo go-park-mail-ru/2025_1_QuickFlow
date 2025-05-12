@@ -84,7 +84,7 @@ const (
 			   GREATEST(similarity(lower(name), lower($1)), similarity(lower(nickname), lower($1))) AS sim_factor_name
 		FROM community
 	) c
-	WHERE c.sim_factor_name > 0.3
+	WHERE c.sim_factor_name > 0.15
 	ORDER BY sim_factor_name DESC
 	LIMIT $2;
 `

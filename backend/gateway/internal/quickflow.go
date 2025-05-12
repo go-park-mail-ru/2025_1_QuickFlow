@@ -2,8 +2,9 @@ package internal
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gorilla/mux"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -95,7 +96,7 @@ func Run(cfg *config.Config) error {
 
 	newAuthHandler := qfhttp.NewAuthHandler(UserService, sanitizerPolicy)
 	newFeedHandler := qfhttp.NewFeedHandler(UserService, PostService, profileService, FriendsService, communityService)
-	newPostHandler := qfhttp.NewPostHandler(PostService, profileService, communityService, sanitizerPolicy)
+	newPostHandler := qfhttp.NewPostHandler(PostService, profileService, communityService, FriendsService, sanitizerPolicy)
 	newProfileHandler := qfhttp.NewProfileHandler(profileService, FriendsService, UserService, chatService, connManager, sanitizerPolicy)
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
 	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, connManager)
@@ -183,6 +184,7 @@ func Run(cfg *config.Config) error {
 	protectedGet.HandleFunc("/profiles/{username}/controlled", newCommunityHandler.GetControlledCommunities).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/communities/{name}/posts", newFeedHandler.FetchCommunityPosts).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.GetPost).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager, pingHandler))

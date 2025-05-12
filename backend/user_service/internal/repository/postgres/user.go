@@ -44,7 +44,7 @@ const (
 			   similarity(lower(firstname || ' ' || lastname), lower($1)) AS sim_factor_full_name
 		FROM "user" u JOIN profile p ON u.id = p.id
 	) t
-	WHERE GREATEST(t.sim_factor_username, t.sim_factor_full_name) > 0.3
+	WHERE GREATEST(t.sim_factor_username, t.sim_factor_full_name) > 0.15
 	ORDER BY GREATEST(t.sim_factor_username, t.sim_factor_full_name) DESC
 	LIMIT $2;
 `

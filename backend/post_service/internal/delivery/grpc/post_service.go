@@ -22,6 +22,7 @@ type PostUseCase interface {
 	UpdatePost(ctx context.Context, update models.PostUpdate, userId uuid.UUID) (*models.Post, error)
 	LikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error
 	UnlikePost(ctx context.Context, postId uuid.UUID, userId uuid.UUID) error
+	GetPost(ctx context.Context, postId uuid.UUID) (*models.Post, error)
 }
 
 type UserUseCase interface {
@@ -196,4 +197,19 @@ func (p *PostServiceServer) UnlikePost(ctx context.Context, req *pb.UnlikePostRe
 		return nil, err
 	}
 	return &pb.UnlikePostResponse{Success: true}, nil
+}
+
+func (p *PostServiceServer) GetPost(ctx context.Context, req *pb.GetPostRequest) (*pb.GetPostResponse, error) {
+	logger.Info(ctx, "GetPost called")
+	postId, err := uuid.Parse(req.PostId)
+	if err != nil {
+		logger.Error(ctx, "Invalid post ID:", err)
+		return nil, err
+	}
+	post, err := p.postUseCase.GetPost(ctx, postId)
+	if err != nil {
+		logger.Error(ctx, "Failed to get post:", err)
+		return nil, err
+	}
+	return &pb.GetPostResponse{Post: dto.ModelPostToProto(post)}, nil
 }

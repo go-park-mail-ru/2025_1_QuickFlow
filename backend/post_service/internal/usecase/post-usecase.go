@@ -299,3 +299,12 @@ func (p *PostUseCase) UnlikePost(ctx context.Context, postId uuid.UUID, userId u
 
 	return nil
 }
+
+func (p *PostUseCase) GetPost(ctx context.Context, postId uuid.UUID) (*models.Post, error) {
+	if postId == uuid.Nil {
+		return nil, fmt.Errorf("postId is empty")
+	}
+
+	post, err := p.postRepo.GetPost(ctx, postId)
+	return &post, err
+}

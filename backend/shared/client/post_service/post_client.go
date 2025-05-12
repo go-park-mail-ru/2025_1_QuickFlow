@@ -116,3 +116,15 @@ func (c *PostServiceClient) UnlikePost(ctx context.Context, postId, userId uuid.
 	})
 	return err
 }
+
+func (c *PostServiceClient) GetPost(ctx context.Context, postId uuid.UUID) (*models.Post, error) {
+	logger.Info(ctx, "Sending request to get post: %v", postId)
+	resp, err := c.client.GetPost(ctx, &pb.GetPostRequest{
+		PostId: postId.String(),
+	})
+	if err != nil {
+		logger.Error(ctx, "Failed to get post: %v", err)
+		return nil, err
+	}
+	return ProtoPostToModel(resp.Post)
+}

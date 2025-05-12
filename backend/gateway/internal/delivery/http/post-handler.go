@@ -24,16 +24,18 @@ type PostHandler struct {
 	postUseCase      PostService
 	profileUseCase   ProfileUseCase
 	communityService CommunityService
+	friendsUseCase   FriendsUseCase
 	policy           *bluemonday.Policy
 }
 
 // NewPostHandler creates new post handler.
 func NewPostHandler(postUseCase PostService, profileUseCase ProfileUseCase,
-	communityService CommunityService, policy *bluemonday.Policy) *PostHandler {
+	communityService CommunityService, friendsUseCase FriendsUseCase, policy *bluemonday.Policy) *PostHandler {
 	return &PostHandler{
 		postUseCase:      postUseCase,
 		profileUseCase:   profileUseCase,
 		communityService: communityService,
+		friendsUseCase:   friendsUseCase,
 		policy:           policy,
 	}
 }
@@ -378,4 +380,70 @@ func (p *PostHandler) UnlikePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (p *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	postIdStr := mux.Vars(r)["post_id"]
+	postId, err := uuid.Parse(postIdStr)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse post ID: %s", err.Error()))
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse post ID", http.StatusBadRequest))
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("User requested post %s", postId.String()))
+
+	post, err := p.postUseCase.GetPost(ctx, postId)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get post: %s", err.Error()))
+		http2.WriteJSONError(w, err)
+		return
+	}
+
+	var postOut forms.PostOut
+	postOut.FromPost(*post)
+	if post.CreatorType == models.PostUser {
+		publicAuthorInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, post.CreatorId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get public user info: %s", err.Error()))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		relation, err := p.friendsUseCase.GetUserRelation(ctx, post.CreatorId, post.CreatorId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		info := forms.PublicUserInfoToOut(publicAuthorInfo, relation)
+		postOut.Creator = &info
+	} else if post.CreatorType == models.PostCommunity {
+		community, err := p.communityService.GetCommunityById(ctx, post.CreatorId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get community: %s", err.Error()))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		publicAuthorInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, community.OwnerID)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get public user info: %s", err.Error()))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		info := forms.ToCommunityForm(*community, publicAuthorInfo)
+		postOut.Creator = &info
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.PostOut]{Payload: postOut})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode post: %s", err.Error()))
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode post", http.StatusInternalServerError))
+		return
+	}
 }
