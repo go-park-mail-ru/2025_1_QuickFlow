@@ -149,21 +149,20 @@ func (p *PostgresFriendsRepository) GetFriendsPublicInfo(ctx context.Context, us
 		friendsInfo = append(friendsInfo, friendInfo)
 	}
 
-	logger.Info(ctx, fmt.Sprintf("Trying to get total amount of friends for user: %s", userID))
+	logger.Info(ctx, fmt.Sprintf("Trying to get total amount of %s friends for user: %s", reqType, userID))
 
 	var friendsCount int
-	err = p.connPool.QueryRowContext(ctx, GetFriendsCountQuery, userID, models.RelationFriend, models.RelationFriend).Scan(&friendsCount)
+	err = p.connPool.QueryRowContext(ctx, GetFriendsCountQuery, userID, rel1, rel2).Scan(&friendsCount)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			logger.Info(ctx, fmt.Sprintf("user: %s has no friends", userID))
+			logger.Info(ctx, fmt.Sprintf("user: %s has no %s friends", reqType, userID))
 			return []models.FriendInfo{}, 0, nil
 		}
-		logger.Error(ctx, fmt.Sprintf("unable to get friends count: %v", err))
+		logger.Error(ctx, fmt.Sprintf("unable to get %s friends count: %v", reqType, err))
 		return []models.FriendInfo{}, 0, errors.New("unable to get friends info")
 	}
 
-	logger.Info(ctx, fmt.Sprintf("Amount of friends for user: %s is %d", userID, friendsCount))
-
+	logger.Info(ctx, fmt.Sprintf("Amount of %s friends for user: %s is %d", reqType, userID, friendsCount))
 	return friendsInfo, friendsCount, nil
 }
 
