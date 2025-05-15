@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 	"quickflow/gateway/internal/errors"
 	http2 "quickflow/gateway/utils/http"
 	"quickflow/gateway/utils/validation"

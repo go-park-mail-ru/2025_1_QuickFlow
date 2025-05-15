@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 	errors2 "quickflow/gateway/internal/errors"
 	"quickflow/gateway/pkg/sanitizer"
 	http2 "quickflow/gateway/utils/http"

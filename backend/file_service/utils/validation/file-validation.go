@@ -79,3 +79,12 @@ func (f *FileValidator) validateFileMimeType(mimeType string) error {
 	}
 	return qf_errors.ErrUnsupportedFileType
 }
+
+func (f *FileValidator) ValidateMedia(files []*models.File) error {
+	return nil // TODO: implement media validation
+}
+
+func (f *FileValidator) ValidateAudios(files []*models.File) error {
+	return nil // TODO: implement validation
+
+}

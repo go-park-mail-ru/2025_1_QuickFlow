@@ -73,7 +73,7 @@ func (m *MinioRepository) UploadFile(ctx context.Context, file *models.File) (st
 }
 
 // UploadManyFiles uploads multiple files and returns a map of public URLs.
-func (m *MinioRepository) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
+func (m *MinioRepository) UploadManyImages(ctx context.Context, files []*models.File) ([]string, error) {
 	urls := threadsafeslice.NewThreadSafeSliceN[string](len(files))
 
 	ctx, cancel := context.WithCancel(ctx)

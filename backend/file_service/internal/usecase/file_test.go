@@ -181,7 +181,7 @@ func TestUploadManyFiles(t *testing.T) {
 				mockRepo.EXPECT().UploadManyFiles(gomock.Any(), gomock.Any()).Return(nil, errors.New("upload failed")).Times(1)
 			},
 			expected:    nil,
-			expectedErr: errors.New("f.fileRepo.UploadManyFiles: upload failed"),
+			expectedErr: errors.New("f.fileRepo.UploadManyImages: upload failed"),
 		},
 	}
 
@@ -193,8 +193,8 @@ func TestUploadManyFiles(t *testing.T) {
 			// Create FileUseCase
 			uc := usecase.NewFileUseCase(mockRepo, mockValidator)
 
-			// Call UploadManyFiles
-			result, err := uc.UploadManyFiles(context.Background(), tt.files)
+			// Call UploadManyImages
+			result, err := uc.UploadManyImages(context.Background(), tt.files)
 
 			// Assert the result
 			assert.Equal(t, tt.expected, result)

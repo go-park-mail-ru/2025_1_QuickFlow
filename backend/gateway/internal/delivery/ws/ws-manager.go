@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 	"quickflow/shared/models"
 )
 

@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 	errors2 "quickflow/gateway/internal/errors"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"

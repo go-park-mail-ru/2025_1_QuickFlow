@@ -10,7 +10,7 @@ import (
 
 type FileUseCase interface {
 	UploadFile(ctx context.Context, fileModel *models.File) (string, error)
-	UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error)
+	UploadManyImages(ctx context.Context, files []*models.File) ([]string, error)
 	GetFileURL(ctx context.Context, filename string) (string, error)
 	DeleteFile(ctx context.Context, filename string) error
 }
@@ -39,7 +39,7 @@ func (s *FileServiceServer) UploadFile(ctx context.Context, req *pb.UploadFileRe
 }
 
 func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadManyFilesRequest) (*pb.UploadManyFilesResponse, error) {
-	logger.Info(ctx, "Received UploadManyFiles request")
+	logger.Info(ctx, "Received UploadManyImages request")
 
 	dtoFiles := dto.MapUploadManyFilesRequestToDTO(req)
 	files := make([]*models.File, len(dtoFiles.Files))
@@ -47,7 +47,7 @@ func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadM
 		files[i] = dto.MapDTOFileToModel(file)
 	}
 
-	fileURLs, err := s.fileUC.UploadManyFiles(ctx, files)
+	fileURLs, err := s.fileUC.UploadManyImages(ctx, files)
 	if err != nil {
 		logger.Error(ctx, "Failed to upload many files: ", err)
 		return nil, err

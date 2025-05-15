@@ -3,7 +3,7 @@ package sanitizer
 import (
 	"github.com/microcosm-cc/bluemonday"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 )
 
 func SanitizeLoginData(loginData *forms.AuthForm, policy *bluemonday.Policy) {

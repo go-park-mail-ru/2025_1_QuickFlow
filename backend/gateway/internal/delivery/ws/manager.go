@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"quickflow/gateway/internal/delivery/forms"
 	http2 "quickflow/gateway/internal/delivery/http"
+	"quickflow/gateway/internal/delivery/http/forms"
 	forms2 "quickflow/gateway/internal/delivery/ws/forms"
 	"quickflow/gateway/utils/validation"
 	"quickflow/shared/logger"

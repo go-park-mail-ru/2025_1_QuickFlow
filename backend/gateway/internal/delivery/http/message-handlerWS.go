@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/microcosm-cc/bluemonday"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 	forms2 "quickflow/gateway/internal/delivery/ws/forms"
 	errors2 "quickflow/gateway/internal/errors"
 	http2 "quickflow/gateway/utils/http"

@@ -10,7 +10,7 @@ import (
 
 type FileRepository interface {
 	UploadFile(ctx context.Context, file *models.File) (string, error)
-	UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error)
+	UploadManyImages(ctx context.Context, files []*models.File) ([]string, error)
 	GetFileURL(ctx context.Context, filename string) (string, error)
 	DeleteFile(ctx context.Context, filename string) error
 }
@@ -18,6 +18,8 @@ type FileRepository interface {
 type FileValidator interface {
 	ValidateFile(file *models.File) error
 	ValidateFiles(files []*models.File) error
+	ValidateMedia(files []*models.File) error
+	ValidateAudios(files []*models.File) error
 	ValidateFileName(name string) error
 }
 type FileUseCase struct {
@@ -50,6 +52,20 @@ func (f *FileUseCase) UploadFile(ctx context.Context, fileModel *models.File) (s
 	return fileUrl, nil
 }
 
+func (f *FileUseCase) UploadManyMedia(ctx context.Context, files []*models.File) ([]string, error) {
+	// validation
+	err := f.validator.ValidateMedia(files)
+	if err != nil {
+		return nil, fmt.Errorf("validation.ValidateFiles: %w", err)
+	}
+
+	fileUrls, err := f.fileRepo.UploadManyImages(ctx, files)
+	if err != nil {
+		return nil, fmt.Errorf("f.fileRepo.UploadManyImages: %w", err)
+	}
+	return fileUrls, nil
+}
+
 func (f *FileUseCase) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
 	// validation
 	err := f.validator.ValidateFiles(files)
@@ -57,9 +73,23 @@ func (f *FileUseCase) UploadManyFiles(ctx context.Context, files []*models.File)
 		return nil, fmt.Errorf("validation.ValidateFiles: %w", err)
 	}
 
-	fileUrls, err := f.fileRepo.UploadManyFiles(ctx, files)
+	fileUrls, err := f.fileRepo.UploadManyImages(ctx, files)
 	if err != nil {
 		return nil, fmt.Errorf("f.fileRepo.UploadManyFiles: %w", err)
+	}
+	return fileUrls, nil
+}
+
+func (f *FileUseCase) UploadManyAudios(ctx context.Context, files []*models.File) ([]string, error) {
+	// validation
+	err := f.validator.ValidateAudios(files)
+	if err != nil {
+		return nil, fmt.Errorf("validation.ValidateFiles: %w", err)
+	}
+
+	fileUrls, err := f.fileRepo.UploadManyImages(ctx, files)
+	if err != nil {
+		return nil, fmt.Errorf("f.fileRepo.UploadManyAudios: %w", err)
 	}
 	return fileUrls, nil
 }

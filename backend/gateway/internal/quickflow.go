@@ -20,6 +20,7 @@ import (
 	"quickflow/metrics"
 	"quickflow/shared/client/community_service"
 	"quickflow/shared/client/feedback_service"
+	"quickflow/shared/client/file_service"
 	friendsService "quickflow/shared/client/friends_service"
 	"quickflow/shared/client/messenger_service"
 	postService "quickflow/shared/client/post_service"
@@ -34,6 +35,13 @@ func Run(cfg *config.Config) error {
 	}
 
 	metrics := metrics.NewMetrics("QuickFlow")
+
+	grpcConnFileService, err := grpc.NewClient(
+		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+	)
 
 	grpcConnPostService, err := grpc.NewClient(
 		get_env.GetServiceAddr(micro_addr.DefaultPostServiceAddrEnv, micro_addr.DefaultPostServicePort),
@@ -82,6 +90,7 @@ func Run(cfg *config.Config) error {
 	)
 
 	// services
+	fileService := file_service.NewFileClient(grpcConnFileService)
 	UserService := userService.NewUserServiceClient(grpcConnUserService)
 	profileService := userService.NewProfileClient(grpcConnUserService)
 	PostService := postService.NewPostServiceClient(grpcConnPostService)
@@ -103,6 +112,7 @@ func Run(cfg *config.Config) error {
 	newFriendsHandler := qfhttp.NewFriendsHandler(FriendsService, connManager)
 	newSearchHandler := qfhttp.NewSearchHandler(UserService, communityService, profileService)
 	newCommunityHandler := qfhttp.NewCommunityHandler(communityService, profileService, connManager, UserService, sanitizerPolicy)
+	newFileHandler := qfhttp.NewFileHandler(fileService, sanitizerPolicy)
 
 	CSRFHandler := qfhttp.NewCSRFHandler()
 	FeedbackHandler := qfhttp.NewFeedbackHandler(feedbackService, profileService, sanitizerPolicy)
@@ -165,6 +175,7 @@ func Run(cfg *config.Config) error {
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/join", newCommunityHandler.JoinCommunity).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/leave", newCommunityHandler.LeaveCommunity).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/members/{user_id:{id:[0-9a-fA-F-]{36}}", newCommunityHandler.ChangeUserRole).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/upload", newFileHandler.AddFiles).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(UserService))

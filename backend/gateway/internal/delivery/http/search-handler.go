@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"quickflow/gateway/internal/delivery/forms"
+	"quickflow/gateway/internal/delivery/http/forms"
 	"quickflow/gateway/internal/errors"
 	http2 "quickflow/gateway/utils/http"
 	"quickflow/shared/logger"
