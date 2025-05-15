@@ -43,6 +43,16 @@ func ErrorInterceptor(
 
 	resp, err = handler(ctx, req)
 
+	// Если ошибка уже содержит ErrorInfo — просто пробрасываем её
+	if st, ok := status.FromError(err); ok {
+		for _, detail := range st.Details() {
+			if _, ok := detail.(*errdetails.ErrorInfo); ok {
+				// Пробрасываем error как есть
+				return nil, err
+			}
+		}
+	}
+
 	if err != nil {
 		switch {
 		case errors.Is(err, community_errors.ErrorCommunityNameTooShort):

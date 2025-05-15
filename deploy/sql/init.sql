@@ -234,3 +234,20 @@ CREATE TRIGGER validate_post_owner
     FOR EACH ROW
 EXECUTE FUNCTION check_owner_exists();
 
+CREATE OR REPLACE FUNCTION delete_posts_by_owner()
+    RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM post
+    WHERE creator_id = OLD.id AND (
+        (TG_TABLE_NAME = 'user' AND creator_type = 'user') OR
+        (TG_TABLE_NAME = 'community' AND creator_type = 'community')
+        );
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_delete_user_posts
+    AFTER DELETE ON "user"
+    FOR EACH ROW
+EXECUTE FUNCTION delete_posts_by_owner();
+

@@ -46,6 +46,16 @@ func ErrorInterceptor(
 		return resp, nil
 	}
 
+	// Если ошибка уже содержит ErrorInfo — просто пробрасываем её
+	if st, ok := status.FromError(err); ok {
+		for _, detail := range st.Details() {
+			if _, ok := detail.(*errdetails.ErrorInfo); ok {
+				// Пробрасываем error как есть
+				return nil, err
+			}
+		}
+	}
+
 	switch {
 	case errors.Is(err, messenger_errors.ErrNotFound):
 		return nil, statusWithDetails(codes.NotFound, err.Error(), "NOT_FOUND")
