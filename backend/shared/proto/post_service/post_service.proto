@@ -105,6 +105,7 @@ message UnlikePostResponse {
 
 message GetPostRequest {
   string post_id = 1;
+  string user_id = 2;
 }
 
 message GetPostResponse {

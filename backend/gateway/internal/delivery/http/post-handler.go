@@ -392,9 +392,16 @@ func (p *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while getting post")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
+		return
+	}
+
 	logger.Info(ctx, fmt.Sprintf("User requested post %s", postId.String()))
 
-	post, err := p.postUseCase.GetPost(ctx, postId)
+	post, err := p.postUseCase.GetPost(ctx, postId, user.Id)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to get post: %s", err.Error()))
 		http2.WriteJSONError(w, err)

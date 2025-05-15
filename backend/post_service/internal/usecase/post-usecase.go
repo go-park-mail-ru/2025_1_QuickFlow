@@ -300,11 +300,22 @@ func (p *PostUseCase) UnlikePost(ctx context.Context, postId uuid.UUID, userId u
 	return nil
 }
 
-func (p *PostUseCase) GetPost(ctx context.Context, postId uuid.UUID) (*models.Post, error) {
+func (p *PostUseCase) GetPost(ctx context.Context, postId, userId uuid.UUID) (*models.Post, error) {
 	if postId == uuid.Nil {
 		return nil, fmt.Errorf("postId is empty")
 	}
 
 	post, err := p.postRepo.GetPost(ctx, postId)
+	if err != nil {
+		if errors.Is(err, post_errors.ErrPostNotFound) {
+			return nil, post_errors.ErrPostNotFound
+		}
+		return nil, fmt.Errorf("p.postRepo.GetPost: %w", err)
+	}
+
+	post.IsLiked, err = p.postRepo.CheckIfPostLiked(ctx, postId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("p.postRepo.CheckIfPostLiked: %w", err)
+	}
 	return &post, err
 }
