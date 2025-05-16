@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/gorilla/mux"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"quickflow/config"
-	micro_addr "quickflow/config/micro-addr"
+	addr "quickflow/config/micro-addr"
 	qfhttp "quickflow/gateway/internal/delivery/http"
 	"quickflow/gateway/internal/delivery/http/middleware"
 	"quickflow/gateway/internal/delivery/ws"
@@ -26,7 +25,7 @@ import (
 	postService "quickflow/shared/client/post_service"
 	userService "quickflow/shared/client/user_service"
 	"quickflow/shared/interceptors"
-	get_env "quickflow/utils/get-env"
+	getEnv "quickflow/utils/get-env"
 )
 
 func Run(cfg *config.Config) error {
@@ -37,56 +36,56 @@ func Run(cfg *config.Config) error {
 	metrics := metrics.NewMetrics("QuickFlow")
 
 	grpcConnFileService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
+		getEnv.GetServiceAddr(addr.DefaultFileServiceAddrEnv, addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 
 	grpcConnPostService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultPostServiceAddrEnv, micro_addr.DefaultPostServicePort),
+		getEnv.GetServiceAddr(addr.DefaultPostServiceAddrEnv, addr.DefaultPostServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to post service: %w", err)
 	}
 
 	grpcConnUserService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultUserServiceAddrEnv, micro_addr.DefaultUserServicePort),
+		getEnv.GetServiceAddr(addr.DefaultUserServiceAddrEnv, addr.DefaultUserServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to connect to user service: %w", err)
 	}
 
 	grpcConnMessengerService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultMessengerServiceAddrEnv, micro_addr.DefaultMessengerServicePort),
+		getEnv.GetServiceAddr(addr.DefaultMessengerServiceAddrEnv, addr.DefaultMessengerServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 
 	grpcConnFeedbackService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultFeedbackServiceAddrEnv, micro_addr.DefaultFeedbackServicePort),
+		getEnv.GetServiceAddr(addr.DefaultFeedbackServiceAddrEnv, addr.DefaultFeedbackServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 
 	grpcConnFriendsService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultFriendsServiceAddrEnv, micro_addr.DefaultFriendsServicePort),
+		getEnv.GetServiceAddr(addr.DefaultFriendsServiceAddrEnv, addr.DefaultFriendsServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 
 	grcpConnCommunityService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultCommunityServiceAddrEnv, micro_addr.DefaultCommunityServicePort),
+		getEnv.GetServiceAddr(addr.DefaultCommunityServiceAddrEnv, addr.DefaultCommunityServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 
 	// services
@@ -145,7 +144,7 @@ func Run(cfg *config.Config) error {
 
 	r.HandleFunc("/hello", newAuthHandler.Greet).Methods(http.MethodGet)
 	r.HandleFunc("/profiles/{username}", newProfileHandler.GetProfile).Methods(http.MethodGet)
-	r.HandleFunc("/metrics", promhttp.Handler().ServeHTTP).Methods(http.MethodGet)
+	r.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
 
 	apiPostRouter := r.PathPrefix("/").Subrouter()
 	apiPostRouter.Use(middleware.ContentTypeMiddleware("application/json", "multipart/form-data"))

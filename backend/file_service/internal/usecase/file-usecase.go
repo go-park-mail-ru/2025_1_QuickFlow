@@ -27,6 +27,11 @@ type FileUseCase struct {
 	validator FileValidator
 }
 
+func (f *FileUseCase) UploadManyImages(ctx context.Context, files []*models.File) ([]string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewFileUseCase creates new file use case.
 func NewFileUseCase(fileRepo FileRepository, validator FileValidator) *FileUseCase {
 	return &FileUseCase{

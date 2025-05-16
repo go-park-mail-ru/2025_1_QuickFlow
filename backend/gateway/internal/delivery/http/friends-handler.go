@@ -71,6 +71,14 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 		reqType = "all"
 	}
 
+	if limit == "" {
+		limit = "10"
+	}
+
+	if offset == "" {
+		offset = "0"
+	}
+
 	if !validation.ValidateFriendReqType(reqType) {
 		logger.Error(ctx, fmt.Sprintf("Invalid request type: %s", reqType))
 		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Invalid request type", http.StatusBadRequest))
@@ -81,7 +89,7 @@ func (f *FriendHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 
 	friendsInfo, friendsCount, err := f.FriendsUseCase.GetFriendsInfo(ctx, targetUserID, limit, offset, reqType)
 	if err != nil {
-		err := errors2.FromGRPCError(err)
+		err = errors2.FromGRPCError(err)
 		logger.Error(ctx, fmt.Sprintf("Unable to get list of friends for user %s: %s", user.Username, err.Error()))
 		http2.WriteJSONError(w, err)
 		return

@@ -1,39 +1,44 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	micro_addr "quickflow/config/micro-addr"
-	postgres_config "quickflow/config/postgres"
+	addr "quickflow/config/micro-addr"
+	postgresConfig "quickflow/config/postgres"
 	grpc3 "quickflow/feedback_service/internal/delivery/grpc"
 	"quickflow/feedback_service/internal/delivery/interceptor"
 	postgres2 "quickflow/feedback_service/internal/repository/postgres"
 	"quickflow/feedback_service/internal/usecase"
+	"quickflow/metrics"
 	userclient "quickflow/shared/client/user_service"
 	"quickflow/shared/interceptors"
+	"quickflow/shared/logger"
 	proto "quickflow/shared/proto/feedback_service"
-	get_env "quickflow/utils/get-env"
+	getEnv "quickflow/utils/get-env"
 )
 
 func main() {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", micro_addr.DefaultFeedbackServicePort))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", addr.DefaultFeedbackServicePort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	defer listener.Close()
 
 	grpcConnUserService, err := grpc.NewClient(
-		get_env.GetServiceAddr(micro_addr.DefaultFileServiceAddrEnv, micro_addr.DefaultFileServicePort),
+		getEnv.GetServiceAddr(addr.DefaultFileServiceAddrEnv, addr.DefaultFileServicePort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(interceptors.RequestIDClientInterceptor()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(micro_addr.MaxMessageSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(addr.MaxMessageSize)),
 	)
 
 	if err != nil {
@@ -41,7 +46,7 @@ func main() {
 	}
 	defer grpcConnUserService.Close()
 
-	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().GetURL())
+	db, err := sql.Open("pgx", postgresConfig.NewPostgresConfig().GetURL())
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
@@ -50,13 +55,25 @@ func main() {
 	feedbackRepository := postgres2.NewFeedbackRepository(db)
 	feedbackUseCase := usecase.NewFeedBackUseCase(feedbackRepository)
 
+	feedbackMetrics := metrics.NewMetrics("QuickFlow")
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		metricsPort := addr.DefaultFeedbackServicePort + 1000
+		logger.Info(context.Background(), fmt.Sprintf("Metrics server is running on :%d/metrics", metricsPort))
+		if err = http.ListenAndServe(fmt.Sprintf(":%d", metricsPort), nil); err != nil {
+			log.Fatalf("failed to start metrics HTTP server: %v", err)
+		}
+	}()
+
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptors.RequestIDServerInterceptor(),
 			interceptor.ErrorInterceptor,
+			interceptors.MetricsInterceptor(addr.DefaultFeedbackServiceName, feedbackMetrics),
 		),
-		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
-		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
+		grpc.MaxRecvMsgSize(addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(addr.MaxMessageSize))
 	proto.RegisterFeedbackServiceServer(server, grpc3.NewFeedbackServiceServer(feedbackUseCase, profileService))
 	log.Printf("Server is listening on %s", listener.Addr().String())
 

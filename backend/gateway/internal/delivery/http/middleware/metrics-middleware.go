@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	addr "quickflow/config/micro-addr"
 	"quickflow/metrics"
 )
 
@@ -88,14 +89,13 @@ func MetricsMiddleware(metrics *metrics.Metrics) func(http.Handler) http.Handler
 			next.ServeHTTP(rec, r)
 
 			duration := time.Since(start).Seconds()
-			method := r.Method
 			status := strconv.Itoa(rec.statusCode)
 
-			metrics.Hits.WithLabelValues(method, handlerName, status).Inc()
-			metrics.Timings.WithLabelValues(method, handlerName).Observe(duration)
+			metrics.Hits.WithLabelValues(addr.DefaultGatewayServiceName, handlerName, status).Inc()
+			metrics.Timings.WithLabelValues(addr.DefaultGatewayServiceName, handlerName).Observe(duration)
 
 			if rec.statusCode >= 400 {
-				metrics.ErrorCounter.WithLabelValues(method, handlerName, status).Inc()
+				metrics.ErrorCounter.WithLabelValues(addr.DefaultGatewayServiceName, handlerName, status).Inc()
 			}
 		})
 	}

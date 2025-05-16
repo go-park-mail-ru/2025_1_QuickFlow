@@ -1,24 +1,29 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
-	micro_addr "quickflow/config/micro-addr"
-	minio_config "quickflow/file_service/config/minio"
-	validation_config "quickflow/file_service/config/validation"
+	addr "quickflow/config/micro-addr"
+	minioConfig "quickflow/file_service/config/minio"
+	validationConfig "quickflow/file_service/config/validation"
 	grpc2 "quickflow/file_service/internal/delivery/grpc"
 	"quickflow/file_service/internal/delivery/grpc/interceptor"
 	"quickflow/file_service/internal/repository/minio"
 	"quickflow/file_service/internal/usecase"
 	"quickflow/file_service/utils/validation"
+	"quickflow/metrics"
 	"quickflow/shared/interceptors"
+	"quickflow/shared/logger"
 	proto "quickflow/shared/proto/file_service"
 )
 
@@ -52,11 +57,11 @@ func main() {
 	}
 
 	// Чтение конфигов
-	minioCfg, err := minio_config.ParseMinio(minioPath)
+	minioCfg, err := minioConfig.ParseMinio(minioPath)
 	if err != nil {
 		log.Fatalf("failed to parse minio config: %v", err)
 	}
-	validationCfg, err := validation_config.NewValidationConfig(validationPath)
+	validationCfg, err := validationConfig.NewValidationConfig(validationPath)
 	if err != nil {
 		log.Fatalf("failed to parse validation config: %v", err)
 	}
@@ -69,8 +74,19 @@ func main() {
 	}
 	fileUseCase := usecase.NewFileUseCase(fileRepo, fileValidator)
 
+	fileMetrics := metrics.NewMetrics("QuickFlow")
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		metricsPort := addr.DefaultFileServicePort + 1000
+		logger.Info(context.Background(), fmt.Sprintf("Metrics server is running on :%d/metrics", metricsPort))
+		if err = http.ListenAndServe(fmt.Sprintf(":%d", metricsPort), nil); err != nil {
+			log.Fatalf("failed to start metrics HTTP server: %v", err)
+		}
+	}()
+
 	// gRPC
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", micro_addr.DefaultFileServicePort))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", addr.DefaultFileServicePort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -78,9 +94,11 @@ func main() {
 
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		interceptor.ErrorInterceptor,
-		interceptors.RequestIDServerInterceptor()),
-		grpc.MaxRecvMsgSize(micro_addr.MaxMessageSize),
-		grpc.MaxSendMsgSize(micro_addr.MaxMessageSize))
+		interceptors.RequestIDServerInterceptor(),
+		interceptors.MetricsInterceptor(addr.DefaultFileServiceName, fileMetrics),
+	),
+		grpc.MaxRecvMsgSize(addr.MaxMessageSize),
+		grpc.MaxSendMsgSize(addr.MaxMessageSize))
 	proto.RegisterFileServiceServer(server, grpc2.NewFileServiceServer(fileUseCase))
 
 	log.Printf("Server is listening on %s", listener.Addr().String())

@@ -18,7 +18,7 @@ func NewMetrics(namespace string) *Metrics {
 				Name:      "Hits",
 				Help:      "Total number of HTTP requests",
 			},
-			[]string{"method", "handler name", "status"},
+			[]string{"service", "handler_name", "status"},
 		),
 		Timings: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -27,7 +27,7 @@ func NewMetrics(namespace string) *Metrics {
 				Help:      "HTTP Request duration",
 				Buckets:   []float64{0.1, 0.5, 1, 2.5, 5, 10},
 			},
-			[]string{"method", "handler name"},
+			[]string{"service", "handler_name"},
 		),
 		ErrorCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -35,7 +35,7 @@ func NewMetrics(namespace string) *Metrics {
 				Name:      "Errors",
 				Help:      "HTTP Errors Number",
 			},
-			[]string{"method", "handler name", "status"},
+			[]string{"service", "handler_name", "status"},
 		),
 	}
 
