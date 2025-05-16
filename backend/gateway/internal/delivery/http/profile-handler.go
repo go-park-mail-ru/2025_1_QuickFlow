@@ -250,3 +250,76 @@ func (p *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully updated", user.Username))
 }
+
+func (p *ProfileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
+	// user whose profile is requested
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, fmt.Sprintf("User not found in context"))
+		http.NotFound(w, r)
+		return
+	}
+	logger.Info(ctx, fmt.Sprintf("Request profile of himself %s", user.Username))
+
+	profileInfo, err := p.profileUC.GetProfileByUsername(ctx, user.Username)
+	if err != nil {
+		err := errors2.FromGRPCError(err)
+		logger.Error(ctx, fmt.Sprintf("Unexpected error: %s", err.Error()))
+		http2.WriteJSONError(w, err)
+		return
+	}
+	logger.Info(ctx, fmt.Sprintf("Profile of %s was successfully fetched", user.Username))
+
+	_, isOnline := p.connService.IsConnected(profileInfo.UserId)
+
+	var relation = models.RelationNone
+	var chatId *uuid.UUID
+	if session, err := r.Cookie("session"); err == nil {
+		// parse session
+		sessionUuid, err := uuid.Parse(session.Value)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to parse session: %s", err.Error()))
+			http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse session", http.StatusBadRequest))
+			return
+		}
+
+		// lookup user by session
+		user, err := p.authUseCase.LookupUserSession(r.Context(), models.Session{SessionId: sessionUuid})
+		if err != nil {
+			err := errors2.FromGRPCError(err)
+			logger.Error(ctx, fmt.Sprintf("Failed to lookup user by session: %s", err.Error()))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		rel, err := p.friendsUseCase.GetUserRelation(ctx, user.Id, profileInfo.UserId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
+			http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user relation", http.StatusInternalServerError))
+			return
+		}
+		relation = rel
+
+		// get chat id
+		chat, err := p.chatUseCase.GetPrivateChat(ctx, user.Id, profileInfo.UserId)
+		appErr := errors2.FromGRPCError(err)
+		if err != nil && appErr.HTTPStatus != http.StatusNotFound {
+			logger.Error(ctx, fmt.Sprintf("Failed to get chat id: %s", appErr.Error()))
+			http2.WriteJSONError(w, appErr)
+			return
+		} else {
+			if err == nil {
+				chatId = &chat.ID
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(forms.ModelToForm(profileInfo, user.Username, isOnline, relation, chatId))
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode profile: %s", err.Error()))
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode profile", http.StatusInternalServerError))
+		return
+	}
+}

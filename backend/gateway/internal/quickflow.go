@@ -195,6 +195,7 @@ func Run(cfg *config.Config) error {
 	protectedGet.HandleFunc("/profiles/{username}/controlled", newCommunityHandler.GetControlledCommunities).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/communities/{name}/posts", newFeedHandler.FetchCommunityPosts).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/profiles/my", newProfileHandler.GetMyProfile).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.GetPost).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
