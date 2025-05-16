@@ -261,6 +261,7 @@ func (p *ProfileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Info(ctx, fmt.Sprintf("Request profile of himself %s", user.Username))
+	logger.Info(ctx, fmt.Sprintf("User: %v", user))
 
 	profileInfo, err := p.profileUC.GetProfileByUsername(ctx, user.Username)
 	if err != nil {
@@ -296,7 +297,7 @@ func (p *ProfileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
 		rel, err := p.friendsUseCase.GetUserRelation(ctx, user.Id, profileInfo.UserId)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Failed to get user relation: %s", err.Error()))
-			http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user relation", http.StatusInternalServerError))
+			http2.WriteJSONError(w, err)
 			return
 		}
 		relation = rel
