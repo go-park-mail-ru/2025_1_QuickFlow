@@ -43,7 +43,7 @@ func main() {
 	}
 	defer grpcConn.Close()
 
-	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().GetURL())
+	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().DatabaseUserUrl)
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}

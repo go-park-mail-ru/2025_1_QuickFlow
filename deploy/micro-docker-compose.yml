@@ -179,9 +179,6 @@ services:
     image: postgres:15
     container_name: postgres
     restart: always
-    build:
-      context: ../db
-      dockerfile: Dockerfile
     environment:
       POSTGRES_USER: quickflow_admin
       POSTGRES_PASSWORD: SuperSecurePassword1
@@ -190,7 +187,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      #- ../deploy/sql:/docker-entrypoint-initdb.d
+      - ../deploy/sql:/docker-entrypoint-initdb.d
     env_file:
       - .env
 

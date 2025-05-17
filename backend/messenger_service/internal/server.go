@@ -54,7 +54,7 @@ func main() {
 	}
 	defer grpcConnFileService.Close()
 
-	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().GetURL())
+	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().DatabaseMessengerUrl)
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}

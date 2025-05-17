@@ -209,7 +209,6 @@ CREATE TRIGGER trg_update_post_like_count
     FOR EACH ROW
 EXECUTE FUNCTION update_post_like_count();
 
-
 CREATE OR REPLACE FUNCTION check_owner_exists()
     RETURNS TRIGGER AS $$
 BEGIN
@@ -227,7 +226,7 @@ BEGIN
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER validate_post_owner
     BEFORE INSERT OR UPDATE ON post

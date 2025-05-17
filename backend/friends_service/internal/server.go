@@ -26,7 +26,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().GetURL())
+	db, err := sql.Open("pgx", postgres_config.NewPostgresConfig().DatabaseFriendsUrl)
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
