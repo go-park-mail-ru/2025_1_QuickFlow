@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	"quickflow/file_service/internal/delivery/grpc/dto"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
@@ -10,7 +11,7 @@ import (
 
 type FileUseCase interface {
 	UploadFile(ctx context.Context, fileModel *models.File) (string, error)
-	UploadManyImages(ctx context.Context, files []*models.File) ([]string, error)
+	UploadManyMedia(ctx context.Context, files []*models.File) ([]string, error)
 	GetFileURL(ctx context.Context, filename string) (string, error)
 	DeleteFile(ctx context.Context, filename string) error
 }
@@ -47,7 +48,7 @@ func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadM
 		files[i] = dto.MapDTOFileToModel(file)
 	}
 
-	fileURLs, err := s.fileUC.UploadManyImages(ctx, files)
+	fileURLs, err := s.fileUC.UploadManyMedia(ctx, files)
 	if err != nil {
 		logger.Error(ctx, "Failed to upload many files: ", err)
 		return nil, err

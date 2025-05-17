@@ -169,5 +169,5 @@ var FileService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "community_service.proto",
+	Metadata: "file_service.proto",
 }
