@@ -20,9 +20,6 @@ const _ = grpc.SupportPackageIsVersion7
 type FeedbackServiceClient interface {
 	SaveFeedback(ctx context.Context, in *SaveFeedbackRequest, opts ...grpc.CallOption) (*SaveFeedbackResponse, error)
 	GetAllFeedbackType(ctx context.Context, in *GetAllFeedbackTypeRequest, opts ...grpc.CallOption) (*GetAllFeedbackTypeResponse, error)
-	GetNumMessagesSent(ctx context.Context, in *GetNumMessagesSentRequest, opts ...grpc.CallOption) (*GetNumMessagesSentResponse, error)
-	GetNumPostsCreated(ctx context.Context, in *GetNumPostsCreatedRequest, opts ...grpc.CallOption) (*GetNumPostsCreatedResponse, error)
-	GetNumProfileChanges(ctx context.Context, in *GetNumProfileChangesRequest, opts ...grpc.CallOption) (*GetNumProfileChangesResponse, error)
 }
 
 type feedbackServiceClient struct {
@@ -51,42 +48,12 @@ func (c *feedbackServiceClient) GetAllFeedbackType(ctx context.Context, in *GetA
 	return out, nil
 }
 
-func (c *feedbackServiceClient) GetNumMessagesSent(ctx context.Context, in *GetNumMessagesSentRequest, opts ...grpc.CallOption) (*GetNumMessagesSentResponse, error) {
-	out := new(GetNumMessagesSentResponse)
-	err := c.cc.Invoke(ctx, "/file_service.FeedbackService/GetNumMessagesSent", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *feedbackServiceClient) GetNumPostsCreated(ctx context.Context, in *GetNumPostsCreatedRequest, opts ...grpc.CallOption) (*GetNumPostsCreatedResponse, error) {
-	out := new(GetNumPostsCreatedResponse)
-	err := c.cc.Invoke(ctx, "/file_service.FeedbackService/GetNumPostsCreated", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *feedbackServiceClient) GetNumProfileChanges(ctx context.Context, in *GetNumProfileChangesRequest, opts ...grpc.CallOption) (*GetNumProfileChangesResponse, error) {
-	out := new(GetNumProfileChangesResponse)
-	err := c.cc.Invoke(ctx, "/file_service.FeedbackService/GetNumProfileChanges", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // FeedbackServiceServer is the server API for FeedbackService service.
 // All implementations must embed UnimplementedFeedbackServiceServer
 // for forward compatibility
 type FeedbackServiceServer interface {
 	SaveFeedback(context.Context, *SaveFeedbackRequest) (*SaveFeedbackResponse, error)
 	GetAllFeedbackType(context.Context, *GetAllFeedbackTypeRequest) (*GetAllFeedbackTypeResponse, error)
-	GetNumMessagesSent(context.Context, *GetNumMessagesSentRequest) (*GetNumMessagesSentResponse, error)
-	GetNumPostsCreated(context.Context, *GetNumPostsCreatedRequest) (*GetNumPostsCreatedResponse, error)
-	GetNumProfileChanges(context.Context, *GetNumProfileChangesRequest) (*GetNumProfileChangesResponse, error)
 	mustEmbedUnimplementedFeedbackServiceServer()
 }
 
@@ -99,15 +66,6 @@ func (UnimplementedFeedbackServiceServer) SaveFeedback(context.Context, *SaveFee
 }
 func (UnimplementedFeedbackServiceServer) GetAllFeedbackType(context.Context, *GetAllFeedbackTypeRequest) (*GetAllFeedbackTypeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllFeedbackType not implemented")
-}
-func (UnimplementedFeedbackServiceServer) GetNumMessagesSent(context.Context, *GetNumMessagesSentRequest) (*GetNumMessagesSentResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNumMessagesSent not implemented")
-}
-func (UnimplementedFeedbackServiceServer) GetNumPostsCreated(context.Context, *GetNumPostsCreatedRequest) (*GetNumPostsCreatedResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNumPostsCreated not implemented")
-}
-func (UnimplementedFeedbackServiceServer) GetNumProfileChanges(context.Context, *GetNumProfileChangesRequest) (*GetNumProfileChangesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNumProfileChanges not implemented")
 }
 func (UnimplementedFeedbackServiceServer) mustEmbedUnimplementedFeedbackServiceServer() {}
 
@@ -158,60 +116,6 @@ func _FeedbackService_GetAllFeedbackType_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FeedbackService_GetNumMessagesSent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNumMessagesSentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FeedbackServiceServer).GetNumMessagesSent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/file_service.FeedbackService/GetNumMessagesSent",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedbackServiceServer).GetNumMessagesSent(ctx, req.(*GetNumMessagesSentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FeedbackService_GetNumPostsCreated_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNumPostsCreatedRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FeedbackServiceServer).GetNumPostsCreated(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/file_service.FeedbackService/GetNumPostsCreated",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedbackServiceServer).GetNumPostsCreated(ctx, req.(*GetNumPostsCreatedRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FeedbackService_GetNumProfileChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNumProfileChangesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FeedbackServiceServer).GetNumProfileChanges(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/file_service.FeedbackService/GetNumProfileChanges",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedbackServiceServer).GetNumProfileChanges(ctx, req.(*GetNumProfileChangesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // FeedbackService_ServiceDesc is the grpc.ServiceDesc for FeedbackService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -227,19 +131,7 @@ var FeedbackService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetAllFeedbackType",
 			Handler:    _FeedbackService_GetAllFeedbackType_Handler,
 		},
-		{
-			MethodName: "GetNumMessagesSent",
-			Handler:    _FeedbackService_GetNumMessagesSent_Handler,
-		},
-		{
-			MethodName: "GetNumPostsCreated",
-			Handler:    _FeedbackService_GetNumPostsCreated_Handler,
-		},
-		{
-			MethodName: "GetNumProfileChanges",
-			Handler:    _FeedbackService_GetNumProfileChanges_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "community_service.proto",
+	Metadata: "feedback_service.proto",
 }

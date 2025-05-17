@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -64,40 +63,4 @@ func (c *Client) GetAllFeedbackType(ctx context.Context, feedbackType models.Fee
 	}
 
 	return result, nil
-}
-
-func (c *Client) GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error) {
-	logger.Info(ctx, "Trying to get amount of messages sent for user: %s", userId.String())
-	resp, err := c.client.GetNumMessagesSent(ctx, &pb.GetNumMessagesSentRequest{
-		UserId: userId.String(),
-	})
-	if err != nil {
-		logger.Error(ctx, "Failed to get number of messages sent: %v", err)
-		return 0, err
-	}
-	return resp.NumMessagesSent, nil
-}
-
-func (c *Client) GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error) {
-	logger.Info(ctx, "Trying to get amount of posts created for user: %s", userId.String())
-	resp, err := c.client.GetNumPostsCreated(ctx, &pb.GetNumPostsCreatedRequest{
-		UserId: userId.String(),
-	})
-	if err != nil {
-		logger.Error(ctx, "Failed to get number of posts created: %v", err)
-		return 0, err
-	}
-	return resp.NumPostsCreated, nil
-}
-
-func (c *Client) GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error) {
-	logger.Info(ctx, "Trying to get amount of profile changes for user: %s", userId.String())
-	resp, err := c.client.GetNumProfileChanges(ctx, &pb.GetNumProfileChangesRequest{
-		UserId: userId.String(),
-	})
-	if err != nil {
-		logger.Error(ctx, "Failed to get number of profile changes: %v", err)
-		return 0, err
-	}
-	return resp.NumProfileChanges, nil
 }

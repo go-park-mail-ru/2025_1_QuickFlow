@@ -19,9 +19,6 @@ import (
 type FeedbackService interface {
 	SaveFeedback(ctx context.Context, feedback *models.Feedback) error
 	GetAllFeedbackType(ctx context.Context, feedbackType models.FeedbackType, ts time.Time, count int) ([]models.Feedback, error)
-	GetNumMessagesSent(ctx context.Context, userId uuid.UUID) (int64, error)
-	GetNumPostsCreated(ctx context.Context, userId uuid.UUID) (int64, error)
-	GetNumProfileChanges(ctx context.Context, userId uuid.UUID) (int64, error)
 }
 
 type ProfileService interface {
@@ -86,63 +83,6 @@ func (s *FeedBackService) GetAllFeedbackType(ctx context.Context, req *pb.GetAll
 
 	logger.Info(ctx, "Successfully fetched feedbacks")
 	return &pb.GetAllFeedbackTypeResponse{Feedback: protoFeedbacks}, nil
-}
-
-func (s *FeedBackService) GetNumMessagesSent(ctx context.Context, req *pb.GetNumMessagesSentRequest) (*pb.GetNumMessagesSentResponse, error) {
-	logger.Info(ctx, "Received GetNumMessagesSent request")
-
-	userId, err := uuid.Parse(req.UserId)
-	if err != nil {
-		logger.Error(ctx, "Invalid user ID: ", err)
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	numMessages, err := s.feedbackService.GetNumMessagesSent(ctx, userId)
-	if err != nil {
-		logger.Error(ctx, "Failed to get number of messages sent: ", err)
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	logger.Info(ctx, "Successfully retrieved message count")
-	return &pb.GetNumMessagesSentResponse{NumMessagesSent: numMessages}, nil
-}
-
-func (s *FeedBackService) GetNumPostsCreated(ctx context.Context, req *pb.GetNumPostsCreatedRequest) (*pb.GetNumPostsCreatedResponse, error) {
-	logger.Info(ctx, "Received GetNumPostsCreated request")
-
-	userId, err := uuid.Parse(req.UserId)
-	if err != nil {
-		logger.Error(ctx, "Invalid user ID: ", err)
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	numPosts, err := s.feedbackService.GetNumPostsCreated(ctx, userId)
-	if err != nil {
-		logger.Error(ctx, "Failed to get number of posts created: ", err)
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	logger.Info(ctx, "Successfully retrieved post count")
-	return &pb.GetNumPostsCreatedResponse{NumPostsCreated: numPosts}, nil
-}
-
-func (s *FeedBackService) GetNumProfileChanges(ctx context.Context, req *pb.GetNumProfileChangesRequest) (*pb.GetNumProfileChangesResponse, error) {
-	logger.Info(ctx, "Received GetNumProfileChanges request")
-
-	userId, err := uuid.Parse(req.UserId)
-	if err != nil {
-		logger.Error(ctx, "Invalid user ID: ", err)
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	numProfileChanges, err := s.feedbackService.GetNumProfileChanges(ctx, userId)
-	if err != nil {
-		logger.Error(ctx, "Failed to get number of profile changes: ", err)
-		return nil, grpcErrorFromAppError(err)
-	}
-
-	logger.Info(ctx, "Successfully retrieved profile change count")
-	return &pb.GetNumProfileChangesResponse{NumProfileChanges: numProfileChanges}, nil
 }
 
 func grpcErrorFromAppError(err error) error {

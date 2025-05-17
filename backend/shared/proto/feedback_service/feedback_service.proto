@@ -45,34 +45,7 @@ message GetAllFeedbackTypeResponse {
   repeated Feedback feedback = 1;
 }
 
-message GetNumMessagesSentRequest {
-  string user_id = 1;
-}
-
-message GetNumMessagesSentResponse {
-  int64 num_messages_sent = 1;
-}
-
-message GetNumPostsCreatedRequest {
-  string user_id = 1;
-}
-
-message GetNumPostsCreatedResponse {
-  int64 num_posts_created = 1;
-}
-
-message GetNumProfileChangesRequest {
-  string user_id = 1;
-}
-
-message GetNumProfileChangesResponse {
-  int64 num_profile_changes = 1;
-}
-
 service FeedbackService {
   rpc SaveFeedback(SaveFeedbackRequest) returns (SaveFeedbackResponse);
   rpc GetAllFeedbackType(GetAllFeedbackTypeRequest) returns (GetAllFeedbackTypeResponse);
-  rpc GetNumMessagesSent(GetNumMessagesSentRequest) returns (GetNumMessagesSentResponse);
-  rpc GetNumPostsCreated(GetNumPostsCreatedRequest) returns (GetNumPostsCreatedResponse);
-  rpc GetNumProfileChanges(GetNumProfileChangesRequest) returns (GetNumProfileChangesResponse);
 }

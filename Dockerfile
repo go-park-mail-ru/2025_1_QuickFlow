@@ -43,7 +43,6 @@ COPY deploy/.env /etc/environment
 # 12. Делаем скрипты исполнимыми
 RUN chmod +x /usr/local/bin/setup-minio-buckets.sh
 
-# Добавь перед CMD для вывода путей
 RUN ls -l /usr/local/bin/setup-minio-buckets.sh
 
 RUN echo "SCHEME=$SCHEME" && \
