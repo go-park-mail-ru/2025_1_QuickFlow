@@ -1,9 +1,9 @@
 
 # Домашнее задание №2
 Ссылки на файлы (все рассматриваемые файлы находятся в папке `deploy/db`):
-- Все sql-скрипты, запускаемые при инициализации БД: 
-- postgresql.conf: 
-- docker-compose.yml: 
+- [Все sql-скрипты, запускаемые при инициализации БД](https://github.com/go-park-mail-ru/2025_1_QuickFlow/tree/hw2db/deploy/db/sql)
+- [postgresql.conf](https://github.com/go-park-mail-ru/2025_1_QuickFlow/tree/hw2db/deploy/db/postgresql.conf) 
+- [docker-compose.yml](https://github.com/go-park-mail-ru/2025_1_QuickFlow/tree/hw2db/deploy/micro-docker-compose.yml)
 ## Работа с БД через сервисную учетную запись
 Поскольку бэкенд-приложение базы данных социальной сети было разделено на несколько сервисов, то для каждого сервиса была создана своя учетная запись в БД.
 Каждая сервисная учетная запись имеет свои права доступа к БД, которые определяются в файле `deploy/db/sql/roles.sql`.
