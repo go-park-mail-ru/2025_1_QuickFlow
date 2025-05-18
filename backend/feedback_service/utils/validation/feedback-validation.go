@@ -5,13 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
+	feedback_errors "quickflow/feedback_service/internal/errors"
 	"quickflow/shared/models"
-)
-
-var (
-	ErrRespondent  = errors.New("invalid respondent")
-	ErrRating      = errors.New("invalid rating")
-	ErrTextTooLong = errors.New("text is too long")
 )
 
 func ValidateFeedback(feedback *models.Feedback) error {
@@ -19,16 +14,16 @@ func ValidateFeedback(feedback *models.Feedback) error {
 		return errors.New("invalid Feedback")
 	}
 	if feedback.RespondentId == uuid.Nil {
-		return ErrRespondent
+		return feedback_errors.ErrRespondent
 	}
 
 	if feedback.Rating < 0 || (feedback.Rating > 5) {
-		return ErrRating
+		return feedback_errors.ErrRating
 	}
 
 	// TODO
 	if len(feedback.Text) > 200 {
-		return ErrTextTooLong
+		return feedback_errors.ErrTextTooLong
 	}
 
 	return nil

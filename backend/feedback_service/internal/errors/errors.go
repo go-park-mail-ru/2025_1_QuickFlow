@@ -2,13 +2,11 @@ package errors
 
 import (
 	"errors"
-
-	"quickflow/feedback_service/utils/validation"
 )
 
 var (
-	ErrRespondent  = validation.ErrRespondent
-	ErrRating      = validation.ErrRating
-	ErrTextTooLong = validation.ErrTextTooLong
+	ErrRespondent  = errors.New("invalid respondent")
+	ErrRating      = errors.New("invalid rating")
+	ErrTextTooLong = errors.New("text too long")
 	ErrNotFound    = errors.New("not found")
 )

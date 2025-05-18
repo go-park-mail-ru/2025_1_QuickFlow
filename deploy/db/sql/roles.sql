@@ -32,8 +32,8 @@ CREATE ROLE app_post LOGIN PASSWORD 'post_password';
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE post TO app_post;
 GRANT SELECT, INSERT, DELETE ON TABLE post_file TO app_post;
 GRANT SELECT, INSERT, DELETE ON TABLE like_post TO app_post;
-GRANT SELECT ON TABLE friendship TO app_post;
-GRANT SELECT ON TABLE community_user TO app_post;
+--GRANT SELECT ON TABLE friendship TO app_post;
+--GRANT SELECT ON TABLE community_user TO app_post;
 
 -- user --
 CREATE ROLE app_user LOGIN PASSWORD 'user_password';

@@ -187,9 +187,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../deploy/sql:/docker-entrypoint-initdb.d
-    env_file:
-      - .env
+      - db/sql:/docker-entrypoint-initdb.d
+      - db/postgresql.conf:/etc/postgresql/postgresql.conf
+      - pg_log:/var/log/postgresql
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
 
   redis:
     image: redis:latest
@@ -252,6 +253,7 @@ services:
 
 volumes:
   postgres_data:
+  pg_log:
   redis_data:
   minio_data:
   minio_config:

@@ -191,6 +191,12 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if feedForm.Posts <= 0 {
+		logger.Error(ctx, "Invalid number of posts in query params", err)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Invalid number of posts", http.StatusBadRequest))
+		return
+	}
+
 	ts, err := time.Parse(time2.TimeStampLayout, feedForm.Ts)
 	if err != nil {
 		ts = time.Now()

@@ -11,7 +11,13 @@ DB_URL=postgres://$(DB_USER):$(DB_PASS)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode
 
 MIGRATE_BIN=migrate
 
-.PHONY: up down force goto create status drop help
+# pgbadger
+LOG_DIR=./infra/postgres/log
+REPORT_DIR=./infra/postgres/reports
+PG_BADGER=pgbadger
+LOG_FORMAT=stderr
+
+.PHONY: up down force goto create status drop help report clean
 
 up:
 	@echo "Running up $(if $(N),$(N),all)..."
@@ -49,3 +55,10 @@ help:
 	@echo "  create          - Create a new migration file"
 	@echo "  status          - Print current DB version"
 	@echo "  drop            - Drop everything"
+
+report:
+	mkdir -p $(REPORT_DIR)
+	$(PG_BADGER) -f $(LOG_FORMAT) $(LOG_DIR)/*.log -o $(REPORT_DIR)/pgbadger-report.html
+
+clean:
+	rm -f $(REPORT_DIR)/*.html

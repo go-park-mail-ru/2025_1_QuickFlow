@@ -62,9 +62,8 @@ func (f *FeedbackHandler) SaveFeedback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := f.feedbackUseCase.SaveFeedback(ctx, feedback); err != nil {
-		appErr := errors2.FromGRPCError(err)
 		logger.Error(ctx, "Failed to save feedback", err)
-		http2.WriteJSONError(w, appErr)
+		http2.WriteJSONError(w, err)
 		return
 	}
 }

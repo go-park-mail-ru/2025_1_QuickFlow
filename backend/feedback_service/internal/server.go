@@ -45,6 +45,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
+	db.SetMaxOpenConns(10)
 
 	profileService := userclient.NewProfileClient(grpcConnUserService)
 	feedbackRepository := postgres2.NewFeedbackRepository(db)

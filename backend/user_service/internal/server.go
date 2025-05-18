@@ -47,6 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
+	db.SetMaxOpenConns(20)
 
 	fileService := file_client.NewFileClient(grpcConn)
 	userRepo := postgres.NewPostgresUserRepository(db)
