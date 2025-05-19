@@ -124,15 +124,6 @@ func (m *MessageService) SaveMessage(ctx context.Context, message models.Message
 		}
 	}
 
-	// Upload files to storage
-	if len(message.Attachments) > 0 {
-		filesURLs, err := m.fileRepo.UploadManyFiles(ctx, message.Attachments)
-		if err != nil {
-			return nil, fmt.Errorf("m.fileRepo.UploadManyFiles: %w", err)
-		}
-		message.AttachmentURLs = filesURLs
-	}
-
 	// Save message to repository
 	err = m.messageRepo.SaveMessage(ctx, message)
 	if err != nil {

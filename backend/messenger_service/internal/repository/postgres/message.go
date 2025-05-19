@@ -27,10 +27,16 @@ const (
     `
 
 	getFilesQuery = `
-        SELECT file_url
+        SELECT file_url, file_type
         FROM message_file
         WHERE message_id = $1
 `
+	saveFilesQuery = `
+	INSERT INTO message_file
+	(message_id, file_url, file_type)
+	VALUES ($1, $2, $3)
+	`
+
 	saveMessageQuery = `
         INSERT INTO message (id, chat_id, sender_id, text, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -101,15 +107,14 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 			return nil, err
 		}
 		for files.Next() {
-			var fileURL pgtype.Text
-			err = files.Scan(&fileURL)
+			var pgfile pgmodels.PostgresFile
+			err = files.Scan(&pgfile.URL, &pgfile.DisplayType)
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("Unable to scan file URL for message %v: %v", messagePostgres.ID, err))
 				return nil, err
 			}
-			if fileURL.Valid {
-				message.AttachmentURLs = append(message.AttachmentURLs, fileURL.String)
-			}
+
+			message.Attachments = append(message.Attachments, pgfile.ToFile())
 		}
 		files.Close()
 
@@ -129,11 +134,11 @@ func (m *MessageRepository) SaveMessage(ctx context.Context, message models.Mess
 		logger.Error(ctx, fmt.Sprintf("Unable to save message %v to database: %s", messagePostgres.ID, err.Error()))
 		return fmt.Errorf("unable to save message to database: %w", err)
 	}
-	for _, fileURL := range messagePostgres.AttachmentsURLs {
-		_, err = m.connPool.ExecContext(ctx, "INSERT INTO message_file (message_id, file_url) VALUES ($1, $2)",
-			messagePostgres.ID, fileURL)
+	for _, file := range messagePostgres.Attachments {
+		_, err = m.connPool.ExecContext(ctx, saveFilesQuery,
+			messagePostgres.ID, file.URL, file.DisplayType)
 		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Unable to save file URL %v for message %v to database: %s", fileURL, messagePostgres.ID, err.Error()))
+			logger.Error(ctx, fmt.Sprintf("Unable to save file URL %v for message %v to database: %s", file.URL, messagePostgres.ID, err.Error()))
 			return fmt.Errorf("unable to save file URL to database: %w", err)
 		}
 	}

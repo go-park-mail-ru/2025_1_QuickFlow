@@ -11,14 +11,14 @@ import (
 
 func MapMessageToProto(message models.Message) *pb.Message {
 	return &pb.Message{
-		Id:             message.ID.String(),
-		SenderId:       message.SenderID.String(),
-		ChatId:         message.ChatID.String(),
-		Text:           message.Text,
-		CreatedAt:      timestamppb.New(message.CreatedAt),
-		UpdatedAt:      timestamppb.New(message.UpdatedAt),
-		AttachmentUrls: message.AttachmentURLs,
-		ReceiverId:     message.ReceiverID.String(),
+		Id:          message.ID.String(),
+		SenderId:    message.SenderID.String(),
+		ChatId:      message.ChatID.String(),
+		Text:        message.Text,
+		CreatedAt:   timestamppb.New(message.CreatedAt),
+		UpdatedAt:   timestamppb.New(message.UpdatedAt),
+		Attachments: file_service.ModelFilesToProto(message.Attachments),
+		ReceiverId:  message.ReceiverID.String(),
 	}
 }
 

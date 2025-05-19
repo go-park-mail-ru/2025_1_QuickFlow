@@ -7,12 +7,11 @@ import (
 )
 
 type Message struct {
-	ID             uuid.UUID
-	Text           string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	Attachments    []*File
-	AttachmentURLs []string
+	ID          uuid.UUID
+	Text        string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Attachments []*File
 
 	SenderID   uuid.UUID
 	ChatID     uuid.UUID

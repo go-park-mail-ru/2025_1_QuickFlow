@@ -19,7 +19,7 @@ func (m *MessageValidator) ValidateMessage(message models.Message) error {
 		return errors.New("message cannot be empty")
 	}
 	// TODO make clean, move to config
-	if len(message.AttachmentURLs) > 10 {
+	if len(message.Attachments) > 10 {
 		return errors.New("too many attachments")
 	}
 	if message.ChatID == uuid.Nil && message.SenderID == uuid.Nil {

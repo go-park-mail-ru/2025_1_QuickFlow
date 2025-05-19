@@ -84,7 +84,8 @@ create table if not exists post_file(
                                         id int generated always as identity primary key,
                                         post_id uuid references post(id) on delete cascade,
                                         file_url text not null,
-                                        added_at timestamptz not null default now()
+                                        added_at timestamptz not null default now(),
+                                        file_type text not null default 'image'
 );
 
 create table if not exists repost(
@@ -146,7 +147,8 @@ create table if not exists message(
 create table if not exists message_file(
                                            id int generated always as identity primary key,
                                            message_id uuid references message(id) on delete cascade,
-                                           file_url text not null
+                                           file_url text not null,
+                                           file_type text not null default 'image'
 );
 
 create table if not exists community(

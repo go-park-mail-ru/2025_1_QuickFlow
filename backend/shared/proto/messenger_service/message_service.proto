@@ -16,7 +16,6 @@ message Message {
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
   repeated file_service.File attachments = 8;
-  repeated string attachment_urls = 9;
 }
 
 message GetMessagesForChatRequest {

@@ -43,23 +43,41 @@ func (m *GetMessagesForm) GetParams(values url.Values) error {
 }
 
 type MessageOut struct {
-	ID             uuid.UUID `json:"id,omitempty"`
-	Text           string    `json:"text"`
-	CreatedAt      string    `json:"created_at"`
-	UpdatedAt      string    `json:"updated_at"`
-	AttachmentURLs []string  `json:"attachment_urls"`
+	ID        uuid.UUID `json:"id,omitempty"`
+	Text      string    `json:"text"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+	MediaURLs []string  `json:"media,omitempty"`
+	AudioURLs []string  `json:"audio,omitempty"`
+	FileURLs  []string  `json:"files,omitempty"`
 
 	Sender PublicUserInfoOut `json:"sender"`
 	ChatId uuid.UUID         `json:"chat_id"`
 }
 
 func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut {
+	mediaURLs := make([]string, 0)
+	audioURLs := make([]string, 0)
+	fileURLs := make([]string, 0)
+
+	for _, file := range message.Attachments {
+		if file.DisplayType == models.DisplayTypeMedia {
+			mediaURLs = append(mediaURLs, file.URL)
+		} else if file.DisplayType == models.DisplayTypeAudio {
+			audioURLs = append(audioURLs, file.URL)
+		} else {
+			fileURLs = append(fileURLs, file.URL)
+		}
+	}
+
 	return MessageOut{
-		ID:             message.ID,
-		Text:           message.Text,
-		CreatedAt:      message.CreatedAt.Format(time2.TimeStampLayout),
-		UpdatedAt:      message.UpdatedAt.Format(time2.TimeStampLayout),
-		AttachmentURLs: message.AttachmentURLs,
+		ID:        message.ID,
+		Text:      message.Text,
+		CreatedAt: message.CreatedAt.Format(time2.TimeStampLayout),
+		UpdatedAt: message.UpdatedAt.Format(time2.TimeStampLayout),
+		MediaURLs: mediaURLs,
+		AudioURLs: audioURLs,
+		FileURLs:  fileURLs,
 
 		Sender: PublicUserInfoToOut(info, ""),
 		ChatId: message.ChatID,
@@ -69,17 +87,9 @@ func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut
 func ToMessagesOut(messages []*models.Message, usersInfo map[uuid.UUID]models.PublicUserInfo) []MessageOut {
 	var messagesOut []MessageOut
 	for _, message := range messages {
-		messagesOut = append(messagesOut, MessageOut{
-			ID:             message.ID,
-			Text:           message.Text,
-			CreatedAt:      message.CreatedAt.Format(time2.TimeStampLayout),
-			UpdatedAt:      message.UpdatedAt.Format(time2.TimeStampLayout),
-			AttachmentURLs: message.AttachmentURLs,
-
-			Sender: PublicUserInfoToOut(usersInfo[message.SenderID], ""),
-			ChatId: message.ChatID,
-		})
+		messagesOut = append(messagesOut, ToMessageOut(*message, usersInfo[message.ChatID]))
 	}
+
 	return messagesOut
 }
 
@@ -89,22 +99,46 @@ type MessagesOut struct {
 }
 
 type MessageForm struct {
-	Text            string    `form:"text" json:"text"`
-	ChatId          uuid.UUID `form:"chat_id" json:"chat_id,omitempty"`
-	AttachmentsUrls []string  `form:"attachment_urls" json:"attachment_urls,omitempty"`
-	ReceiverId      uuid.UUID `json:"receiver_id,omitempty"`
-	SenderId        uuid.UUID `json:"-"`
+	Text       string    `form:"text" json:"text"`
+	ChatId     uuid.UUID `form:"chat_id" json:"chat_id,omitempty"`
+	Media      []string  `form:"media" json:"media,omitempty"`
+	Audio      []string  `form:"audio" json:"audio,omitempty"`
+	File       []string  `form:"files" json:"files,omitempty"`
+	ReceiverId uuid.UUID `json:"receiver_id,omitempty"`
+	SenderId   uuid.UUID `json:"-"`
 }
 
 func (f *MessageForm) ToMessageModel() models.Message {
+	var attachments []*models.File
+	for _, file := range f.Media {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeMedia,
+		})
+	}
+
+	for _, file := range f.Audio {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeAudio,
+		})
+	}
+
+	for _, file := range f.File {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeFile,
+		})
+	}
+
 	return models.Message{
-		ID:             uuid.New(),
-		Text:           f.Text,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
-		AttachmentURLs: f.AttachmentsUrls,
-		ReceiverID:     f.ReceiverId,
-		SenderID:       f.SenderId,
-		ChatID:         f.ChatId,
+		ID:          uuid.New(),
+		Text:        f.Text,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		Attachments: attachments,
+		ReceiverID:  f.ReceiverId,
+		SenderID:    f.SenderId,
+		ChatID:      f.ChatId,
 	}
 }
