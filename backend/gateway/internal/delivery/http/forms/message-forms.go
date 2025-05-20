@@ -87,7 +87,7 @@ func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut
 func ToMessagesOut(messages []*models.Message, usersInfo map[uuid.UUID]models.PublicUserInfo) []MessageOut {
     var messagesOut []MessageOut
     for _, message := range messages {
-        messagesOut = append(messagesOut, ToMessageOut(*message, usersInfo[message.ChatID]))
+        messagesOut = append(messagesOut, ToMessageOut(*message, usersInfo[message.SenderID]))
     }
 
     return messagesOut
