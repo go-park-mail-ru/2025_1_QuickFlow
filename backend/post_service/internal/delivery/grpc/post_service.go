@@ -26,7 +26,7 @@ type PostUseCase interface {
 }
 
 type UserUseCase interface {
-	GetUserById(ctx context.Context, userId uuid.UUID) (*shared_models.User, error)
+	GetUserById(ctx context.Context, userId uuid.UUID) (shared_models.User, error)
 }
 
 type PostServiceServer struct {

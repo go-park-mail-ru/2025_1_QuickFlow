@@ -1,11 +1,20 @@
 
 max_post_pictures_count = 10
 max_message_pictures_count = 10
-allowed_img_ext = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".svg", ".ico", ".mp4"]
 max_post_pictures_size = "5MB"
 max_message_pictures_size = "5MB"
 max_post_text_length = 4000
 max_message_text_length = 4000
 
-max_picture_count = 10
-max_picture_size = "7MB"
+max_file_count = 10
+max_picture_size = "20MB"
+allowed_picture_ext = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".svg", ".ico", ".mp4"]
+
+max_video_size = "100MB"
+allowed_video_ext = [".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"]
+
+max_audio_size = "100MB"
+allowed_audio_ext = [".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".wma"]
+
+max_file_size = "100MB"
+allowed_file_ext = []

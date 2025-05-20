@@ -27,17 +27,55 @@ func (f *FileValidator) ValidateFile(file *models.File) error {
 	if err := f.ValidateFileName(file.Name); err != nil {
 		return err
 	}
-	if err := f.validateFileSize(file.Size); err != nil {
-		return err
+
+	switch {
+	case isVideo(file.MimeType):
+		return f.validateFile(file, f.fileConfig.MaxVideoSize, f.fileConfig.AllowedVideoExt)
+	case isAudio(file.MimeType):
+		return f.validateFile(file, f.fileConfig.MaxAudioSize, f.fileConfig.AllowedAudioExt)
+	case isImage(file.MimeType):
+		return f.validateFile(file, f.fileConfig.MaxPictureSize, f.fileConfig.AllowedPictureExt)
+	default:
+		return f.validateFile(file, f.fileConfig.MaxFileSize, f.fileConfig.AllowedFileExt)
 	}
-	if err := f.validateFileMimeType(file.Ext); err != nil {
-		return err
+}
+
+func (f *FileValidator) validateFile(file *models.File, maxSize int64, allowedExts []string) error {
+	if file.Size <= 0 || file.Size > maxSize {
+		return qf_errors.ErrInvalidFileSize
+	}
+	if !isAllowed(strings.ToLower(file.Ext), allowedExts) {
+		return qf_errors.ErrUnsupportedFileType
 	}
 	return nil
 }
 
+func isAllowed(ext string, allowed []string) bool {
+	if len(allowed) == 0 {
+		return true
+	}
+	for _, a := range allowed {
+		if ext == a {
+			return true
+		}
+	}
+	return false
+}
+
+func isVideo(mime string) bool {
+	return strings.HasPrefix(mime, "video/")
+}
+
+func isAudio(mime string) bool {
+	return strings.HasPrefix(mime, "audio/")
+}
+
+func isImage(mime string) bool {
+	return strings.HasPrefix(mime, "image/")
+}
+
 func (f *FileValidator) ValidateFiles(files []*models.File) error {
-	if len(files) > f.fileConfig.MaxPicturesCount {
+	if len(files) > f.fileConfig.MaxFileCount {
 		return qf_errors.ErrTooManyFiles
 	}
 
@@ -54,37 +92,4 @@ func (f *FileValidator) ValidateFileName(name string) error {
 		return qf_errors.ErrInvalidFileName
 	}
 	return nil
-}
-
-func (f *FileValidator) validateFileSize(size int64) error {
-	if size <= 0 {
-		return qf_errors.ErrInvalidFileSize
-	}
-
-	if size > f.fileConfig.MaxPictureSize {
-		return errors.New("file size exceeds the limit")
-	}
-	return nil
-}
-
-func (f *FileValidator) validateFileMimeType(mimeType string) error {
-	if len(mimeType) == 0 {
-		return qf_errors.ErrUnsupportedFileType
-	}
-
-	for _, ext := range f.fileConfig.AllowedFileExt {
-		if strings.ToLower(mimeType) == ext {
-			return nil
-		}
-	}
-	return qf_errors.ErrUnsupportedFileType
-}
-
-func (f *FileValidator) ValidateMedia(files []*models.File) error {
-	return nil // TODO: implement media validation
-}
-
-func (f *FileValidator) ValidateAudios(files []*models.File) error {
-	return nil // TODO: implement validation
-
 }

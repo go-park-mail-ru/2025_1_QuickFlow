@@ -2,8 +2,14 @@ package grpc
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"os"
 
-	"quickflow/file_service/internal/delivery/grpc/dto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	dto "quickflow/shared/client/file_service"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	pb "quickflow/shared/proto/file_service"
@@ -25,37 +31,175 @@ func NewFileServiceServer(fileUC FileUseCase) *FileServiceServer {
 	return &FileServiceServer{fileUC: fileUC}
 }
 
-func (s *FileServiceServer) UploadFile(ctx context.Context, req *pb.UploadFileRequest) (*pb.UploadFileResponse, error) {
-	logger.Info(ctx, "Received UploadFile request")
+func (s *FileServiceServer) UploadFile(stream pb.FileService_UploadFileServer) error {
+	var (
+		fileInfo *pb.File
+		tempFile *os.File
+	)
 
-	dtoFile := dto.MapUploadFileRequestToDTO(req)
-	fileURL, err := s.fileUC.UploadFile(ctx, dto.MapDTOFileToModel(dtoFile))
-	if err != nil {
-		logger.Error(ctx, "Failed to upload file: ", err)
-		return nil, err
+	ctx := stream.Context()
+	logger.Info(ctx, "Started streaming UploadFile request")
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			defer os.Remove(tempFile.Name())
+
+			f, err := os.Open(tempFile.Name())
+			if err != nil {
+				logger.Error(ctx, "Failed to reopen temp file: %v", err)
+				return err
+			}
+			defer f.Close()
+
+			fileURL, err := s.fileUC.UploadFile(ctx, dto.ProtoFileToModel(fileInfo))
+			if err != nil {
+				logger.Error(ctx, "Upload usecase failed: %v", err)
+				return err
+			}
+
+			logger.Info(ctx, "File uploaded successfully: %s", fileURL)
+			return stream.SendAndClose(&pb.UploadFileResponse{FileUrl: fileURL})
+		}
+
+		if err != nil {
+			logger.Error(ctx, "Error receiving stream: %v", err)
+			return err
+		}
+
+		switch x := req.Data.(type) {
+		case *pb.UploadFileRequest_Info:
+			fileInfo = x.Info
+			tempFile, err = os.CreateTemp("", "upload-*")
+			if err != nil {
+				logger.Error(ctx, "Failed to create temp file: %v", err)
+				return err
+			}
+			defer tempFile.Close()
+
+		case *pb.UploadFileRequest_Chunk:
+			if tempFile == nil {
+				return status.Errorf(codes.InvalidArgument, "FileInfo must be sent before chunks")
+			}
+			_, err := tempFile.Write(x.Chunk)
+			if err != nil {
+				logger.Error(ctx, "Failed to write chunk: %v", err)
+				return err
+			}
+		}
 	}
-
-	logger.Info(ctx, "Successfully uploaded file")
-	return &pb.UploadFileResponse{FileUrl: fileURL}, nil
 }
 
-func (s *FileServiceServer) UploadManyFiles(ctx context.Context, req *pb.UploadManyFilesRequest) (*pb.UploadManyFilesResponse, error) {
-	logger.Info(ctx, "Received UploadManyImages request")
+func (s *FileServiceServer) UploadManyFiles(stream pb.FileService_UploadManyFilesServer) error {
+	var (
+		currentInfo *pb.File
+		tempFile    *os.File
+		ctx         = stream.Context()
+	)
 
-	dtoFiles := dto.MapUploadManyFilesRequestToDTO(req)
-	files := make([]*models.File, len(dtoFiles.Files))
-	for i, file := range dtoFiles.Files {
-		files[i] = dto.MapDTOFileToModel(file)
+	defer func() {
+		if tempFile != nil {
+			tempFile.Close()
+			os.Remove(tempFile.Name()) // чистим tmp
+		}
+	}()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			// Обработка последнего файла, если был начат
+			if currentInfo != nil && tempFile != nil {
+				fileURL, err := s.finalizeUploadedFile(ctx, currentInfo, tempFile)
+				if err != nil {
+					logger.Error(ctx, "Error finalizing last file: %v", err)
+					return err
+				}
+				if err := stream.Send(&pb.UploadFileResponse{
+					FileUrl: fileURL,
+				}); err != nil {
+					logger.Error(ctx, "Failed to send response: %v", err)
+					return err
+				}
+			}
+			logger.Info(ctx, "All files received and processed")
+			return nil
+		}
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Error receiving upload stream: %v", err))
+			return err
+		}
+
+		switch data := req.Data.(type) {
+		case *pb.UploadFileRequest_Info:
+			// Завершаем предыдущий файл
+			if currentInfo != nil && tempFile != nil {
+				fileURL, err := s.finalizeUploadedFile(ctx, currentInfo, tempFile)
+				if err != nil {
+					logger.Error(ctx, fmt.Sprintf("Error finalizing file: %v", err))
+					return err
+				}
+				if err := stream.Send(&pb.UploadFileResponse{
+					FileUrl: fileURL,
+				}); err != nil {
+					logger.Error(ctx, fmt.Sprintf("Failed to send response: %v", err))
+					return err
+				}
+				tempFile.Close()
+				os.Remove(tempFile.Name())
+			}
+
+			// Начинаем новый файл
+			currentInfo = data.Info
+			tempFile, err = os.CreateTemp("", "upload-*")
+			if err != nil {
+				logger.Error(ctx, "Failed to create temp file: %v", err)
+				return err
+			}
+
+		case *pb.UploadFileRequest_Chunk:
+			if tempFile == nil {
+				return status.Errorf(codes.InvalidArgument, "FileInfo must be sent before chunks")
+			}
+			_, err := tempFile.Write(data.Chunk)
+			if err != nil {
+				logger.Error(ctx, "Failed to write chunk: %v", err)
+				return err
+			}
+		}
 	}
+}
 
-	fileURLs, err := s.fileUC.UploadManyMedia(ctx, files)
+// finalizeUploadedFile обрабатывает файл после его получения
+func (s *FileServiceServer) finalizeUploadedFile(
+	ctx context.Context,
+	info *pb.File,
+	tempFile *os.File,
+) (string, error) {
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	f, err := os.Open(tempFile.Name())
 	if err != nil {
-		logger.Error(ctx, "Failed to upload many files: ", err)
-		return nil, err
+		logger.Error(ctx, "Failed to reopen temp file: %v", err)
+		return "", err
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		logger.Error(ctx, "Failed to read file: %v", err)
+		return "", err
 	}
 
-	logger.Info(ctx, "Successfully uploaded multiple files")
-	return &pb.UploadManyFilesResponse{FileUrls: fileURLs}, nil
+	info.File = data
+
+	fileURL, err := s.fileUC.UploadFile(ctx, dto.ProtoFileToModel(info))
+	if err != nil {
+		logger.Error(ctx, "Upload usecase failed: %v", err)
+		return "", err
+	}
+
+	return fileURL, nil
 }
 
 func (s *FileServiceServer) DeleteFile(ctx context.Context, req *pb.DeleteFileRequest) (*pb.DeleteFileResponse, error) {

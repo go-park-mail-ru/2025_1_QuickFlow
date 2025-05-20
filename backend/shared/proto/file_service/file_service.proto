@@ -19,9 +19,11 @@ message File {
 }
 
 message UploadFileRequest {
-  File file = 1;
+  oneof data {
+    File info = 1;
+    bytes chunk = 2;
+  }
 }
-
 message UploadFileResponse {
   string file_url = 1;
 }
@@ -43,7 +45,7 @@ message DeleteFileResponse {
 }
 
 service FileService {
-  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
-  rpc UploadManyFiles(UploadManyFilesRequest) returns (UploadManyFilesResponse);
+  rpc UploadFile(stream UploadFileRequest) returns (UploadFileResponse);
+  rpc UploadManyFiles(stream UploadFileRequest) returns (stream UploadFileResponse);
   rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
 }

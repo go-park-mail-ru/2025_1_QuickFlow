@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/microcosm-cc/bluemonday"
-	"golang.org/x/sync/errgroup"
 
 	"quickflow/gateway/internal/delivery/http/forms"
 	errors2 "quickflow/gateway/internal/errors"
@@ -47,7 +46,7 @@ func (p *FileHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
 	logger.Info(ctx, fmt.Sprintf("User %s requested to add files", user.Username))
 
 	// Parse the form data
-	err := r.ParseMultipartForm(15 << 20) // 15 MB TODO
+	err := r.ParseMultipartForm(200 << 20) // 200 MB TODO
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
 		http2.WriteJSONError(w, err)
@@ -94,40 +93,19 @@ func (p *FileHandler) AddFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var res forms.MessageAttachmentForm
-	wg := errgroup.Group{}
-	wg.Go(func() error {
-		res.MediaURLs, err = p.fileService.UploadManyFiles(ctx, media)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Failed to upload media: %s", err.Error()))
-			http2.WriteJSONError(w, err)
-			return err
-		}
-		return nil
-	})
-
-	wg.Go(func() error {
-		res.AudioURLs, err = p.fileService.UploadManyFiles(ctx, audios)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Failed to upload audio files: %s", err.Error()))
-			http2.WriteJSONError(w, err)
-			return err
-		}
-		return nil
-	})
-
-	wg.Go(func() error {
-		res.FileURLs, err = p.fileService.UploadManyFiles(ctx, otherFiles)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Failed to upload other files: %s", err.Error()))
-			http2.WriteJSONError(w, err)
-			return err
-		}
-		return nil
-	})
-
-	if err := wg.Wait(); err != nil {
-		logger.Error(ctx, fmt.Sprintf("Failed to upload files: %s", err.Error()))
-		//http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to upload files", http.StatusInternalServerError))
+	res.MediaURLs, err = p.fileService.UploadManyFiles(ctx, media)
+	if err != nil {
+		http2.WriteJSONError(w, err)
+		return
+	}
+	res.AudioURLs, err = p.fileService.UploadManyFiles(ctx, audios)
+	if err != nil {
+		http2.WriteJSONError(w, err)
+		return
+	}
+	res.FileURLs, err = p.fileService.UploadManyFiles(ctx, otherFiles)
+	if err != nil {
+		http2.WriteJSONError(w, err)
 		return
 	}
 

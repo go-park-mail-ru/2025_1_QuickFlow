@@ -16,7 +16,7 @@ type Client struct {
 	client pb.UserServiceClient
 }
 
-func NewUserServiceClient(conn *grpc.ClientConn) *Client {
+func NewUserClient(conn *grpc.ClientConn) *Client {
 	return &Client{
 		conn:   conn,
 		client: pb.NewUserServiceClient(conn),

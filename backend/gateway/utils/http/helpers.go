@@ -65,7 +65,7 @@ func GetFiles(r *http.Request, key string) ([]*models.File, error) {
 			MimeType: mimeType,
 		})
 
-		file.Close()
+		//file.Close()
 	}
 
 	return files, nil

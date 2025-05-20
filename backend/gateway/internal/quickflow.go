@@ -90,7 +90,7 @@ func Run(cfg *config.Config) error {
 
 	// services
 	fileService := file_service.NewFileClient(grpcConnFileService)
-	UserService := userService.NewUserServiceClient(grpcConnUserService)
+	UserService := userService.NewUserClient(grpcConnUserService)
 	profileService := userService.NewProfileClient(grpcConnUserService)
 	PostService := postService.NewPostServiceClient(grpcConnPostService)
 	chatService := messenger_service.NewChatServiceClient(grpcConnMessengerService)

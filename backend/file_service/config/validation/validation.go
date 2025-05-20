@@ -11,16 +11,31 @@ import (
 const defaultConfigPath = "../deploy/config/validation/config.toml"
 
 type ValidationConfig struct {
-	MaxPicturesCount int
-	AllowedFileExt   []string
+	MaxFileCount int
 
 	MaxPictureSize int64
+	MaxVideoSize   int64
+	MaxAudioSize   int64
+	MaxFileSize    int64
+
+	AllowedVideoExt   []string
+	AllowedPictureExt []string
+	AllowedFileExt    []string
+	AllowedAudioExt   []string
 }
 
 type validationConfigRaw struct {
-	MaxPicturesCount int      `toml:"max_picture_count"`
-	AllowedFileExt   []string `toml:"allowed_img_ext"`
-	MaxPictureSize   string   `toml:"max_picture_size"`
+	MaxFileCount int `toml:"max_file_count"`
+
+	MaxPictureSize string `toml:"max_picture_size"`
+	MaxVideoSize   string `toml:"max_video_size"`
+	MaxAudioSize   string `toml:"max_audio_size"`
+	MaxFileSize    string `toml:"max_file_size"`
+
+	AllowedVideoExt   []string `toml:"allowed_video_ext"`
+	AllowedPictureExt []string `toml:"allowed_picture_ext"`
+	AllowedAudioExt   []string `toml:"allowed_audio_ext"`
+	AllowedFileExt    []string `toml:"allowed_file_ext,omitempty"`
 }
 
 func NewValidationConfig(configPath string) (*ValidationConfig, error) {
@@ -34,15 +49,34 @@ func NewValidationConfig(configPath string) (*ValidationConfig, error) {
 		return nil, fmt.Errorf("unable to parse validation config from file %v: %w", configPath, err)
 	}
 
-	sizeBytes, err := ParseSize(raw.MaxPictureSize)
+	picSize, err := ParseSize(raw.MaxPictureSize)
 	if err != nil {
 		return nil, fmt.Errorf("invalid max_picture_size format: %w", err)
 	}
+	videoSize, err := ParseSize(raw.MaxVideoSize)
+	if err != nil {
+		return nil, fmt.Errorf("invalid max_video_size format: %w", err)
+	}
+	audioSize, err := ParseSize(raw.MaxAudioSize)
+	if err != nil {
+		return nil, fmt.Errorf("invalid max_audio_size format: %w", err)
+	}
+	fileSize, err := ParseSize(raw.MaxFileSize)
+	if err != nil {
+		return nil, fmt.Errorf("invalid max_file_size format: %w", err)
+	}
 
 	cfg := &ValidationConfig{
-		MaxPicturesCount: raw.MaxPicturesCount,
-		AllowedFileExt:   raw.AllowedFileExt,
-		MaxPictureSize:   sizeBytes,
+		MaxFileCount: raw.MaxFileCount,
+
+		AllowedFileExt:    raw.AllowedFileExt,
+		MaxFileSize:       fileSize,
+		MaxPictureSize:    picSize,
+		AllowedPictureExt: raw.AllowedPictureExt,
+		MaxVideoSize:      videoSize,
+		AllowedVideoExt:   raw.AllowedVideoExt,
+		MaxAudioSize:      audioSize,
+		AllowedAudioExt:   raw.AllowedAudioExt,
 	}
 
 	return cfg, nil

@@ -16,12 +16,12 @@ import (
 	addr "quickflow/config/micro-addr"
 	postgresConfig "quickflow/config/postgres"
 	"quickflow/metrics"
-	"quickflow/post_service/internal/client/file_sevice"
-	"quickflow/post_service/internal/client/user_service"
 	grpc3 "quickflow/post_service/internal/delivery/grpc"
 	"quickflow/post_service/internal/repository/postgres"
 	"quickflow/post_service/internal/usecase"
 	"quickflow/post_service/utils/validation"
+	"quickflow/shared/client/file_service"
+	userclient "quickflow/shared/client/user_service"
 	"quickflow/shared/interceptors"
 	"quickflow/shared/logger"
 	"quickflow/shared/proto/post_service"
@@ -59,11 +59,11 @@ func main() {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}
 
-	fileService := file_sevice.NewFileClient(grpcConnFileService)
+	fileService := file_service.NewFileClient(grpcConnFileService)
 	postValidator := validation.NewPostValidator()
 	postRepo := postgres.NewPostgresPostRepository(db)
 	postUseCase := usecase.NewPostUseCase(postRepo, fileService, postValidator)
-	userUseCase := user_service.NewUserClient(grpcConnUserService)
+	userUseCase := userclient.NewUserClient(grpcConnUserService)
 
 	postMetrics := metrics.NewMetrics("QuickFlow")
 

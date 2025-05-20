@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FileServiceClient interface {
-	UploadFile(ctx context.Context, in *UploadFileRequest, opts ...grpc.CallOption) (*UploadFileResponse, error)
-	UploadManyFiles(ctx context.Context, in *UploadManyFilesRequest, opts ...grpc.CallOption) (*UploadManyFilesResponse, error)
+	UploadFile(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadFileClient, error)
+	UploadManyFiles(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadManyFilesClient, error)
 	DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error)
 }
 
@@ -31,22 +31,69 @@ func NewFileServiceClient(cc grpc.ClientConnInterface) FileServiceClient {
 	return &fileServiceClient{cc}
 }
 
-func (c *fileServiceClient) UploadFile(ctx context.Context, in *UploadFileRequest, opts ...grpc.CallOption) (*UploadFileResponse, error) {
-	out := new(UploadFileResponse)
-	err := c.cc.Invoke(ctx, "/file_service.FileService/UploadFile", in, out, opts...)
+func (c *fileServiceClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadFileClient, error) {
+	stream, err := c.cc.NewStream(ctx, &FileService_ServiceDesc.Streams[0], "/file_service.FileService/UploadFile", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &fileServiceUploadFileClient{stream}
+	return x, nil
 }
 
-func (c *fileServiceClient) UploadManyFiles(ctx context.Context, in *UploadManyFilesRequest, opts ...grpc.CallOption) (*UploadManyFilesResponse, error) {
-	out := new(UploadManyFilesResponse)
-	err := c.cc.Invoke(ctx, "/file_service.FileService/UploadManyFiles", in, out, opts...)
+type FileService_UploadFileClient interface {
+	Send(*UploadFileRequest) error
+	CloseAndRecv() (*UploadFileResponse, error)
+	grpc.ClientStream
+}
+
+type fileServiceUploadFileClient struct {
+	grpc.ClientStream
+}
+
+func (x *fileServiceUploadFileClient) Send(m *UploadFileRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *fileServiceUploadFileClient) CloseAndRecv() (*UploadFileResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(UploadFileResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *fileServiceClient) UploadManyFiles(ctx context.Context, opts ...grpc.CallOption) (FileService_UploadManyFilesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &FileService_ServiceDesc.Streams[1], "/file_service.FileService/UploadManyFiles", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &fileServiceUploadManyFilesClient{stream}
+	return x, nil
+}
+
+type FileService_UploadManyFilesClient interface {
+	Send(*UploadFileRequest) error
+	Recv() (*UploadFileResponse, error)
+	grpc.ClientStream
+}
+
+type fileServiceUploadManyFilesClient struct {
+	grpc.ClientStream
+}
+
+func (x *fileServiceUploadManyFilesClient) Send(m *UploadFileRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *fileServiceUploadManyFilesClient) Recv() (*UploadFileResponse, error) {
+	m := new(UploadFileResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *fileServiceClient) DeleteFile(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*DeleteFileResponse, error) {
@@ -62,8 +109,8 @@ func (c *fileServiceClient) DeleteFile(ctx context.Context, in *DeleteFileReques
 // All implementations must embed UnimplementedFileServiceServer
 // for forward compatibility
 type FileServiceServer interface {
-	UploadFile(context.Context, *UploadFileRequest) (*UploadFileResponse, error)
-	UploadManyFiles(context.Context, *UploadManyFilesRequest) (*UploadManyFilesResponse, error)
+	UploadFile(FileService_UploadFileServer) error
+	UploadManyFiles(FileService_UploadManyFilesServer) error
 	DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error)
 	mustEmbedUnimplementedFileServiceServer()
 }
@@ -72,11 +119,11 @@ type FileServiceServer interface {
 type UnimplementedFileServiceServer struct {
 }
 
-func (UnimplementedFileServiceServer) UploadFile(context.Context, *UploadFileRequest) (*UploadFileResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
+func (UnimplementedFileServiceServer) UploadFile(FileService_UploadFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
 }
-func (UnimplementedFileServiceServer) UploadManyFiles(context.Context, *UploadManyFilesRequest) (*UploadManyFilesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadManyFiles not implemented")
+func (UnimplementedFileServiceServer) UploadManyFiles(FileService_UploadManyFilesServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadManyFiles not implemented")
 }
 func (UnimplementedFileServiceServer) DeleteFile(context.Context, *DeleteFileRequest) (*DeleteFileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
@@ -94,40 +141,56 @@ func RegisterFileServiceServer(s grpc.ServiceRegistrar, srv FileServiceServer) {
 	s.RegisterService(&FileService_ServiceDesc, srv)
 }
 
-func _FileService_UploadFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadFileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FileServiceServer).UploadFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/file_service.FileService/UploadFile",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FileServiceServer).UploadFile(ctx, req.(*UploadFileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func _FileService_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(FileServiceServer).UploadFile(&fileServiceUploadFileServer{stream})
 }
 
-func _FileService_UploadManyFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadManyFilesRequest)
-	if err := dec(in); err != nil {
+type FileService_UploadFileServer interface {
+	SendAndClose(*UploadFileResponse) error
+	Recv() (*UploadFileRequest, error)
+	grpc.ServerStream
+}
+
+type fileServiceUploadFileServer struct {
+	grpc.ServerStream
+}
+
+func (x *fileServiceUploadFileServer) SendAndClose(m *UploadFileResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *fileServiceUploadFileServer) Recv() (*UploadFileRequest, error) {
+	m := new(UploadFileRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(FileServiceServer).UploadManyFiles(ctx, in)
+	return m, nil
+}
+
+func _FileService_UploadManyFiles_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(FileServiceServer).UploadManyFiles(&fileServiceUploadManyFilesServer{stream})
+}
+
+type FileService_UploadManyFilesServer interface {
+	Send(*UploadFileResponse) error
+	Recv() (*UploadFileRequest, error)
+	grpc.ServerStream
+}
+
+type fileServiceUploadManyFilesServer struct {
+	grpc.ServerStream
+}
+
+func (x *fileServiceUploadManyFilesServer) Send(m *UploadFileResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *fileServiceUploadManyFilesServer) Recv() (*UploadFileRequest, error) {
+	m := new(UploadFileRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
 	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/file_service.FileService/UploadManyFiles",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FileServiceServer).UploadManyFiles(ctx, req.(*UploadManyFilesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 func _FileService_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -156,18 +219,22 @@ var FileService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*FileServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "UploadFile",
-			Handler:    _FileService_UploadFile_Handler,
-		},
-		{
-			MethodName: "UploadManyFiles",
-			Handler:    _FileService_UploadManyFiles_Handler,
-		},
-		{
 			MethodName: "DeleteFile",
 			Handler:    _FileService_DeleteFile_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "UploadFile",
+			Handler:       _FileService_UploadFile_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "UploadManyFiles",
+			Handler:       _FileService_UploadManyFiles_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "file_service.proto",
 }

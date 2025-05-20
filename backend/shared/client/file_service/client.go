@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
@@ -25,80 +26,148 @@ func NewFileClient(conn *grpc.ClientConn) *FileClient {
 
 // UploadFile загружает один файл
 func (f *FileClient) UploadFile(ctx context.Context, file *models.File) (string, error) {
-	var fileBytes []byte
-	var err error
+	stream, err := f.client.UploadFile(ctx)
+	if err != nil {
+		return "", fmt.Errorf("UploadFile: %w", err)
+	}
 
-	// Если есть Reader — читаем
-	if file.Reader != nil {
-		fileBytes, err = io.ReadAll(file.Reader)
+	// Сначала метаданные
+	err = stream.Send(&pb.UploadFileRequest{
+		Data: &pb.UploadFileRequest_Info{
+			Info: &pb.File{
+				FileName:    file.Name,
+				FileType:    file.MimeType,
+				FileSize:    file.Size,
+				AccessMode:  pb.AccessMode(file.AccessMode),
+				DisplayType: string(file.DisplayType),
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("send metadata: %w", err)
+	}
+
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := file.Reader.Read(buf)
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
-			logger.Error(ctx, "Failed to read from file reader: %v", err)
-			return "", fmt.Errorf("failed to read file: %w", err)
+			return "", fmt.Errorf("read file: %w", err)
+		}
+
+		err = stream.Send(&pb.UploadFileRequest{
+			Data: &pb.UploadFileRequest_Chunk{
+				Chunk: buf[:n],
+			},
+		})
+		if err != nil {
+			return "", fmt.Errorf("send chunk: %w", err)
 		}
 	}
 
-	req := &pb.UploadFileRequest{
-		File: &pb.File{
-			FileName:   file.Name,
-			File:       fileBytes,
-			FileType:   file.MimeType,
-			FileSize:   file.Size,
-			AccessMode: pb.AccessMode(file.AccessMode), // Явное преобразование enum
-		},
-	}
-
-	logger.Info(ctx, "Sending request to file_service to upload file: %s", file.Name)
-
-	resp, err := f.client.UploadFile(ctx, req)
+	resp, err := stream.CloseAndRecv()
 	if err != nil {
-		logger.Error(ctx, "Failed to upload file to file_service: %s", file.Name)
-		return "", fmt.Errorf("fileClient.UploadFile: %w", err)
+		return "", fmt.Errorf("receive response: %w", err)
 	}
 
 	return resp.FileUrl, nil
 }
 
-// UploadManyFiles загружает несколько файлов
 func (f *FileClient) UploadManyFiles(ctx context.Context, files []*models.File) ([]string, error) {
-	var requests []*pb.UploadFileRequest
+	stream, err := f.client.UploadManyFiles(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open upload stream: %w", err)
+	}
 
-	for _, file := range files {
-		var fileBytes []byte
-		var err error
+	var (
+		mu       sync.Mutex
+		fileURLs []string
+		wg       sync.WaitGroup
+		errChan  = make(chan error, 1)
+	)
 
-		if file.Reader != nil {
-			fileBytes, err = io.ReadAll(file.Reader)
+	// Получаем ответы асинхронно
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
 			if err != nil {
-				logger.Error(ctx, "Failed to read from file reader: %v", err)
-				return nil, fmt.Errorf("failed to read file: %w", err)
+				errChan <- fmt.Errorf("receive response: %w", err)
+				return
+			}
+			mu.Lock()
+			fileURLs = append(fileURLs, resp.FileUrl)
+			mu.Unlock()
+			logger.Info(ctx, "Uploaded file: %s", resp.FileUrl)
+		}
+	}()
+
+	// Отправляем файлы
+	for _, file := range files {
+		err := stream.Send(&pb.UploadFileRequest{
+			Data: &pb.UploadFileRequest_Info{
+				Info: &pb.File{
+					FileName:    file.Name,
+					FileType:    file.MimeType,
+					FileSize:    file.Size,
+					AccessMode:  pb.AccessMode(file.AccessMode),
+					DisplayType: string(file.DisplayType),
+				},
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("send info: %w", err)
+		}
+
+		buf := make([]byte, 32*1024)
+		for {
+			n, err := file.Reader.Read(buf)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				logger.Error(ctx, fmt.Sprintf("read file: %s", file.Name))
+				return nil, fmt.Errorf("read file: %w", err)
+			}
+			err = stream.Send(&pb.UploadFileRequest{
+				Data: &pb.UploadFileRequest_Chunk{
+					Chunk: buf[:n],
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("send chunk: %w", err)
 			}
 		}
 
-		req := &pb.UploadFileRequest{
-			File: &pb.File{
-				FileName:   file.Name,
-				File:       fileBytes,
-				FileType:   file.MimeType,
-				FileSize:   file.Size,
-				AccessMode: pb.AccessMode(file.AccessMode),
-			},
+		if closer, ok := file.Reader.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				logger.Warn(ctx, "failed to close file %s: %v", file.Name, err)
+			}
 		}
-
-		requests = append(requests, req)
 	}
 
-	manyReq := &pb.UploadManyFilesRequest{
-		Files: requests,
-	}
-
-	logger.Info(ctx, "Sending request to file_service to upload multiple (%d) files", len(requests))
-	resp, err := f.client.UploadManyFiles(ctx, manyReq)
+	// Закрываем отправку (но НЕ соединение!)
+	err = stream.CloseSend()
 	if err != nil {
-		logger.Error(ctx, "Failed to upload multiple files to file_service")
-		return nil, fmt.Errorf("fileClient.UploadManyFiles: %w", err)
+		return nil, fmt.Errorf("close send: %w", err)
 	}
 
-	return resp.FileUrls, nil
+	// Дожидаемся завершения чтения
+	wg.Wait()
+
+	// Проверим ошибки получения
+	select {
+	case err := <-errChan:
+		return nil, err
+	default:
+		return fileURLs, nil
+	}
 }
 
 // DeleteFile удаляет файл

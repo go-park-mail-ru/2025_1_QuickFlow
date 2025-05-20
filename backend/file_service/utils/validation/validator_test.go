@@ -15,9 +15,9 @@ import (
 func TestValidateFile(t *testing.T) {
 	// Mock configuration
 	mockConfig := &cfg.ValidationConfig{
-		MaxPicturesCount: 10,
-		AllowedFileExt:   []string{"image/jpeg", "image/png"},
-		MaxPictureSize:   5 * 1024 * 1024, // 5MB
+		MaxFileCount:   10,
+		AllowedFileExt: []string{"image/jpeg", "image/png"},
+		MaxPictureSize: 5 * 1024 * 1024, // 5MB
 	}
 
 	validator := validation.NewFileValidator(mockConfig)
@@ -75,9 +75,9 @@ func TestValidateFile(t *testing.T) {
 func TestValidateFiles(t *testing.T) {
 	// Mock configuration
 	mockConfig := &cfg.ValidationConfig{
-		MaxPicturesCount: 10,
-		AllowedFileExt:   []string{"image/jpeg", "image/png"},
-		MaxPictureSize:   5 * 1024 * 1024, // 5MB
+		MaxFileCount:   10,
+		AllowedFileExt: []string{"image/jpeg", "image/png"},
+		MaxPictureSize: 5 * 1024 * 1024, // 5MB
 	}
 
 	validator := validation.NewFileValidator(mockConfig)
