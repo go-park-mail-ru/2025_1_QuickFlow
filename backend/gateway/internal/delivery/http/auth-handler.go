@@ -119,7 +119,7 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process data
-	id, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
+	_, session, err := a.authUseCase.CreateUser(r.Context(), user, profile)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Create user error: %s", err.Error()))
 		http2.WriteJSONError(w, err)
@@ -137,15 +137,15 @@ func (a *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// return response
-	body := map[string]interface{}{
-		"user_id": id,
-	}
+	//body := map[string]interface{}{
+	//	"user_id": id,
+	//}
 
-	err = json.NewEncoder(w).Encode(&body)
-	if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New("INTERNAL", fmt.Sprintf("Unable to encode respond body: %v", err), http.StatusInternalServerError))
-	}
+	//err = json.NewEncoder(w).Encode(&body)
+	//if err != nil {
+	//	logger.Error(ctx, fmt.Sprintf("Decode error: %s", err.Error()))
+	//	http2.WriteJSONError(w, errors2.New("INTERNAL", fmt.Sprintf("Unable to encode respond body: %v", err), http.StatusInternalServerError))
+	//}
 	logger.Info(ctx, "Successfully processed signup request")
 }
 

@@ -1,39 +1,15 @@
 package post_service
 
 import (
-	"io"
-	"path"
 	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	file_service2 "quickflow/shared/client/file_service"
 	shared_models "quickflow/shared/models"
-	"quickflow/shared/proto/file_service"
 	pb "quickflow/shared/proto/post_service"
 )
-
-func ProtoFileToModel(f *file_service.File) *shared_models.File {
-	if f == nil {
-		return nil
-	}
-	return &shared_models.File{
-		Name:       f.FileName,
-		Size:       f.FileSize,
-		Ext:        path.Ext(f.FileName),
-		MimeType:   f.FileType,
-		AccessMode: shared_models.AccessMode(f.AccessMode),
-		URL:        f.Url,
-	}
-}
-
-func ProtoFilesToModel(files []*file_service.File) []*shared_models.File {
-	result := make([]*shared_models.File, len(files))
-	for i, f := range files {
-		result[i] = ProtoFileToModel(f)
-	}
-	return result
-}
 
 func ProtoPostToModel(p *pb.Post) (*shared_models.Post, error) {
 	id, err := uuid.Parse(p.Id)
@@ -49,7 +25,7 @@ func ProtoPostToModel(p *pb.Post) (*shared_models.Post, error) {
 		CreatorId:    creatorId,
 		CreatorType:  shared_models.PostCreatorType(p.CreatorType),
 		Desc:         p.Description,
-		Images:       ProtoFilesToModel(p.Images),
+		Images:       file_service2.ProtoFilesToModels(p.Images),
 		ImagesURL:    p.ImagesUrl,
 		CreatedAt:    p.CreatedAt.AsTime(),
 		UpdatedAt:    p.UpdatedAt.AsTime(),
@@ -69,43 +45,8 @@ func ProtoPostUpdateToModel(p *pb.PostUpdate) (*shared_models.PostUpdate, error)
 	return &shared_models.PostUpdate{
 		Id:    id,
 		Desc:  p.Description,
-		Files: ProtoFilesToModel(p.Files),
+		Files: file_service2.ProtoFilesToModels(p.Files),
 	}, nil
-}
-
-func ModelFileToProto(f *shared_models.File) *file_service.File {
-	if f == nil {
-		return nil
-	}
-
-	file := &file_service.File{
-		FileName:   f.Name,
-		FileSize:   f.Size,
-		FileType:   f.MimeType,
-		AccessMode: file_service.AccessMode(f.AccessMode),
-		Url:        f.URL,
-	}
-
-	if f.Reader != nil {
-		var err error
-		file.File, err = io.ReadAll(f.Reader)
-		if err != nil {
-			return nil
-		}
-
-	} else {
-		return nil
-	}
-
-	return file
-}
-
-func ModelFilesToProto(files []*shared_models.File) []*file_service.File {
-	result := make([]*file_service.File, len(files))
-	for i, f := range files {
-		result[i] = ModelFileToProto(f)
-	}
-	return result
 }
 
 func ModelPostToProto(p *shared_models.Post) *pb.Post {
@@ -114,7 +55,7 @@ func ModelPostToProto(p *shared_models.Post) *pb.Post {
 		CreatorId:    p.CreatorId.String(),
 		CreatorType:  string(p.CreatorType),
 		Description:  p.Desc,
-		Images:       ModelFilesToProto(p.Images),
+		Images:       file_service2.ModelFilesToProto(p.Images),
 		ImagesUrl:    p.ImagesURL,
 		CreatedAt:    timestamppb.New(p.CreatedAt),
 		UpdatedAt:    timestamppb.New(p.UpdatedAt),
@@ -130,7 +71,7 @@ func ModelPostUpdateToProto(p *shared_models.PostUpdate) *pb.PostUpdate {
 	return &pb.PostUpdate{
 		Id:          p.Id.String(),
 		Description: p.Desc,
-		Files:       ModelFilesToProto(p.Files),
+		Files:       file_service2.ModelFilesToProto(p.Files),
 	}
 }
 
@@ -148,4 +89,68 @@ func convertProtoPosts(protoPosts []*pb.Post) ([]shared_models.Post, error) {
 		result[i] = *post
 	}
 	return result, nil
+}
+
+// ProtoCommentToModel converts proto.Comment to model.Comment
+func ProtoCommentToModel(c *pb.Comment) (*shared_models.Comment, error) {
+	id, err := uuid.Parse(c.Id)
+	if err != nil {
+		return nil, err
+	}
+	userId, err := uuid.Parse(c.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	postId, err := uuid.Parse(c.PostId)
+	if err != nil {
+		return nil, err
+	}
+	return &shared_models.Comment{
+		Id:        id,
+		PostId:    postId,
+		UserId:    userId,
+		Text:      c.Text,
+		Images:    file_service2.ProtoFilesToModels(c.Images),
+		CreatedAt: c.CreatedAt.AsTime(),
+		UpdatedAt: c.UpdatedAt.AsTime(),
+		LikeCount: int(c.LikeCount),
+		IsLiked:   c.IsLiked,
+	}, nil
+}
+
+// ProtoCommentUpdateToModel converts proto.CommentUpdate to model.CommentUpdate
+func ProtoCommentUpdateToModel(c *pb.CommentUpdate) (*shared_models.CommentUpdate, error) {
+	id, err := uuid.Parse(c.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &shared_models.CommentUpdate{
+		Id:    id,
+		Text:  c.Text,
+		Files: file_service2.ProtoFilesToModels(c.Files),
+	}, nil
+}
+
+// ModelCommentToProto converts model.Comment to proto.Comment
+func ModelCommentToProto(c *shared_models.Comment) *pb.Comment {
+	return &pb.Comment{
+		Id:        c.Id.String(),
+		PostId:    c.PostId.String(),
+		UserId:    c.UserId.String(),
+		Text:      c.Text,
+		Images:    file_service2.ModelFilesToProto(c.Images),
+		CreatedAt: timestamppb.New(c.CreatedAt),
+		UpdatedAt: timestamppb.New(c.UpdatedAt),
+		LikeCount: int64(c.LikeCount),
+		IsLiked:   c.IsLiked,
+	}
+}
+
+func ModelCommentUpdateToProto(c *shared_models.CommentUpdate) *pb.CommentUpdate {
+	return &pb.CommentUpdate{
+		Id:    c.Id.String(),
+		Text:  c.Text,
+		Files: file_service2.ModelFilesToProto(c.Files),
+	}
 }

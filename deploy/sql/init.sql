@@ -77,7 +77,16 @@ create table if not exists comment(
                                       user_id uuid  references "user"(id) on delete cascade,
                                       created_at timestamptz not null default now(),
                                       like_count int default 0 check (like_count >= 0),
+                                      updated_at timestamptz not null default now(),
                                       text text not null
+);
+
+create table if not exists comment_file(
+                                            id int generated always as identity primary key,
+                                            comment_id uuid references comment(id) on delete cascade,
+                                            file_url text not null,
+                                            added_at timestamptz not null default now(),
+                                            file_type text not null default 'image'
 );
 
 create table if not exists post_file(

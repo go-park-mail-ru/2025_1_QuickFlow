@@ -17,6 +17,7 @@ import (
 	postgresConfig "quickflow/config/postgres"
 	"quickflow/metrics"
 	grpc3 "quickflow/post_service/internal/delivery/grpc"
+	"quickflow/post_service/internal/delivery/interceptor"
 	"quickflow/post_service/internal/repository/postgres"
 	"quickflow/post_service/internal/usecase"
 	"quickflow/post_service/utils/validation"
@@ -65,6 +66,9 @@ func main() {
 	postUseCase := usecase.NewPostUseCase(postRepo, fileService, postValidator)
 	userUseCase := userclient.NewUserClient(grpcConnUserService)
 
+	commentRepo := postgres.NewPostgresCommentRepository(db)
+	commentUseCase := usecase.NewCommentUseCase(commentRepo, fileService, postValidator)
+
 	postMetrics := metrics.NewMetrics("QuickFlow")
 
 	go func() {
@@ -80,10 +84,12 @@ func main() {
 		grpc.ChainUnaryInterceptor(
 			interceptors.RequestIDServerInterceptor(),
 			interceptors.MetricsInterceptor(addr.DefaultPostServiceName, postMetrics),
+			interceptor.ErrorInterceptor,
 		),
 		grpc.MaxRecvMsgSize(addr.MaxMessageSize),
 		grpc.MaxSendMsgSize(addr.MaxMessageSize))
 	proto.RegisterPostServiceServer(server, grpc3.NewPostServiceServer(postUseCase, userUseCase))
+	proto.RegisterCommentServiceServer(server, grpc3.NewCommentServiceServer(commentUseCase, userUseCase))
 	log.Printf("Server is listening on %s", listener.Addr().String())
 
 	if err = server.Serve(listener); err != nil {

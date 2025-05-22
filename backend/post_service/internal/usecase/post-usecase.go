@@ -86,7 +86,7 @@ func (p *PostUseCase) DeletePost(ctx context.Context, userId uuid.UUID, postId u
 
 	// TODO user_service
 	//if !belongsTo && user.Username != "Nikita" && user.Username != "rvasutenko" {
-	//	return post_errors.ErrPostDoesNotBelongToUser
+	//	return post_errors.ErrDoesNotBelongToUser
 	//}
 
 	// retrieve post files
@@ -183,7 +183,7 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	//
 
 	//if !belongsTo {
-	//	return nil, post_errors.ErrPostDoesNotBelongToUser
+	//	return nil, post_errors.ErrDoesNotBelongToUser
 	//}
 
 	oldPost, err := p.postRepo.GetPost(ctx, postUpdate.Id)
@@ -192,7 +192,7 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 	}
 
 	if oldPost.CreatorId != userId && oldPost.CreatorType == models.PostUser {
-		return nil, post_errors.ErrPostDoesNotBelongToUser
+		return nil, post_errors.ErrDoesNotBelongToUser
 	}
 	// TODO validate community update
 

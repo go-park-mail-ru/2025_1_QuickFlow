@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package comment_service;
+option go_package = "quickflow/comment_service/internal/delivery/grpc/proto";
+
+import "google/protobuf/timestamp.proto";
+import "file_service/file_service.proto";
+
+// Comment represents a single comment.
+message Comment {
+  string id = 1;
+  string post_id = 2;
+  string user_id = 3;
+  string text = 4;
+  repeated string images_url = 5;
+  repeated file_service.File images = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  int64 like_count = 9;
+  bool is_liked = 10; // This will be used to indicate whether the current user liked this comment
+}
+
+// CommentUpdate is used to update an existing comment.
+message CommentUpdate {
+  string id = 1;
+  string text = 2;
+  repeated file_service.File files = 3; // New files to be added or updated for the comment
+}
+
+// AddCommentRequest is used to add a new comment.
+message AddCommentRequest {
+  Comment comment = 1;
+}
+
+// AddCommentResponse is the response for adding a comment.
+message AddCommentResponse {
+  Comment comment = 1;
+}
+
+// DeleteCommentRequest is used to delete a comment.
+message DeleteCommentRequest {
+  string comment_id = 1;
+  string user_id = 2; // Optional: To check if the comment belongs to the user
+}
+
+// DeleteCommentResponse is the response for deleting a comment.
+message DeleteCommentResponse {
+  bool success = 1;
+}
+
+// UpdateCommentRequest is used to update a comment's text and associated files.
+message UpdateCommentRequest {
+  CommentUpdate comment = 1;
+  string user_id = 2;
+}
+
+// UpdateCommentResponse is the response for updating a comment.
+message UpdateCommentResponse {
+  Comment comment = 1;
+}
+
+// FetchCommentsForPostRequest retrieves all comments for a specific post.
+message FetchCommentsForPostRequest {
+  string post_id = 1;
+  int32 num_comments = 2;
+  google.protobuf.Timestamp timestamp = 3; // Timestamp for pagination
+}
+
+// FetchCommentsForPostResponse contains the list of comments for a specific post.
+message FetchCommentsForPostResponse {
+  repeated Comment comments = 1;
+}
+
+// LikeCommentRequest is used to like a comment.
+message LikeCommentRequest {
+  string comment_id = 1;
+  string user_id = 2;
+}
+
+// LikeCommentResponse is the response for liking a comment.
+message LikeCommentResponse {
+  bool success = 1;
+}
+
+// UnlikeCommentRequest is used to unlike a comment.
+message UnlikeCommentRequest {
+  string comment_id = 1;
+  string user_id = 2;
+}
+
+// UnlikeCommentResponse is the response for unliking a comment.
+message UnlikeCommentResponse {
+  bool success = 1;
+}
+
+// GetCommentRequest retrieves a single comment by its ID.
+message GetCommentRequest {
+  string comment_id = 1;
+  string user_id = 2;
+}
+
+// GetCommentResponse returns the requested comment.
+message GetCommentResponse {
+  Comment comment = 1;
+}
+
+// GetCommentFilesRequest retrieves the files associated with a comment.
+message GetCommentFilesRequest {
+  string comment_id = 1;
+}
+
+// GetCommentFilesResponse returns the file URLs associated with a comment.
+message GetCommentFilesResponse {
+  repeated string file_urls = 1;
+}
+
+message GetLastPostCommentRequest {
+  string post_id = 1;
+  string user_id = 2;
+}
+
+message GetLastPostCommentResponse {
+  Comment comment = 1;
+}
+
+// CommentService defines the gRPC service for handling comments.
+service CommentService {
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+  rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
+  rpc UpdateComment(UpdateCommentRequest) returns (UpdateCommentResponse);
+  rpc FetchCommentsForPost(FetchCommentsForPostRequest) returns (FetchCommentsForPostResponse);
+  rpc LikeComment(LikeCommentRequest) returns (LikeCommentResponse);
+  rpc UnlikeComment(UnlikeCommentRequest) returns (UnlikeCommentResponse);
+  rpc GetComment(GetCommentRequest) returns (GetCommentResponse);
+  rpc GetCommentFiles(GetCommentFilesRequest) returns (GetCommentFilesResponse);
+  rpc GetLastPostComment(GetLastPostCommentRequest) returns (GetLastPostCommentResponse);
+}

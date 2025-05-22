@@ -35,19 +35,21 @@ type FeedHandler struct {
 	postService      PostService
 	profileUseCase   ProfileUseCase
 	friendUseCase    FriendsUseCase
+	commentUseCase   CommentService
 	communityService CommunityService
 }
 
 // NewFeedHandler creates new feed handler.
 func NewFeedHandler(authUseCase AuthUseCase, postUseCase PostService,
 	profileUseCase ProfileUseCase, friendUseCase FriendsUseCase,
-	communityService CommunityService) *FeedHandler {
+	communityService CommunityService, commentService CommentService) *FeedHandler {
 	return &FeedHandler{
 		postService:      postUseCase,
 		profileUseCase:   profileUseCase,
 		friendUseCase:    friendUseCase,
 		authUseCase:      authUseCase,
 		communityService: communityService,
+		commentUseCase:   commentService,
 	}
 }
 
@@ -93,10 +95,33 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postsOut []forms.PostOut
+	var commentOut forms.CommentOut
 	var authors, communities []uuid.UUID
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
+
+		// getLastComment
+		lastComment, err := f.commentUseCase.GetLastPostComment(ctx, post.Id)
+		appErr := errors2.FromGRPCError(err)
+		if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+			logger.Error(ctx, "Failed to get last comment")
+			http2.WriteJSONError(w, appErr)
+			return
+		}
+
+		if lastComment != nil {
+			commentAuthor, err := f.profileUseCase.GetPublicUserInfo(ctx, lastComment.UserId)
+			if err != nil {
+				logger.Error(ctx, "Failed to get comment author info")
+				http2.WriteJSONError(w, err)
+				return
+			}
+			commentOut.FromComment(*lastComment, commentAuthor)
+
+			postOut.LastComment = &commentOut
+		}
+
 		postsOut = append(postsOut, postOut)
 		if post.CreatorType == models.PostUser {
 			authors = append(authors, post.CreatorId)
@@ -205,10 +230,33 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 	}
 
 	var postsOut []forms.PostOut
+	var commentOut forms.CommentOut
 	var authors, communities []uuid.UUID
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
+
+		// getLastComment
+		lastComment, err := f.commentUseCase.GetLastPostComment(ctx, post.Id)
+		appErr := errors2.FromGRPCError(err)
+		if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+			logger.Error(ctx, "Failed to get last comment")
+			http2.WriteJSONError(w, appErr)
+			return
+		}
+
+		if lastComment != nil {
+			commentAuthor, err := f.profileUseCase.GetPublicUserInfo(ctx, lastComment.UserId)
+			if err != nil {
+				logger.Error(ctx, "Failed to get comment author info")
+				http2.WriteJSONError(w, err)
+				return
+			}
+			commentOut.FromComment(*lastComment, commentAuthor)
+
+			postOut.LastComment = &commentOut
+		}
+
 		postsOut = append(postsOut, postOut)
 		if post.CreatorType == models.PostUser {
 			authors = append(authors, post.CreatorId)
@@ -342,9 +390,32 @@ func (f *FeedHandler) FetchUserPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postsOut []forms.PostOut
+	var commentOut forms.CommentOut
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
+
+		// getLastComment
+		lastComment, err := f.commentUseCase.GetLastPostComment(ctx, post.Id)
+		appErr := errors2.FromGRPCError(err)
+		if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+			logger.Error(ctx, "Failed to get last comment")
+			http2.WriteJSONError(w, appErr)
+			return
+		}
+
+		if lastComment != nil {
+			commentAuthor, err := f.profileUseCase.GetPublicUserInfo(ctx, lastComment.UserId)
+			if err != nil {
+				logger.Error(ctx, "Failed to get comment author info")
+				http2.WriteJSONError(w, err)
+				return
+			}
+			commentOut.FromComment(*lastComment, commentAuthor)
+
+			postOut.LastComment = &commentOut
+		}
+
 		info := forms.PublicUserInfoToOut(publicUserInfo, models.RelationSelf)
 		postOut.Creator = &info
 		postsOut = append(postsOut, postOut)
@@ -412,9 +483,32 @@ func (f *FeedHandler) FetchCommunityPosts(w http.ResponseWriter, r *http.Request
 	}
 
 	var postsOut []forms.PostOut
+	var commentOut forms.CommentOut
 	for _, post := range posts {
 		var postOut forms.PostOut
 		postOut.FromPost(post)
+
+		// getLastComment
+		lastComment, err := f.commentUseCase.GetLastPostComment(ctx, post.Id)
+		appErr := errors2.FromGRPCError(err)
+		if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+			logger.Error(ctx, "Failed to get last comment")
+			http2.WriteJSONError(w, appErr)
+			return
+		}
+
+		if lastComment != nil {
+			commentAuthor, err := f.profileUseCase.GetPublicUserInfo(ctx, lastComment.UserId)
+			if err != nil {
+				logger.Error(ctx, "Failed to get comment author info")
+				http2.WriteJSONError(w, err)
+				return
+			}
+			commentOut.FromComment(*lastComment, commentAuthor)
+
+			postOut.LastComment = &commentOut
+		}
+
 		postOut.Creator = forms.ToCommunityForm(*community, ownerInfo)
 		postsOut = append(postsOut, postOut)
 	}

@@ -1,6 +1,7 @@
 package errors2
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -36,6 +37,12 @@ func New(code string, message string, status int) *GatewayError {
 func FromGRPCError(err error) *GatewayError {
 	if err == nil {
 		return nil
+	}
+
+	// check if already a GatewayError
+	var gwErr *GatewayError
+	if errors.As(err, &gwErr) {
+		return gwErr
 	}
 
 	st, ok := status.FromError(err)

@@ -109,6 +109,7 @@ type PostOut struct {
 	CommentCount int         `json:"comment_count"`
 	IsRepost     bool        `json:"is_repost"`
 	IsLiked      bool        `json:"is_liked"`
+	LastComment  *CommentOut `json:"last_comment,omitempty"`
 }
 
 func (p *PostOut) FromPost(post models.Post) {

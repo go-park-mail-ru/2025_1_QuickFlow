@@ -61,10 +61,11 @@ func ErrorInterceptor(
 
 	case errors.Is(err, post_errors.ErrInvalidNumPosts),
 		errors.Is(err, post_errors.ErrInvalidTimestamp),
-		errors.Is(err, post_errors.ErrInvalidUUID):
+		errors.Is(err, post_errors.ErrInvalidUUID),
+		errors.Is(err, post_errors.ErrInvalidNumComments):
 		return nil, withErrorInfo(codes.InvalidArgument, "INVALID_ARGUMENT", err.Error())
 
-	case errors.Is(err, post_errors.ErrPostDoesNotBelongToUser):
+	case errors.Is(err, post_errors.ErrDoesNotBelongToUser):
 		return nil, withErrorInfo(codes.PermissionDenied, "FORBIDDEN", err.Error())
 
 	case errors.Is(err, post_errors.ErrAlreadyExists):

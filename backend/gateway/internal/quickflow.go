@@ -98,13 +98,15 @@ func Run(cfg *config.Config) error {
 	feedbackService := feedback_service.NewFeedbackClient(grpcConnFeedbackService)
 	FriendsService := friendsService.NewFriendsClient(grpcConnFriendsService)
 	communityService := community_service.NewCommunityServiceClient(grcpConnCommunityService)
+	commentService := postService.NewCommentClient(grpcConnPostService)
 
 	connManager := ws.NewWSConnectionManager()
 	sanitizerPolicy := bluemonday.UGCPolicy()
 
 	newAuthHandler := qfhttp.NewAuthHandler(UserService, sanitizerPolicy)
-	newFeedHandler := qfhttp.NewFeedHandler(UserService, PostService, profileService, FriendsService, communityService)
+	newFeedHandler := qfhttp.NewFeedHandler(UserService, PostService, profileService, FriendsService, communityService, commentService)
 	newPostHandler := qfhttp.NewPostHandler(PostService, profileService, communityService, FriendsService, sanitizerPolicy)
+	newCommentHandler := qfhttp.NewCommentHandler(commentService, profileService, sanitizerPolicy)
 	newProfileHandler := qfhttp.NewProfileHandler(profileService, FriendsService, UserService, chatService, connManager, sanitizerPolicy)
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
 	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, connManager)
@@ -163,7 +165,10 @@ func Run(cfg *config.Config) error {
 	protectedPost.Use(middleware.CSRFMiddleware)
 	protectedPost.HandleFunc("/post", newPostHandler.AddPost).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.UpdatePost).Methods(http.MethodPut)
+
+	protectedPost.HandleFunc("/comments/{comment_id:[0-9a-fA-F-]{36}}", newCommentHandler.UpdateComment).Methods(http.MethodPut)
 	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/like", newPostHandler.LikePost).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/comments/{comment_id:[0-9a-fA-F-]{36}}/like", newCommentHandler.LikeComment).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/profile", newProfileHandler.UpdateProfile).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/follow", newFriendsHandler.SendFriendRequest).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/followers/accept", newFriendsHandler.AcceptFriendRequest).Methods(http.MethodPost)
@@ -175,6 +180,7 @@ func Run(cfg *config.Config) error {
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/leave", newCommunityHandler.LeaveCommunity).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}/members/{user_id:{id:[0-9a-fA-F-]{36}}", newCommunityHandler.ChangeUserRole).Methods(http.MethodPost)
 	protectedPost.HandleFunc("/upload", newFileHandler.AddFiles).Methods(http.MethodPost)
+	protectedPost.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/comment", newCommentHandler.AddComment).Methods(http.MethodPost)
 
 	protectedGet := apiGetRouter.PathPrefix("/").Subrouter()
 	protectedGet.Use(middleware.SessionMiddleware(UserService))
@@ -196,6 +202,7 @@ func Run(cfg *config.Config) error {
 	protectedGet.HandleFunc("/profiles/{username}/posts", newFeedHandler.FetchUserPosts).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/my_profile", newProfileHandler.GetMyProfile).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.GetPost).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/comments", newCommentHandler.FetchCommentsForPost).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager, pingHandler))
@@ -206,9 +213,11 @@ func Run(cfg *config.Config) error {
 	apiDeleteRouter.Use(middleware.CSRFMiddleware)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.DeletePost).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/like", newPostHandler.UnlikePost).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/comments/{comment_id:[0-9a-fA-F-]{36}}/like", newCommentHandler.UnlikeComment).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/friends", newFriendsHandler.DeleteFriend).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/follow", newFriendsHandler.Unfollow).Methods(http.MethodDelete)
 	apiDeleteRouter.HandleFunc("/communities/{id:[0-9a-fA-F-]{36}}", newCommunityHandler.DeleteCommunity).Methods(http.MethodDelete)
+	apiDeleteRouter.HandleFunc("/comments/{comment_id:[0-9a-fA-F-]{36}}", newCommentHandler.DeleteComment).Methods(http.MethodDelete)
 
 	server := http.Server{
 		Addr:         cfg.ServerConfig.Addr,
