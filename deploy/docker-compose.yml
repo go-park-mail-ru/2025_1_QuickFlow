@@ -242,10 +242,13 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SERVER_ROOT_URL=https://quickflowapp.ru/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - ../backend/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasource.yml
       - grafana_data:/var/lib/grafana
     restart: always
+
 
   nodeexporter:
     container_name: node_exporter
