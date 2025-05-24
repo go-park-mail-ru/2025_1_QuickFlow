@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -26,6 +27,7 @@ type ProfileRepository interface {
 
 type FileService interface {
 	UploadFile(ctx context.Context, file *shared_models.File) (string, error)
+	DeleteFile(ctx context.Context, filename string) error
 }
 
 type ProfileService struct {
@@ -88,6 +90,11 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile shared_mo
 		}
 	}
 
+	oldProfile, err := p.profileRepo.GetProfile(ctx, newProfile.UserId)
+	if err != nil {
+		return nil, fmt.Errorf("p.profileRepo.GetProfile: %w", err)
+	}
+
 	g, newCtx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
@@ -125,6 +132,21 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, newProfile shared_mo
 
 	if err := g.Wait(); err != nil {
 		return nil, err
+	}
+
+	if newProfile.BasicInfo != nil && oldProfile.BasicInfo != nil {
+		if newProfile.Avatar != nil && len(oldProfile.BasicInfo.AvatarUrl) > 0 && oldProfile.BasicInfo.AvatarUrl != newProfile.BasicInfo.AvatarUrl {
+			err = p.fileRepo.DeleteFile(ctx, path.Base(newProfile.BasicInfo.AvatarUrl))
+			if err != nil {
+				return nil, err
+			}
+		}
+		if newProfile.Background != nil && len(newProfile.BasicInfo.BackgroundUrl) > 0 && newProfile.BasicInfo.BackgroundUrl != newProfile.BasicInfo.BackgroundUrl {
+			err = p.fileRepo.DeleteFile(ctx, path.Base(newProfile.BasicInfo.BackgroundUrl))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	profile, err := p.profileRepo.GetProfile(ctx, newProfile.UserId)

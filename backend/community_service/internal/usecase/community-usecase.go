@@ -286,14 +286,14 @@ func (c *CommunityUseCase) UpdateCommunity(ctx context.Context, community models
 	}
 
 	if community.BasicInfo != nil && oldCommunity.BasicInfo != nil {
-		if len(oldCommunity.BasicInfo.AvatarUrl) > 0 && oldCommunity.BasicInfo.AvatarUrl != community.BasicInfo.AvatarUrl {
+		if community.Avatar != nil && len(oldCommunity.BasicInfo.AvatarUrl) > 0 && oldCommunity.BasicInfo.AvatarUrl != community.BasicInfo.AvatarUrl {
 			err = c.fileService.DeleteFile(ctx, path.Base(oldCommunity.BasicInfo.AvatarUrl))
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("failed to delete community avatar: %v", err))
 				return nil, err
 			}
 		}
-		if len(oldCommunity.BasicInfo.CoverUrl) > 0 && oldCommunity.BasicInfo.CoverUrl != community.BasicInfo.CoverUrl {
+		if community.Cover != nil && len(oldCommunity.BasicInfo.CoverUrl) > 0 && oldCommunity.BasicInfo.CoverUrl != community.BasicInfo.CoverUrl {
 			err = c.fileService.DeleteFile(ctx, path.Base(oldCommunity.BasicInfo.CoverUrl))
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("failed to delete community cover: %v", err))
