@@ -69,7 +69,7 @@ const (
 	select count(*)
 	from message m
 	inner join chat_user cu on m.chat_id = cu.chat_id and m.chat_id = $2
-	where cu.user_id = $1 and m.created_at > cu.last_read;
+	where cu.user_id = $1 and (cu.last_read is null or m.created_at > cu.last_read);
 `
 )
 
