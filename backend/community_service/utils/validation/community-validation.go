@@ -2,6 +2,7 @@ package validation
 
 import (
 	"errors"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -32,7 +33,7 @@ func (p *CommunityValidator) ValidateCommunity(community *models.Community) erro
 		return community_errors.ErrorCommunityNameTooLong
 	}
 
-	if community.BasicInfo != nil && len(community.BasicInfo.Description) > p.communityConfig.CommunityDescriptionMaxLength {
+	if community.BasicInfo != nil && utf8.RuneCountInString(community.BasicInfo.Description) > p.communityConfig.CommunityDescriptionMaxLength {
 		return community_errors.ErrorCommunityDescriptionTooLong
 	}
 
