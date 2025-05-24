@@ -235,17 +235,20 @@ services:
       - "9090:9090"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.3.0
     container_name: grafana
     ports:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SERVER_ROOT_URL=https://quickflowapp.ru/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - ../backend/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasource.yml
       - grafana_data:/var/lib/grafana
     restart: always
+
 
   nodeexporter:
     container_name: node_exporter
