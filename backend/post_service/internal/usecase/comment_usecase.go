@@ -51,7 +51,11 @@ func (c *CommentUseCase) AddComment(ctx context.Context, comment models.Comment)
 		return nil, fmt.Errorf("p.fileService.AddComment: %w", err)
 	}
 
-	return &comment, nil
+	newComment, err := c.commentRepo.GetComment(ctx, comment.Id)
+	if err != nil {
+		return nil, fmt.Errorf("p.fileService.GetComment: %w", err)
+	}
+	return &newComment, nil
 }
 
 // DeleteComment removes Comment from the repository.

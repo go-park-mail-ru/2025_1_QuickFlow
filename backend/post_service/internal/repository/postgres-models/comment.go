@@ -14,13 +14,18 @@ type PostgresFile struct {
 
 func (f *PostgresFile) ToFile() *models.File {
 	file := models.File{
-		URL:  f.URL.String,
-		Name: f.Name.String,
+		URL: f.URL.String,
 	}
 	if f.DisplayType.Valid && len(f.DisplayType.String) != 0 {
 		file.DisplayType = models.DisplayType(f.DisplayType.String)
 	} else {
 		file.DisplayType = models.DisplayTypeFile
+	}
+
+	if f.Name.Valid {
+		file.Name = f.Name.String
+	} else {
+		file.Name = ""
 	}
 	return &file
 }

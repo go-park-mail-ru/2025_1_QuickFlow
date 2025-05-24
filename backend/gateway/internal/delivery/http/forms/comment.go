@@ -92,9 +92,9 @@ type CommentOut struct {
 	Text      string            `json:"text"`
 	CreatedAt string            `json:"created_at"`
 	UpdatedAt string            `json:"updated_at"`
-	Media     []string          `json:"media,omitempty"`
-	Audio     []string          `json:"audio,omitempty"`
-	Files     []string          `json:"files,omitempty"`
+	Media     []FileOut         `json:"media,omitempty"`
+	Audio     []FileOut         `json:"audio,omitempty"`
+	Files     []FileOut         `json:"files,omitempty"`
 	Creator   PublicUserInfoOut `json:"author"`
 	PostId    uuid.UUID         `json:"post_id"`
 	LikeCount int               `json:"like_count"`
@@ -102,17 +102,17 @@ type CommentOut struct {
 }
 
 func (c *CommentOut) FromComment(comment models.Comment, userInfo models.PublicUserInfo) {
-	var files, media, audio []string
+	var files, media, audio []FileOut
 	for _, file := range comment.Images {
 		switch file.DisplayType {
 		case models.DisplayTypeFile:
-			files = append(files, file.URL)
+			files = append(files, ToFileOut(*file))
 		case models.DisplayTypeMedia:
-			media = append(media, file.URL)
+			media = append(media, ToFileOut(*file))
 		case models.DisplayTypeAudio:
-			audio = append(audio, file.URL)
+			audio = append(audio, ToFileOut(*file))
 		default:
-			files = append(files, file.URL)
+			files = append(files, ToFileOut(*file))
 		}
 	}
 

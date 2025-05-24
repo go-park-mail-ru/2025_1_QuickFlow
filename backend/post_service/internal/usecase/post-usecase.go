@@ -67,7 +67,12 @@ func (p *PostUseCase) AddPost(ctx context.Context, post models.Post) (*models.Po
 		return nil, fmt.Errorf("p.postRepo.AddPost: %w", err)
 	}
 
-	return &post, nil
+	newPost, err := p.postRepo.GetPost(ctx, post.Id)
+	if err != nil {
+		return nil, fmt.Errorf("p.postRepo.GetPost: %w", err)
+	}
+
+	return &newPost, nil
 }
 
 // DeletePost removes post from the repository.

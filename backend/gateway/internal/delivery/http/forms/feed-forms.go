@@ -140,9 +140,9 @@ type PostOut struct {
 	Creator      interface{} `json:"author,omitempty"`
 	CreatorType  string      `json:"author_type"`
 	Desc         string      `json:"text"`
-	MediaURLs    []string    `json:"media,omitempty"`
-	AudioURLs    []string    `json:"audio,omitempty"`
-	FileURLs     []string    `json:"files,omitempty"`
+	MediaURLs    []FileOut   `json:"media,omitempty"`
+	AudioURLs    []FileOut   `json:"audio,omitempty"`
+	FileURLs     []FileOut   `json:"files,omitempty"`
 	CreatedAt    string      `json:"created_at"`
 	UpdatedAt    string      `json:"updated_at"`
 	LikeCount    int         `json:"like_count"`
@@ -154,17 +154,17 @@ type PostOut struct {
 }
 
 func (p *PostOut) FromPost(post models.Post) {
-	mediaURLs := make([]string, 0)
-	audioURLs := make([]string, 0)
-	fileURLs := make([]string, 0)
+	mediaURLs := make([]FileOut, 0)
+	audioURLs := make([]FileOut, 0)
+	fileURLs := make([]FileOut, 0)
 
 	for _, file := range post.Files {
 		if file.DisplayType == models.DisplayTypeMedia {
-			mediaURLs = append(mediaURLs, file.URL)
+			mediaURLs = append(mediaURLs, ToFileOut(*file))
 		} else if file.DisplayType == models.DisplayTypeAudio {
-			audioURLs = append(audioURLs, file.URL)
+			audioURLs = append(audioURLs, ToFileOut(*file))
 		} else {
-			fileURLs = append(fileURLs, file.URL)
+			fileURLs = append(fileURLs, ToFileOut(*file))
 		}
 	}
 

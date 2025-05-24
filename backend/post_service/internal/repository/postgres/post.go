@@ -22,8 +22,10 @@ const getPostsQuery = `
 	where p.id = $1
 `
 const getPhotosQuery = `
-	select file_url, file_type
-	from post_file
+	select pf.file_url, pf.file_type, f.filename
+	from post_file pf
+	join files f 
+	on pf.file_url = f.file_url
 	where post_id = $1
 	order by added_at;
 `
@@ -177,17 +179,14 @@ func (p *PostgresPostRepository) GetPost(ctx context.Context, postId uuid.UUID) 
 	}
 
 	for pics.Next() {
-		var pic, displayType pgtype.Text
-		err = pics.Scan(&pic, &displayType)
+		var postgresFile pgmodels.PostgresFile
+		err = pics.Scan(&postgresFile.URL, &postgresFile.DisplayType, &postgresFile.Name)
 		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", postgresFile.Name, err.Error()))
 			return models.Post{}, fmt.Errorf("unable to get post pictures from database: %w", err)
 		}
 
-		postPostgres.Files = append(postPostgres.Files, pgmodels.PostgresFile{
-			URL:         pic,
-			DisplayType: displayType,
-		})
+		postPostgres.Files = append(postPostgres.Files, postgresFile)
 	}
 	pics.Close()
 
@@ -225,17 +224,14 @@ func (p *PostgresPostRepository) GetUserPosts(ctx context.Context, id uuid.UUID,
 		}
 
 		for pics.Next() {
-			var pic, displayType pgtype.Text
-			err = pics.Scan(&pic, &displayType)
+			var postgresFile pgmodels.PostgresFile
+			err = pics.Scan(&postgresFile.URL, &postgresFile.DisplayType, &postgresFile.Name)
 			if err != nil {
-				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", postgresFile.Name, err.Error()))
 				return nil, fmt.Errorf("unable to get post pictures from database: %w", err)
 			}
 
-			postPostgres.Files = append(postPostgres.Files, pgmodels.PostgresFile{
-				URL:         pic,
-				DisplayType: displayType,
-			})
+			postPostgres.Files = append(postPostgres.Files, postgresFile)
 		}
 		pics.Close()
 
@@ -283,17 +279,14 @@ func (p *PostgresPostRepository) GetRecommendationsForUId(ctx context.Context, u
 		}
 
 		for pics.Next() {
-			var pic, displayType pgtype.Text
-			err = pics.Scan(&pic, &displayType)
+			var postgresFile pgmodels.PostgresFile
+			err = pics.Scan(&postgresFile.URL, &postgresFile.DisplayType, &postgresFile.Name)
 			if err != nil {
-				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", postgresFile.Name, err.Error()))
 				return nil, fmt.Errorf("unable to get post pictures from database: %w", err)
 			}
 
-			postPostgres.Files = append(postPostgres.Files, pgmodels.PostgresFile{
-				URL:         pic,
-				DisplayType: displayType,
-			})
+			postPostgres.Files = append(postPostgres.Files, postgresFile)
 		}
 		pics.Close()
 
@@ -342,17 +335,14 @@ func (p *PostgresPostRepository) GetPostsForUId(ctx context.Context, uid uuid.UU
 		}
 
 		for pics.Next() {
-			var pic, displayType pgtype.Text
-			err = pics.Scan(&pic, &displayType)
+			var postgresFile pgmodels.PostgresFile
+			err = pics.Scan(&postgresFile.URL, &postgresFile.DisplayType, &postgresFile.Name)
 			if err != nil {
-				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
+				logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", postgresFile.Name, err.Error()))
 				return nil, fmt.Errorf("unable to get post pictures from database: %w", err)
 			}
 
-			postPostgres.Files = append(postPostgres.Files, pgmodels.PostgresFile{
-				URL:         pic,
-				DisplayType: displayType,
-			})
+			postPostgres.Files = append(postPostgres.Files, postgresFile)
 		}
 		pics.Close()
 
@@ -404,8 +394,8 @@ func (p *PostgresPostRepository) GetPostFiles(ctx context.Context, postId uuid.U
 
 	var result []string
 	for rows.Next() {
-		var pic, tp pgtype.Text
-		err = rows.Scan(&pic, &tp)
+		var pic, tp, name pgtype.Text
+		err = rows.Scan(&pic, &tp, &name)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("Unable to scan post picture %v from database: %s", pic, err.Error()))
 			return nil, fmt.Errorf("unable to get post pictures from database: %w", err)
