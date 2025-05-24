@@ -26,7 +26,7 @@ const getCommentsForPostQuery = `
     select id, post_id, user_id, text, created_at, updated_at, like_count
     from comment
     where post_id = $1 and created_at < $2
-    order by created_at
+    order by created_at desc
     limit $3;
 `
 
@@ -239,6 +239,12 @@ func (c *PostgresCommentRepository) UpdateComment(ctx context.Context, commentUp
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Unable to update comment %v in database: %s", commentUpdate.Id, err.Error()))
 		return fmt.Errorf("unable to update comment in database: %w", err)
+	}
+
+	_, err = c.connPool.ExecContext(ctx, "delete from comment_file where comment_id = $1", pgtype.UUID{Bytes: commentUpdate.Id, Valid: true})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to delete old files for comment %v: %s", commentUpdate.Id, err.Error()))
+		return fmt.Errorf("unable to delete old files for comment: %w", err)
 	}
 
 	// Добавление новых файлов
