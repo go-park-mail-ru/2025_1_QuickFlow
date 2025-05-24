@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/sync/errgroup"
 
 	post_errors "quickflow/post_service/internal/errors"
 	"quickflow/post_service/utils/validation"
@@ -22,8 +22,7 @@ type PostValidator interface {
 
 type PostRepository interface {
 	AddPost(ctx context.Context, post models.Post) error
-	UpdatePostText(ctx context.Context, postId uuid.UUID, text string) error
-	UpdatePostFiles(ctx context.Context, postId uuid.UUID, fileURLs []string) error
+	UpdatePost(ctx context.Context, postUpdate models.PostUpdate) error
 	DeletePost(ctx context.Context, postId uuid.UUID) error
 	BelongsTo(ctx context.Context, userId uuid.UUID, postId uuid.UUID) (bool, error)
 	GetPost(ctx context.Context, postId uuid.UUID) (models.Post, error)
@@ -62,12 +61,6 @@ func (p *PostUseCase) AddPost(ctx context.Context, post models.Post) (*models.Po
 	post.Id = uuid.New()
 
 	var err error
-	// Upload files to storage
-	post.ImagesURL, err = p.fileRepo.UploadManyFiles(ctx, post.Images)
-	if err != nil {
-		return nil, fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
-	}
-
 	// Update post images with urls
 	err = p.postRepo.AddPost(ctx, post)
 	if err != nil {
@@ -202,49 +195,22 @@ func (p *PostUseCase) UpdatePost(ctx context.Context, postUpdate models.PostUpda
 		return nil, fmt.Errorf("p.postRepo.GetPostFiles: %w", err)
 	}
 
-	// Upload files to storage
-
-	var g errgroup.Group
-	fileURLChan := make(chan []string, 1)
-
-	g.Go(func() error {
-		var urls []string
-		var err error
-		if len(postUpdate.Files) > 0 {
-			urls, err = p.fileRepo.UploadManyFiles(ctx, postUpdate.Files)
-			if err != nil {
-				return fmt.Errorf("p.fileRepo.UploadManyFiles: %w", err)
-			}
-		}
-		fileURLChan <- urls
-		return nil
-	})
-
-	g.Go(func() error {
-		if err := p.postRepo.UpdatePostText(ctx, postUpdate.Id, postUpdate.Desc); err != nil {
-			return fmt.Errorf("p.postRepo.UpdatePostText: %w", err)
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		fileURLs := <-fileURLChan
-		if err := p.postRepo.UpdatePostFiles(ctx, postUpdate.Id, fileURLs); err != nil {
-			return fmt.Errorf("p.postRepo.UpdatePostFiles: %w", err)
-		}
-		return nil
-	})
-
-	if err = g.Wait(); err != nil {
-		return nil, err
+	if err := p.postRepo.UpdatePost(ctx, postUpdate); err != nil {
+		return nil, fmt.Errorf("p.postRepo.UpdatePost: %w", err)
 	}
-	close(fileURLChan)
+
+	var fileURLs []string
+	for _, file := range postUpdate.Files {
+		fileURLs = append(fileURLs, file.URL)
+	}
 
 	// delete old photos
 	for _, pic := range oldPics {
-		err = p.fileRepo.DeleteFile(ctx, path.Base(pic))
-		if err != nil {
-			return nil, fmt.Errorf("p.fileRepo.DeleteFile: %w", err)
+		if !slices.Contains(fileURLs, pic) {
+			err = p.fileRepo.DeleteFile(ctx, path.Base(pic))
+			if err != nil {
+				return nil, fmt.Errorf("p.fileRepo.DeleteFile: %w", err)
+			}
 		}
 	}
 

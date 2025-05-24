@@ -18,8 +18,7 @@ type Post struct {
 	CreatorId    uuid.UUID
 	CreatorType  PostCreatorType
 	Desc         string
-	Images       []*File
-	ImagesURL    []string
+	Files        []*File
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	LikeCount    int

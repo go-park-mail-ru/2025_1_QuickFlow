@@ -2,10 +2,8 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -66,40 +64,12 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info(ctx, fmt.Sprintf("User %s requested to add post", user.Username))
 
-	// Parse the form data
-	err := r.ParseMultipartForm(15 << 20) // 15 MB
-	if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse form", http.StatusBadRequest))
-		return
-	}
-
-	// Parse form values
+	// parse the post form
 	var postForm forms.PostForm
-	postForm.Text = r.FormValue("text")
-	creatorType := r.FormValue("author_type")
-	creatorId := r.FormValue("author_id")
-	if creatorType == "" {
-		postForm.CreatorType = models.PostUser
-		postForm.CreatorId = user.Id
-	} else {
-		postForm.CreatorType, err = forms.ParseCreationType(creatorType)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Failed to parse creator type: %s", err.Error()))
-			http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse form", http.StatusBadRequest))
-			return
-		}
-
-		if postForm.CreatorType == models.PostCommunity {
-			postForm.CreatorId, err = uuid.Parse(creatorId)
-			if err != nil {
-				logger.Error(ctx, fmt.Sprintf("Failed to parse creator id: %s", err.Error()))
-				http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse form", http.StatusBadRequest))
-				return
-			}
-		} else {
-			postForm.CreatorId = user.Id
-		}
+	if err := json.NewDecoder(r.Body).Decode(&postForm); err != nil {
+		logger.Error(ctx, "Failed to decode request body for feedback", err)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Bad request body", http.StatusBadRequest))
+		return
 	}
 
 	// Validate text length
@@ -112,30 +82,20 @@ func (p *PostHandler) AddPost(w http.ResponseWriter, r *http.Request) {
 	// Sanitize post content
 	sanitizer.SanitizePost(&postForm, p.policy)
 
-	// Handle repost flag
-	if len(r.FormValue("is_repost")) > 0 {
-		postForm.IsRepost, err = strconv.ParseBool(r.FormValue("is_repost"))
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("Failed to parse is_repost: %s", err.Error()))
-			http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse form", http.StatusBadRequest))
-			return
-		}
-	}
-
-	// Handle image files
-	postForm.Images, err = http2.GetFiles(r, "pics")
-	if errors.Is(err, http2.TooManyFilesErr) {
-		logger.Error(ctx, fmt.Sprintf("Too many pictures requested: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Too many pics requested", http.StatusBadRequest))
-		return
-	} else if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Failed to get files: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to get files", http.StatusBadRequest))
+	if len(postForm.Text)+len(postForm.Media)+len(postForm.Audio)+len(postForm.File) == 0 {
+		logger.Error(ctx, fmt.Errorf("empty post content"))
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "empty post content", http.StatusBadRequest))
 		return
 	}
 
 	// Convert the post form to a model
-	post := postForm.ToPostModel()
+	post, err := postForm.ToPostModel(user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to parse post form: %s", err.Error()))
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse post form", http.StatusBadRequest))
+		return
+	}
+
 	newPost, err := p.postUseCase.AddPost(ctx, post)
 	if err != nil {
 		logger.Error(ctx, fmt.Sprintf("Failed to add post: %s", err.Error()))
@@ -260,15 +220,12 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = r.ParseMultipartForm(15 << 20)
-	if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Failed to parse form: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to parse form", http.StatusBadRequest))
+	var updatePostForm forms.UpdatePostForm
+	if err := json.NewDecoder(r.Body).Decode(&updatePostForm); err != nil {
+		logger.Error(ctx, "Failed to decode request body for feedback", err)
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Bad request body", http.StatusBadRequest))
 		return
 	}
-
-	var updatePostForm forms.UpdatePostForm
-	updatePostForm.Text = r.FormValue("text")
 
 	if utf8.RuneCountInString(updatePostForm.Text) > 4000 {
 		logger.Error(ctx, fmt.Sprintf("Text length validation failed: length=%d", utf8.RuneCountInString(updatePostForm.Text)))
@@ -276,18 +233,13 @@ func (p *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sanitizer.SanitizeUpdatePost(&updatePostForm, p.policy)
-
-	updatePostForm.Images, err = http2.GetFiles(r, "pics")
-	if errors.Is(err, http2.TooManyFilesErr) {
-		logger.Error(ctx, fmt.Sprintf("Too many pics requested: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Too many pics requested", http.StatusBadRequest))
-		return
-	} else if err != nil {
-		logger.Error(ctx, fmt.Sprintf("Failed to get files: %s", err.Error()))
-		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "Failed to get files", http.StatusBadRequest))
+	if len(updatePostForm.Text)+len(updatePostForm.Media)+len(updatePostForm.Audio)+len(updatePostForm.File) == 0 {
+		logger.Error(ctx, fmt.Errorf("empty update content"))
+		http2.WriteJSONError(w, errors2.New(errors2.BadRequestErrorCode, "empty update content", http.StatusBadRequest))
 		return
 	}
+
+	sanitizer.SanitizeUpdatePost(&updatePostForm, p.policy)
 
 	updatePost, err := updatePostForm.ToPostUpdateModel(postId)
 	if err != nil {

@@ -11,8 +11,7 @@ message Post {
   string creator_id = 2;
   string creator_type = 12;
   string description = 3;
-  repeated string images_url = 4;
-  repeated File images = 5;
+  repeated File files = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
   int64 like_count = 8;

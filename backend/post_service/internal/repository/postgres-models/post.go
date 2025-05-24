@@ -11,7 +11,7 @@ type PostPostgres struct {
 	CreatorId    pgtype.UUID
 	CreatorType  pgtype.Text
 	Desc         pgtype.Text
-	ImagesURLs   []pgtype.Text
+	Files        []PostgresFile
 	CreatedAt    pgtype.Timestamptz
 	UpdatedAt    pgtype.Timestamptz
 	LikeCount    pgtype.Int8
@@ -23,19 +23,12 @@ type PostPostgres struct {
 
 // ConvertPostToPostgres converts models.Post to PostPostgres.
 func ConvertPostToPostgres(post models.Post) PostPostgres {
-	var pics []pgtype.Text
-	for _, pic := range post.ImagesURL {
-		if pic != "" {
-			pics = append(pics, pgtype.Text{String: pic, Valid: true})
-		}
-	}
-
 	return PostPostgres{
 		Id:           pgtype.UUID{Bytes: post.Id, Valid: true},
 		CreatorId:    pgtype.UUID{Bytes: post.CreatorId, Valid: true},
 		CreatorType:  convertStringToPostgresText(string(post.CreatorType)),
 		Desc:         convertStringToPostgresText(post.Desc),
-		ImagesURLs:   pics,
+		Files:        FilesToPostgres(post.Files),
 		CreatedAt:    pgtype.Timestamptz{Time: post.CreatedAt, Valid: true},
 		UpdatedAt:    pgtype.Timestamptz{Time: post.UpdatedAt, Valid: true},
 		LikeCount:    pgtype.Int8{Int64: int64(post.LikeCount), Valid: true},
@@ -48,18 +41,13 @@ func ConvertPostToPostgres(post models.Post) PostPostgres {
 
 // ToPost converts PostPostgres to models.Post.
 func (p *PostPostgres) ToPost() models.Post {
-	var picsSlice []string
-
-	for _, pics := range p.ImagesURLs {
-		picsSlice = append(picsSlice, pics.String)
-	}
 
 	return models.Post{
 		Id:           p.Id.Bytes,
 		CreatorId:    p.CreatorId.Bytes,
 		CreatorType:  models.PostCreatorType(p.CreatorType.String),
 		Desc:         p.Desc.String,
-		ImagesURL:    picsSlice,
+		Files:        PostgresFilesToModels(p.Files),
 		CreatedAt:    p.CreatedAt.Time,
 		UpdatedAt:    p.UpdatedAt.Time,
 		LikeCount:    int(p.LikeCount.Int64),

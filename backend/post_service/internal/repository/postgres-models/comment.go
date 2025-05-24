@@ -23,12 +23,28 @@ func (f *PostgresFile) ToFile() *models.File {
 	return &file
 }
 
+func PostgresFilesToModels(files []PostgresFile) []*models.File {
+	var resFiles []*models.File
+	for _, file := range files {
+		resFiles = append(resFiles, file.ToFile())
+	}
+	return resFiles
+}
+
 func FileToPostgres(file models.File) *PostgresFile {
 	resFile := PostgresFile{URL: pgtype.Text{String: file.URL, Valid: true}}
 	if len(file.DisplayType) != 0 {
 		resFile.DisplayType = pgtype.Text{String: string(file.DisplayType), Valid: true}
 	}
 	return &resFile
+}
+
+func FilesToPostgres(files []*models.File) []PostgresFile {
+	var postgresFiles []PostgresFile
+	for _, file := range files {
+		postgresFiles = append(postgresFiles, *FileToPostgres(*file))
+	}
+	return postgresFiles
 }
 
 type CommentPostgres struct {
