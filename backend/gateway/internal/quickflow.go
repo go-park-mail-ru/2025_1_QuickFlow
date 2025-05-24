@@ -105,7 +105,7 @@ func Run(cfg *config.Config) error {
 
 	newAuthHandler := qfhttp.NewAuthHandler(UserService, sanitizerPolicy)
 	newFeedHandler := qfhttp.NewFeedHandler(UserService, PostService, profileService, FriendsService, communityService, commentService)
-	newPostHandler := qfhttp.NewPostHandler(PostService, profileService, communityService, FriendsService, sanitizerPolicy)
+	newPostHandler := qfhttp.NewPostHandler(PostService, profileService, communityService, FriendsService, commentService, sanitizerPolicy)
 	newCommentHandler := qfhttp.NewCommentHandler(commentService, profileService, sanitizerPolicy)
 	newProfileHandler := qfhttp.NewProfileHandler(profileService, FriendsService, UserService, chatService, connManager, sanitizerPolicy)
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
