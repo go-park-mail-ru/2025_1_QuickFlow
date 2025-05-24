@@ -95,7 +95,6 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postsOut []forms.PostOut
-	var commentOut forms.CommentOut
 	var authors, communities []uuid.UUID
 	for _, post := range posts {
 		var postOut forms.PostOut
@@ -110,13 +109,14 @@ func (f *FeedHandler) GetFeed(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if lastComment != nil {
+		if lastComment != nil && (appErr == nil || appErr.HTTPStatus != http.StatusNotFound) {
 			commentAuthor, err := f.profileUseCase.GetPublicUserInfo(ctx, lastComment.UserId)
 			if err != nil {
 				logger.Error(ctx, "Failed to get comment author info")
 				http2.WriteJSONError(w, err)
 				return
 			}
+			var commentOut forms.CommentOut
 			commentOut.FromComment(*lastComment, commentAuthor)
 
 			postOut.LastComment = &commentOut
@@ -230,7 +230,6 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 	}
 
 	var postsOut []forms.PostOut
-	var commentOut forms.CommentOut
 	var authors, communities []uuid.UUID
 	for _, post := range posts {
 		var postOut forms.PostOut
@@ -252,6 +251,7 @@ func (f *FeedHandler) GetRecommendations(w http.ResponseWriter, r *http.Request)
 				http2.WriteJSONError(w, err)
 				return
 			}
+			var commentOut forms.CommentOut
 			commentOut.FromComment(*lastComment, commentAuthor)
 
 			postOut.LastComment = &commentOut
