@@ -15,7 +15,7 @@ func NewMessageValidator() *MessageValidator {
 }
 
 func (m *MessageValidator) ValidateMessage(message models.Message) error {
-	if len(message.Text) == 0 {
+	if len(message.Text) == 0 && len(message.Attachments) == 0 {
 		return errors.New("message cannot be empty")
 	}
 	// TODO make clean, move to config
