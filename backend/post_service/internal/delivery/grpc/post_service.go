@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"quickflow/post_service/internal/delivery/grpc/dto"
+	dto "quickflow/shared/client/post_service"
 	"quickflow/shared/logger"
 	"quickflow/shared/models"
 	shared_models "quickflow/shared/models"
