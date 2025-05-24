@@ -25,7 +25,7 @@ const getCommentQuery = `
 const getCommentsForPostQuery = `
     select id, post_id, user_id, text, created_at, updated_at, like_count
     from comment
-    where post_id = $1 and created_at < $2
+    where post_id = $1 and created_at > $2
     order by created_at
     limit $3;
 `
