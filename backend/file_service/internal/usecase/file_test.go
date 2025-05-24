@@ -78,7 +78,7 @@ func TestUploadFile(t *testing.T) {
 				mockRepo.EXPECT().UploadFile(gomock.Any(), gomock.Any()).Return("", errors.New("upload failed")).Times(1)
 			},
 			expected:    "",
-			expectedErr: errors.New("f.fileRepo.UploadFile: upload failed"),
+			expectedErr: errors.New("f.fileStorage.UploadFile: upload failed"),
 		},
 	}
 
@@ -181,7 +181,7 @@ func TestUploadManyFiles(t *testing.T) {
 				mockRepo.EXPECT().UploadManyFiles(gomock.Any(), gomock.Any()).Return(nil, errors.New("upload failed")).Times(1)
 			},
 			expected:    nil,
-			expectedErr: errors.New("f.fileRepo.UploadManyImages: upload failed"),
+			expectedErr: errors.New("f.fileStorage.UploadManyImages: upload failed"),
 		},
 	}
 

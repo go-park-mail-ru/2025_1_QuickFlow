@@ -42,31 +42,43 @@ func (m *GetMessagesForm) GetParams(values url.Values) error {
 	return nil
 }
 
+type FileOut struct {
+	URL  string `json:"url"`
+	Name string `json:"name,omitempty"`
+}
+
+func ToFileOut(file models.File) FileOut {
+	return FileOut{
+		URL:  file.URL,
+		Name: file.Name,
+	}
+}
+
 type MessageOut struct {
 	ID        uuid.UUID `json:"id,omitempty"`
 	Text      string    `json:"text"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
-	MediaURLs []string  `json:"media,omitempty"`
-	AudioURLs []string  `json:"audio,omitempty"`
-	FileURLs  []string  `json:"files,omitempty"`
+	MediaURLs []FileOut `json:"media,omitempty"`
+	AudioURLs []FileOut `json:"audio,omitempty"`
+	FileURLs  []FileOut `json:"files,omitempty"`
 
 	Sender PublicUserInfoOut `json:"sender"`
 	ChatId uuid.UUID         `json:"chat_id"`
 }
 
 func ToMessageOut(message models.Message, info models.PublicUserInfo) MessageOut {
-	mediaURLs := make([]string, 0)
-	audioURLs := make([]string, 0)
-	fileURLs := make([]string, 0)
+	mediaURLs := make([]FileOut, 0)
+	audioURLs := make([]FileOut, 0)
+	fileURLs := make([]FileOut, 0)
 
 	for _, file := range message.Attachments {
 		if file.DisplayType == models.DisplayTypeMedia {
-			mediaURLs = append(mediaURLs, file.URL)
+			mediaURLs = append(mediaURLs, ToFileOut(*file))
 		} else if file.DisplayType == models.DisplayTypeAudio {
-			audioURLs = append(audioURLs, file.URL)
+			audioURLs = append(audioURLs, ToFileOut(*file))
 		} else {
-			fileURLs = append(fileURLs, file.URL)
+			fileURLs = append(fileURLs, ToFileOut(*file))
 		}
 	}
 

@@ -27,8 +27,10 @@ const (
     `
 
 	getFilesQuery = `
-        SELECT file_url, file_type
-        FROM message_file
+        SELECT mf.file_url, mf.file_type, f.filename
+        FROM message_file mf 
+            join files f 
+            on mf.file_url = f.file_url
         WHERE message_id = $1
 `
 	saveFilesQuery = `
@@ -115,7 +117,7 @@ func (m *MessageRepository) GetMessagesForChatOlder(ctx context.Context, chatId 
 		}
 		for files.Next() {
 			var pgfile pgmodels.PostgresFile
-			err = files.Scan(&pgfile.URL, &pgfile.DisplayType)
+			err = files.Scan(&pgfile.URL, &pgfile.DisplayType, &pgfile.Name)
 			if err != nil {
 				logger.Error(ctx, fmt.Sprintf("Unable to scan file URL for message %v: %v", messagePostgres.ID, err))
 				return nil, err
@@ -222,6 +224,23 @@ func (m *MessageRepository) GetMessageById(ctx context.Context, messageId uuid.U
 	} else if err != nil {
 		logger.Error(ctx, "Unable to get message from database: ", err)
 		return models.Message{}, fmt.Errorf("unable to get message from database: %w", err)
+	}
+
+	files, err := m.connPool.QueryContext(ctx, getFilesQuery, messagePostgres.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Error(ctx, fmt.Sprintf("Unable to get files for message %v: %v", messagePostgres.ID, err))
+		return models.Message{}, err
+	}
+
+	for files.Next() {
+		var pgfile pgmodels.PostgresFile
+		err = files.Scan(&pgfile.URL, &pgfile.DisplayType, &pgfile.Name)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Unable to scan file URL for message %v: %v", messagePostgres.ID, err))
+			return models.Message{}, err
+		}
+
+		messagePostgres.Attachments = append(messagePostgres.Attachments, pgfile)
 	}
 
 	message := messagePostgres.ToMessage()

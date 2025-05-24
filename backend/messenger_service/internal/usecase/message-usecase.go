@@ -131,7 +131,12 @@ func (m *MessageService) SaveMessage(ctx context.Context, message models.Message
 		return nil, err
 	}
 
-	return &message, nil
+	newMessage, err := m.messageRepo.GetMessageById(ctx, message.ID)
+	if err != nil {
+		return nil, fmt.Errorf("m.messageRepo.GetMessageById: %w", err)
+	}
+
+	return &newMessage, nil
 }
 
 func (m *MessageService) DeleteMessage(ctx context.Context, messageId uuid.UUID) error {

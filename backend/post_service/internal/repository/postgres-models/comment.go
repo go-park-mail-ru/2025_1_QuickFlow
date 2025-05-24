@@ -9,11 +9,13 @@ import (
 type PostgresFile struct {
 	URL         pgtype.Text
 	DisplayType pgtype.Text
+	Name        pgtype.Text
 }
 
 func (f *PostgresFile) ToFile() *models.File {
 	file := models.File{
-		URL: f.URL.String,
+		URL:  f.URL.String,
+		Name: f.Name.String,
 	}
 	if f.DisplayType.Valid && len(f.DisplayType.String) != 0 {
 		file.DisplayType = models.DisplayType(f.DisplayType.String)
@@ -32,7 +34,7 @@ func PostgresFilesToModels(files []PostgresFile) []*models.File {
 }
 
 func FileToPostgres(file models.File) *PostgresFile {
-	resFile := PostgresFile{URL: pgtype.Text{String: file.URL, Valid: true}}
+	resFile := PostgresFile{URL: pgtype.Text{String: file.URL, Valid: true}, Name: pgtype.Text{String: file.Name, Valid: true}}
 	if len(file.DisplayType) != 0 {
 		resFile.DisplayType = pgtype.Text{String: string(file.DisplayType), Valid: true}
 	}

@@ -199,6 +199,14 @@ create table if not exists feedback(
                                                check (rating >= 0 and rating <= 10)
 );
 
+create table if not exists files(
+    id int generated always as identity primary key,
+    file_url text not null,
+    filename text not null,
+    created_at timestamptz not null default now(),
+    unique(file_url, filename)
+);
+
 create extension if not exists pg_trgm;
 SET pg_trgm.similarity_threshold = 0.3; -- for fuzzy search
 

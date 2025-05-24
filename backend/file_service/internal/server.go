@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -13,12 +14,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	addr "quickflow/config/micro-addr"
+	postgresConfig "quickflow/config/postgres"
 	minioConfig "quickflow/file_service/config/minio"
 	validationConfig "quickflow/file_service/config/validation"
 	grpc2 "quickflow/file_service/internal/delivery/grpc"
 	"quickflow/file_service/internal/delivery/grpc/interceptor"
 	"quickflow/file_service/internal/repository/minio"
+	"quickflow/file_service/internal/repository/postgres"
 	"quickflow/file_service/internal/usecase"
 	"quickflow/file_service/utils/validation"
 	"quickflow/metrics"
@@ -42,6 +47,11 @@ func main() {
 	minioPathFlag := flag.String("minio-config", "", "Path to MinIO config file (relative)")
 	validationPathFlag := flag.String("validation-config", "", "Path to validation config file (relative)")
 	flag.Parse()
+
+	db, err := sql.Open("pgx", postgresConfig.NewPostgresConfig().GetURL())
+	if err != nil {
+		log.Fatalf("failed to connect to postgres: %v", err)
+	}
 
 	var minioPath, validationPath string
 	if *minioPathFlag != "" {
@@ -68,11 +78,12 @@ func main() {
 
 	// Сервисы
 	fileValidator := validation.NewFileValidator(validationCfg)
-	fileRepo, err := minio.NewMinioRepository(minioCfg)
+	fileStorage, err := minio.NewMinioRepository(minioCfg)
 	if err != nil {
 		log.Fatalf("failed to create minio repository: %v", err)
 	}
-	fileUseCase := usecase.NewFileUseCase(fileRepo, fileValidator)
+	fileRepo := postgres.NewPostgresFileRepository(db)
+	fileUseCase := usecase.NewFileUseCase(fileStorage, fileRepo, fileValidator)
 
 	fileMetrics := metrics.NewMetrics("QuickFlow")
 
