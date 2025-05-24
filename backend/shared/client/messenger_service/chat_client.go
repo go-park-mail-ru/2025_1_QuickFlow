@@ -124,3 +124,13 @@ func (c *ChatServiceClient) LeaveChat(ctx context.Context, chatId, userId uuid.U
 	})
 	return err
 }
+
+func (c *ChatServiceClient) GetNumUnreadChats(ctx context.Context, userId uuid.UUID) (int, error) {
+	logger.Info(ctx, "Getting number of unread chats for userId: %s", userId.String())
+	resp, err := c.client.GetNumUnreadChats(ctx, &pb.GetNumUnreadChatsRequest{UserId: userId.String()})
+	if err != nil {
+		logger.Error(ctx, "Failed to get number of unread chats: %v", err)
+		return 0, err
+	}
+	return int(resp.NumChats), nil
+}

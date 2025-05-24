@@ -18,14 +18,16 @@ type File struct {
 }
 
 type PostForm struct {
-	Text        string                 `json:"text"`
-	Images      []*models.File         `json:"pics"`
-	IsRepost    bool                   `json:"is_repost"`
-	CreatorId   uuid.UUID              `json:"author_id"`
-	CreatorType models.PostCreatorType `json:"author_type"`
+	Text        string    `json:"text,omitempty"`
+	Media       []string  `form:"media" json:"media,omitempty"`
+	Audio       []string  `form:"audio" json:"audio,omitempty"`
+	File        []string  `form:"files" json:"files,omitempty"`
+	IsRepost    bool      `json:"is_repost,omitempty"`
+	CreatorId   uuid.UUID `json:"author_id,omitempty"`
+	CreatorType string    `json:"author_type,omitempty"`
 }
 
-func ParseCreationType(creatorType string) (models.PostCreatorType, error) {
+func ParseCreatorType(creatorType string) (models.PostCreatorType, error) {
 	switch creatorType {
 	case string(models.PostUser):
 		return models.PostUser, nil
@@ -36,17 +38,54 @@ func ParseCreationType(creatorType string) (models.PostCreatorType, error) {
 	}
 }
 
-func (p *PostForm) ToPostModel() models.Post {
+func (p *PostForm) ToPostModel(userId uuid.UUID) (models.Post, error) {
+	var attachments []*models.File
+	for _, file := range p.Media {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeMedia,
+		})
+	}
+
+	for _, file := range p.Audio {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeAudio,
+		})
+	}
+
+	for _, file := range p.File {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeFile,
+		})
+	}
 	var postModel models.Post
+
+	if len(p.CreatorType) == 0 {
+		postModel.CreatorType = models.PostUser
+		postModel.CreatorId = userId
+	} else {
+		var err error
+		postModel.CreatorType, err = ParseCreatorType(p.CreatorType)
+		if err != nil {
+			return models.Post{}, errors.New("invalid creator type")
+		}
+
+		if postModel.CreatorType == models.PostCommunity {
+			postModel.CreatorId = p.CreatorId
+		} else {
+			postModel.CreatorId = userId
+		}
+	}
+
 	postModel.Desc = p.Text
-	postModel.CreatorId = p.CreatorId
-	postModel.CreatorType = p.CreatorType
 	postModel.CreatedAt = time.Now()
 	postModel.UpdatedAt = time.Now()
-	postModel.Images = p.Images
+	postModel.Files = attachments
 	postModel.IsRepost = p.IsRepost
 
-	return postModel
+	return postModel, nil
 }
 
 type FeedForm struct {
@@ -101,7 +140,9 @@ type PostOut struct {
 	Creator      interface{} `json:"author,omitempty"`
 	CreatorType  string      `json:"author_type"`
 	Desc         string      `json:"text"`
-	Pics         []string    `json:"pics"`
+	MediaURLs    []string    `json:"media,omitempty"`
+	AudioURLs    []string    `json:"audio,omitempty"`
+	FileURLs     []string    `json:"files,omitempty"`
 	CreatedAt    string      `json:"created_at"`
 	UpdatedAt    string      `json:"updated_at"`
 	LikeCount    int         `json:"like_count"`
@@ -113,14 +154,25 @@ type PostOut struct {
 }
 
 func (p *PostOut) FromPost(post models.Post) {
-	var urls []string
-	for _, url := range post.ImagesURL {
-		urls = append(urls, url)
+	mediaURLs := make([]string, 0)
+	audioURLs := make([]string, 0)
+	fileURLs := make([]string, 0)
+
+	for _, file := range post.Files {
+		if file.DisplayType == models.DisplayTypeMedia {
+			mediaURLs = append(mediaURLs, file.URL)
+		} else if file.DisplayType == models.DisplayTypeAudio {
+			audioURLs = append(audioURLs, file.URL)
+		} else {
+			fileURLs = append(fileURLs, file.URL)
+		}
 	}
 
 	p.Id = post.Id.String()
 	p.Desc = post.Desc
-	p.Pics = urls
+	p.MediaURLs = mediaURLs
+	p.AudioURLs = audioURLs
+	p.FileURLs = fileURLs
 	p.CreatedAt = post.CreatedAt.Format(time2.TimeStampLayout)
 	p.UpdatedAt = post.UpdatedAt.Format(time2.TimeStampLayout)
 	p.Creator = &PublicUserInfoOut{
@@ -135,16 +187,39 @@ func (p *PostOut) FromPost(post models.Post) {
 }
 
 type UpdatePostForm struct {
-	Id     string         `json:"-"`
-	Text   string         `json:"text"`
-	Images []*models.File `json:"pics"`
+	Id    string   `json:"-"`
+	Text  string   `json:"text"`
+	Media []string `form:"media" json:"media,omitempty"`
+	Audio []string `form:"audio" json:"audio,omitempty"`
+	File  []string `form:"files" json:"files,omitempty"`
 }
 
 func (p *UpdatePostForm) ToPostUpdateModel(postId uuid.UUID) (models.PostUpdate, error) {
+	var attachments []*models.File
+	for _, file := range p.Media {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeMedia,
+		})
+	}
+
+	for _, file := range p.Audio {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeAudio,
+		})
+	}
+
+	for _, file := range p.File {
+		attachments = append(attachments, &models.File{
+			URL:         file,
+			DisplayType: models.DisplayTypeFile,
+		})
+	}
 
 	return models.PostUpdate{
 		Id:    postId,
 		Desc:  p.Text,
-		Files: p.Images,
+		Files: attachments,
 	}, nil
 }

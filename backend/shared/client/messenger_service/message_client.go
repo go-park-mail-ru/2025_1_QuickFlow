@@ -97,3 +97,16 @@ func (c *MessageServiceClient) GetLastReadTs(ctx context.Context, chatID, userID
 	}
 	return resp.LastReadTs.AsTime(), nil
 }
+
+func (c *MessageServiceClient) GetNumUnreadMessages(ctx context.Context, chatID, userID uuid.UUID) (int, error) {
+	logger.Info(ctx, "Getting number of unread messages for chatId: %s", chatID.String())
+	resp, err := c.client.GetNumUnreadMessages(ctx, &pb.GetNumUnreadMessagesRequest{
+		ChatId: chatID.String(),
+		UserId: userID.String(),
+	})
+	if err != nil {
+		logger.Error(ctx, "Failed to get number of unread messages: %v", err)
+		return 0, err
+	}
+	return int(resp.NumMessages), nil
+}

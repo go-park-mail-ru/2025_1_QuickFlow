@@ -20,6 +20,7 @@ type ChatUseCase interface {
 	GetChat(ctx context.Context, chatId uuid.UUID) (models.Chat, error)
 	JoinChat(ctx context.Context, chatId, userId uuid.UUID) error
 	LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error
+	GetNumUnreadChats(ctx context.Context, userId uuid.UUID) (int, error)
 }
 
 type ChatServiceServer struct {
@@ -200,4 +201,23 @@ func (c *ChatServiceServer) LeaveChat(ctx context.Context, req *pb.LeaveChatRequ
 
 	logger.Info(ctx, "Successfully left chat")
 	return &pb.LeaveChatResponse{Success: true}, nil
+}
+
+func (c *ChatServiceServer) GetNumUnreadChats(ctx context.Context, req *pb.GetNumUnreadChatsRequest) (*pb.GetNumUnreadChatsResponse, error) {
+	logger.Info(ctx, "Received GetNumUnreadChats request")
+
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
+		logger.Error(ctx, "Invalid UserId: ", err)
+		return nil, err
+	}
+
+	numUnread, err := c.chatUseCase.GetNumUnreadChats(ctx, userId)
+	if err != nil {
+		logger.Error(ctx, "GetNumUnreadChats failed: ", err)
+		return nil, err
+	}
+
+	logger.Info(ctx, "Successfully fetched number of unread chats")
+	return &pb.GetNumUnreadChatsResponse{NumChats: int32(numUnread)}, nil
 }

@@ -74,6 +74,15 @@ message GetMessageByIdResponse {
   Message message = 1;
 }
 
+message GetNumUnreadMessagesRequest {
+  string chat_id = 1;
+  string user_id = 2;
+}
+
+message GetNumUnreadMessagesResponse {
+  int32 num_messages = 1;
+}
+
 service MessageService {
   rpc GetMessagesForChat(GetMessagesForChatRequest) returns (GetMessagesForChatResponse);
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
@@ -81,4 +90,5 @@ service MessageService {
   rpc UpdateLastReadTs(UpdateLastReadTsRequest) returns (UpdateLastReadTsResponse);
   rpc GetLastReadTs(GetLastReadTsRequest) returns (GetLastReadTsResponse);
   rpc GetMessageById(GetMessageByIdRequest) returns (GetMessageByIdResponse);
+  rpc GetNumUnreadMessages(GetNumUnreadMessagesRequest) returns (GetNumUnreadMessagesResponse);
 }

@@ -23,6 +23,7 @@ type MessageRepository interface {
 
 	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
 	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
+	GetNumUnreadMessages(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (int, error)
 }
 
 type MessageValidator interface {
@@ -197,4 +198,26 @@ func (m *MessageService) GetMessageById(ctx context.Context, messageId uuid.UUID
 		return models.Message{}, fmt.Errorf("m.messageRepo.GetMessageById: %w", err)
 	}
 	return message, nil
+}
+
+func (m *MessageService) GetNumUnreadMessages(ctx context.Context, chatId, userId uuid.UUID) (int, error) {
+	// validate
+	if chatId == uuid.Nil || userId == uuid.Nil {
+		return 0, fmt.Errorf("chatId or userId is empty")
+	}
+
+	// check if user is participant
+	isParticipant, err := m.chatRepo.IsParticipant(ctx, chatId, userId)
+	if err != nil {
+		return 0, fmt.Errorf("m.chatRepo.IsParticipant: %w", err)
+	}
+	if !isParticipant {
+		return 0, messenger_errors.ErrNotParticipant
+	}
+
+	numUnread, err := m.messageRepo.GetNumUnreadMessages(ctx, chatId, userId)
+	if err != nil {
+		return 0, fmt.Errorf("m.messageRepo.GetNumUnreadMessages: %w", err)
+	}
+	return numUnread, nil
 }

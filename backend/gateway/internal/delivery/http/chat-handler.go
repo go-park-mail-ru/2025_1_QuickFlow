@@ -26,19 +26,22 @@ type ChatUseCase interface {
 	GetChat(ctx context.Context, chatId uuid.UUID) (*models.Chat, error)
 	JoinChat(ctx context.Context, chatId, userId uuid.UUID) error
 	LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error
+	GetNumUnreadChats(ctx context.Context, userId uuid.UUID) (int, error)
 }
 
 type ChatHandler struct {
 	chatUseCase    ChatUseCase
+	messageService MessageService
 	profileUseCase ProfileUseCase
 	connService    IWebSocketConnectionManager
 }
 
-func NewChatHandler(chatUseCase ChatUseCase, profileUseCase ProfileUseCase, connService IWebSocketConnectionManager) *ChatHandler {
+func NewChatHandler(chatUseCase ChatUseCase, profileUseCase ProfileUseCase, messageService MessageService, connService IWebSocketConnectionManager) *ChatHandler {
 	return &ChatHandler{
 		chatUseCase:    chatUseCase,
 		profileUseCase: profileUseCase,
 		connService:    connService,
+		messageService: messageService,
 	}
 }
 
@@ -107,10 +110,10 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 
 	// Convert chats to output format
 	var (
-		privateChatsOnlineStatus = make(map[uuid.UUID]forms.PrivateChatInfo)
-		isOnline                 bool
-		username                 string
-		lastSeen                 time.Time
+		isOnline bool
+		username string
+		lastSeen time.Time
+		chatsOut []forms.ChatOut
 	)
 	for _, chat := range chats {
 		if chat.Type != models.ChatTypePrivate {
@@ -141,13 +144,21 @@ func (c *ChatHandler) GetUserChats(w http.ResponseWriter, r *http.Request) {
 			username = otherUserInfo.Username
 		}
 
-		privateChatsOnlineStatus[chat.ID] = forms.PrivateChatInfo{
+		numUnreadMessages, err := c.messageService.GetNumUnreadMessages(ctx, chat.ID, user.Id)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get number of unread messages: %v", err))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		chatOut := forms.ToChatOut(chat, lastMessageSenderInfo[chat.LastMessage.SenderID], &forms.PrivateChatInfo{
 			Username: username,
 			Activity: forms.Activity{IsOnline: isOnline, LastSeen: lastSeen.Format(time2.TimeStampLayout)},
-		}
+		})
+		chatOut.NumUnreadMessages = numUnreadMessages
+		chatsOut = append(chatsOut, chatOut)
 	}
 
-	chatsOut := forms.ToChatsOut(chats, lastMessageSenderInfo, privateChatsOnlineStatus)
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(chatsOut)
 	if err != nil {
@@ -171,4 +182,31 @@ func (c *ChatHandler) getOtherPrivateChatParticipant(ctx context.Context, chatId
 		}
 	}
 	return uuid.Nil, errors.New("user not found")
+}
+
+func (c *ChatHandler) GetNumUnreadChats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger.Info(ctx, "Got GetNumUnreadChats request")
+	user, ok := ctx.Value("user").(models.User)
+	if !ok {
+		logger.Error(ctx, "Failed to get user from context while fetching number of unread chats")
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to get user from context", http.StatusInternalServerError))
+		return
+	}
+
+	numUnreadChats, err := c.chatUseCase.GetNumUnreadChats(ctx, user.Id)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to get number of unread chats: %v", err))
+		http2.WriteJSONError(w, err)
+		return
+	}
+
+	logger.Info(ctx, fmt.Sprintf("Fetched %d unread chats for user %s", numUnreadChats, user.Username))
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(forms.PayloadWrapper[forms.GetNumUnreadChatsForm]{Payload: forms.GetNumUnreadChatsForm{ChatsCount: numUnreadChats}})
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Failed to encode number of unread chats: %s", err.Error()))
+		http2.WriteJSONError(w, errors2.New(errors2.InternalErrorCode, "Failed to encode number of unread chats", http.StatusInternalServerError))
+		return
+	}
 }

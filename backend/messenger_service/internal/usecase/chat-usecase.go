@@ -24,6 +24,7 @@ type ChatRepository interface {
 	IsParticipant(ctx context.Context, chatId, userId uuid.UUID) (bool, error)
 	JoinChat(ctx context.Context, chatId, userId uuid.UUID) error
 	LeaveChat(ctx context.Context, chatId, userId uuid.UUID) error
+	GetNumUnreadChats(ctx context.Context, userId uuid.UUID) (int, error)
 }
 
 type ChatValidator interface {
@@ -259,4 +260,12 @@ func (c *ChatService) GetPrivateChat(ctx context.Context, userId1, userId2 uuid.
 		return models.Chat{}, fmt.Errorf("c.chatRepo.GetPrivateChat: %w", err)
 	}
 	return chat, nil
+}
+
+func (c *ChatService) GetNumUnreadChats(ctx context.Context, userId uuid.UUID) (int, error) {
+	numUnreadChats, err := c.chatRepo.GetNumUnreadChats(ctx, userId)
+	if err != nil {
+		return 0, fmt.Errorf("c.chatRepo.GetNumUnreadChats: %w", err)
+	}
+	return numUnreadChats, nil
 }

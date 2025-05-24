@@ -28,6 +28,7 @@ type MessageService interface {
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (time.Time, error)
 	UpdateLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID, timestamp time.Time, userAuthId uuid.UUID) error
+	GetNumUnreadMessages(ctx context.Context, chatId, userId uuid.UUID) (int, error)
 }
 
 type CommandHandler func(ctx context.Context, user models.User, payload json.RawMessage) error

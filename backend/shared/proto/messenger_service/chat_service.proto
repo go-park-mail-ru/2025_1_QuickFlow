@@ -100,6 +100,14 @@ message LeaveChatResponse {
   bool success = 1;
 }
 
+message GetNumUnreadChatsRequest {
+  string user_id = 1;
+}
+
+message GetNumUnreadChatsResponse {
+  int32 num_chats = 1;
+}
+
 service ChatService {
   rpc GetUserChats(GetUserChatsRequest) returns (GetUserChatsResponse);
   rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
@@ -110,4 +118,5 @@ service ChatService {
   rpc LeaveChat(LeaveChatRequest) returns (LeaveChatResponse);
   rpc GetUserChatsById(GetUserChatsRequest) returns (GetUserChatsResponse);
   rpc GetChatParticipants(GetChatParticipantsRequest) returns (GetChatParticipantsResponse);
+  rpc GetNumUnreadChats(GetNumUnreadChatsRequest) returns (GetNumUnreadChatsResponse);
 }

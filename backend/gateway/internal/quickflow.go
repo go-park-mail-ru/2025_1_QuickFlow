@@ -109,7 +109,7 @@ func Run(cfg *config.Config) error {
 	newCommentHandler := qfhttp.NewCommentHandler(commentService, profileService, sanitizerPolicy)
 	newProfileHandler := qfhttp.NewProfileHandler(profileService, FriendsService, UserService, chatService, connManager, sanitizerPolicy)
 	newMessageHandler := qfhttp.NewMessageHandler(messageService, UserService, profileService, sanitizerPolicy)
-	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, connManager)
+	newChatHandler := qfhttp.NewChatHandler(chatService, profileService, messageService, connManager)
 	newFriendsHandler := qfhttp.NewFriendsHandler(FriendsService, connManager)
 	newSearchHandler := qfhttp.NewSearchHandler(UserService, communityService, profileService)
 	newCommunityHandler := qfhttp.NewCommunityHandler(communityService, profileService, connManager, UserService, sanitizerPolicy)
@@ -203,6 +203,7 @@ func Run(cfg *config.Config) error {
 	protectedGet.HandleFunc("/my_profile", newProfileHandler.GetMyProfile).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}", newPostHandler.GetPost).Methods(http.MethodGet)
 	protectedGet.HandleFunc("/posts/{post_id:[0-9a-fA-F-]{36}}/comments", newCommentHandler.FetchCommentsForPost).Methods(http.MethodGet)
+	protectedGet.HandleFunc("/chats/unread", newChatHandler.GetNumUnreadChats).Methods(http.MethodGet)
 
 	wsProtected := protectedGet.PathPrefix("/").Subrouter()
 	wsProtected.Use(middleware.WebSocketMiddleware(connManager, pingHandler))

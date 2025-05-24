@@ -27,6 +27,7 @@ type ChatServiceClient interface {
 	LeaveChat(ctx context.Context, in *LeaveChatRequest, opts ...grpc.CallOption) (*LeaveChatResponse, error)
 	GetUserChatsById(ctx context.Context, in *GetUserChatsRequest, opts ...grpc.CallOption) (*GetUserChatsResponse, error)
 	GetChatParticipants(ctx context.Context, in *GetChatParticipantsRequest, opts ...grpc.CallOption) (*GetChatParticipantsResponse, error)
+	GetNumUnreadChats(ctx context.Context, in *GetNumUnreadChatsRequest, opts ...grpc.CallOption) (*GetNumUnreadChatsResponse, error)
 }
 
 type chatServiceClient struct {
@@ -118,6 +119,15 @@ func (c *chatServiceClient) GetChatParticipants(ctx context.Context, in *GetChat
 	return out, nil
 }
 
+func (c *chatServiceClient) GetNumUnreadChats(ctx context.Context, in *GetNumUnreadChatsRequest, opts ...grpc.CallOption) (*GetNumUnreadChatsResponse, error) {
+	out := new(GetNumUnreadChatsResponse)
+	err := c.cc.Invoke(ctx, "/chat_service.ChatService/GetNumUnreadChats", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility
@@ -131,6 +141,7 @@ type ChatServiceServer interface {
 	LeaveChat(context.Context, *LeaveChatRequest) (*LeaveChatResponse, error)
 	GetUserChatsById(context.Context, *GetUserChatsRequest) (*GetUserChatsResponse, error)
 	GetChatParticipants(context.Context, *GetChatParticipantsRequest) (*GetChatParticipantsResponse, error)
+	GetNumUnreadChats(context.Context, *GetNumUnreadChatsRequest) (*GetNumUnreadChatsResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -164,6 +175,9 @@ func (UnimplementedChatServiceServer) GetUserChatsById(context.Context, *GetUser
 }
 func (UnimplementedChatServiceServer) GetChatParticipants(context.Context, *GetChatParticipantsRequest) (*GetChatParticipantsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChatParticipants not implemented")
+}
+func (UnimplementedChatServiceServer) GetNumUnreadChats(context.Context, *GetNumUnreadChatsRequest) (*GetNumUnreadChatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNumUnreadChats not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 
@@ -340,6 +354,24 @@ func _ChatService_GetChatParticipants_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_GetNumUnreadChats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNumUnreadChatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetNumUnreadChats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/chat_service.ChatService/GetNumUnreadChats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetNumUnreadChats(ctx, req.(*GetNumUnreadChatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -382,6 +414,10 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetChatParticipants",
 			Handler:    _ChatService_GetChatParticipants_Handler,
+		},
+		{
+			MethodName: "GetNumUnreadChats",
+			Handler:    _ChatService_GetNumUnreadChats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

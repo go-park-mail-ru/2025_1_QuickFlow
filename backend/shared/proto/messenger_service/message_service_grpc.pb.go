@@ -24,6 +24,7 @@ type MessageServiceClient interface {
 	UpdateLastReadTs(ctx context.Context, in *UpdateLastReadTsRequest, opts ...grpc.CallOption) (*UpdateLastReadTsResponse, error)
 	GetLastReadTs(ctx context.Context, in *GetLastReadTsRequest, opts ...grpc.CallOption) (*GetLastReadTsResponse, error)
 	GetMessageById(ctx context.Context, in *GetMessageByIdRequest, opts ...grpc.CallOption) (*GetMessageByIdResponse, error)
+	GetNumUnreadMessages(ctx context.Context, in *GetNumUnreadMessagesRequest, opts ...grpc.CallOption) (*GetNumUnreadMessagesResponse, error)
 }
 
 type messageServiceClient struct {
@@ -88,6 +89,15 @@ func (c *messageServiceClient) GetMessageById(ctx context.Context, in *GetMessag
 	return out, nil
 }
 
+func (c *messageServiceClient) GetNumUnreadMessages(ctx context.Context, in *GetNumUnreadMessagesRequest, opts ...grpc.CallOption) (*GetNumUnreadMessagesResponse, error) {
+	out := new(GetNumUnreadMessagesResponse)
+	err := c.cc.Invoke(ctx, "/messenger_service.MessageService/GetNumUnreadMessages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MessageServiceServer is the server API for MessageService service.
 // All implementations must embed UnimplementedMessageServiceServer
 // for forward compatibility
@@ -98,6 +108,7 @@ type MessageServiceServer interface {
 	UpdateLastReadTs(context.Context, *UpdateLastReadTsRequest) (*UpdateLastReadTsResponse, error)
 	GetLastReadTs(context.Context, *GetLastReadTsRequest) (*GetLastReadTsResponse, error)
 	GetMessageById(context.Context, *GetMessageByIdRequest) (*GetMessageByIdResponse, error)
+	GetNumUnreadMessages(context.Context, *GetNumUnreadMessagesRequest) (*GetNumUnreadMessagesResponse, error)
 	mustEmbedUnimplementedMessageServiceServer()
 }
 
@@ -122,6 +133,9 @@ func (UnimplementedMessageServiceServer) GetLastReadTs(context.Context, *GetLast
 }
 func (UnimplementedMessageServiceServer) GetMessageById(context.Context, *GetMessageByIdRequest) (*GetMessageByIdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMessageById not implemented")
+}
+func (UnimplementedMessageServiceServer) GetNumUnreadMessages(context.Context, *GetNumUnreadMessagesRequest) (*GetNumUnreadMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNumUnreadMessages not implemented")
 }
 func (UnimplementedMessageServiceServer) mustEmbedUnimplementedMessageServiceServer() {}
 
@@ -244,6 +258,24 @@ func _MessageService_GetMessageById_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MessageService_GetNumUnreadMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNumUnreadMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServiceServer).GetNumUnreadMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/messenger_service.MessageService/GetNumUnreadMessages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServiceServer).GetNumUnreadMessages(ctx, req.(*GetNumUnreadMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MessageService_ServiceDesc is the grpc.ServiceDesc for MessageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -274,6 +306,10 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMessageById",
 			Handler:    _MessageService_GetMessageById_Handler,
+		},
+		{
+			MethodName: "GetNumUnreadMessages",
+			Handler:    _MessageService_GetNumUnreadMessages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

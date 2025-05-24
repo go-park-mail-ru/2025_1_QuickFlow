@@ -22,6 +22,7 @@ type MessageUseCase interface {
 	DeleteMessage(ctx context.Context, messageId uuid.UUID) error
 	GetLastReadTs(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (*time.Time, error)
 	UpdateLastReadTs(ctx context.Context, timestamp time.Time, chatId uuid.UUID, userId uuid.UUID) error
+	GetNumUnreadMessages(ctx context.Context, chatId uuid.UUID, userId uuid.UUID) (int, error)
 }
 
 type MessageServiceServer struct {
@@ -160,4 +161,27 @@ func (m *MessageServiceServer) GetLastReadTs(ctx context.Context, req *pb.GetLas
 	return &pb.GetLastReadTsResponse{
 		LastReadTs: timestamppb.New(*lastReadTs),
 	}, nil
+}
+
+func (m *MessageServiceServer) GetNumUnreadMessages(ctx context.Context, req *pb.GetNumUnreadMessagesRequest) (*pb.GetNumUnreadMessagesResponse, error) {
+	logger.Info(ctx, "GetNumUnreadMessages request received")
+	chatId, err := uuid.Parse(req.ChatId)
+	if err != nil {
+		logger.Error(ctx, "Invalid chatId: ", err)
+		return nil, err
+	}
+
+	userId, err := uuid.Parse(req.UserId)
+	if err != nil {
+		logger.Error(ctx, "Invalid userId: ", err)
+		return nil, status.Error(codes.Unauthenticated, "user not found in context")
+	}
+
+	numUnreadMessages, err := m.MessageUseCase.GetNumUnreadMessages(ctx, chatId, userId)
+	if err != nil {
+		logger.Error(ctx, "Failed to get number of unread messages: ", err)
+		return nil, err
+	}
+
+	return &pb.GetNumUnreadMessagesResponse{NumMessages: int32(numUnreadMessages)}, nil
 }

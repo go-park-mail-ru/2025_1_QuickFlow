@@ -54,6 +54,14 @@ const (
 		FROM chat_user cu
 		WHERE cu.chat_id = $1
 `
+
+	getNumUnreadChatsQuery = `
+	SELECT COUNT(DISTINCT cu.chat_id)
+	FROM chat_user cu
+	JOIN chat c ON cu.chat_id = c.id
+	WHERE cu.user_id = 'your_user_id'
+    AND (cu.last_read IS NULL OR cu.last_read < c.updated_at);
+`
 )
 
 type ChatRepository struct {
@@ -259,4 +267,15 @@ func (c *ChatRepository) GetChatParticipants(ctx context.Context, chatId uuid.UU
 	logger.Info(ctx, fmt.Sprintf("Fetched %d participants for chat %s", len(users), chatId))
 
 	return users, nil
+}
+
+func (c *ChatRepository) GetNumUnreadChats(ctx context.Context, userId uuid.UUID) (int, error) {
+	var count int
+	err := c.ConnPool.QueryRowContext(ctx, getNumUnreadChatsQuery, userId).Scan(&count)
+	if err != nil {
+		logger.Error(ctx, fmt.Sprintf("Unable to get number of unread chats for user %v: %s", userId, err.Error()))
+		return 0, err
+	}
+	logger.Info(ctx, fmt.Sprintf("User %v has %d unread chats", userId, count))
+	return count, nil
 }

@@ -111,6 +111,8 @@ func (c *CommentOut) FromComment(comment models.Comment, userInfo models.PublicU
 			media = append(media, file.URL)
 		case models.DisplayTypeAudio:
 			audio = append(audio, file.URL)
+		default:
+			files = append(files, file.URL)
 		}
 	}
 

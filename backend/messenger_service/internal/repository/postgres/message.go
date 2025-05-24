@@ -64,6 +64,13 @@ const (
         select max(created_at) 
         from otv);
 `
+
+	getNumUnreadMessagesQuery = `
+	select count(*)
+	from message m
+	inner join chat_user cu on m.chat_id = cu.chat_id and m.chat_id = $2
+	where cu.user_id = $1 and m.created_at > cu.last_read;
+`
 )
 
 type MessageRepository struct {
@@ -219,4 +226,16 @@ func (m *MessageRepository) GetMessageById(ctx context.Context, messageId uuid.U
 
 	message := messagePostgres.ToMessage()
 	return message, nil
+}
+
+func (m *MessageRepository) GetNumUnreadMessages(ctx context.Context, userId uuid.UUID, chatId uuid.UUID) (int, error) {
+	var numUnread int
+	err := m.connPool.QueryRowContext(ctx, getNumUnreadMessagesQuery, pgtype.UUID{Bytes: userId, Valid: true}, pgtype.UUID{Bytes: chatId, Valid: true}).Scan(&numUnread)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	} else if err != nil {
+		logger.Error(ctx, "Unable to get number of unread messages from database: ", err)
+		return 0, fmt.Errorf("unable to get number of unread messages from database: %w", err)
+	}
+	return numUnread, nil
 }
