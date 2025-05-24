@@ -59,8 +59,19 @@ const (
 	SELECT COUNT(DISTINCT cu.chat_id)
 	FROM chat_user cu
 	JOIN chat c ON cu.chat_id = c.id
+	JOIN message m ON c.id = m.chat_id
 	WHERE cu.user_id = $1
-    AND (cu.last_read IS NULL OR cu.last_read < c.updated_at);
+    AND (cu.last_read IS NULL OR cu.last_read < c.updated_at)
+	AND (
+	    select m.sender_id
+	    from message m
+	    where m.chat_id = c.id
+	    and m.created_at = (
+	        select max(m2.created_at)
+	    	from message m2
+	    	where m2.chat_id = c.id
+	    )
+	) != $1;
 `
 )
 
