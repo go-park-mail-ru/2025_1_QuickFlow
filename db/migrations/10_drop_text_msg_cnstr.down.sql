@@ -1,0 +1,1 @@
+alter table message add constraint message_text_check check(length(text) > 0);

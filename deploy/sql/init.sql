@@ -146,7 +146,7 @@ create table if not exists chat_user(
 
 create table if not exists message(
                                       id uuid primary key,
-                                      text text check (length(text) > 0),
+                                      text text,
                                       sender_id uuid references "user"(id) on delete cascade,
                                       chat_id uuid references chat(id) on delete cascade,
                                       created_at timestamptz not null default now(),

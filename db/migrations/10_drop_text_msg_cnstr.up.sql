@@ -1,0 +1,1 @@
+alter table message drop constraint message_text_check;
