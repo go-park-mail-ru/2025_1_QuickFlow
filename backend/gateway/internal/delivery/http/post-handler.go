@@ -25,18 +25,20 @@ type PostHandler struct {
 	profileUseCase   ProfileUseCase
 	communityService CommunityService
 	friendsUseCase   FriendsUseCase
+	commentUseCase   CommentService
 	policy           *bluemonday.Policy
 }
 
 // NewPostHandler creates new post handler.
 func NewPostHandler(postUseCase PostService, profileUseCase ProfileUseCase,
-	communityService CommunityService, friendsUseCase FriendsUseCase, policy *bluemonday.Policy) *PostHandler {
+	communityService CommunityService, friendsUseCase FriendsUseCase, commentUseCase CommentService, policy *bluemonday.Policy) *PostHandler {
 	return &PostHandler{
 		postUseCase:      postUseCase,
 		profileUseCase:   profileUseCase,
 		communityService: communityService,
 		friendsUseCase:   friendsUseCase,
 		policy:           policy,
+		commentUseCase:   commentUseCase,
 	}
 }
 
@@ -408,8 +410,30 @@ func (p *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	lastComment, err := p.commentUseCase.GetLastPostComment(ctx, post.Id)
+	appErr := errors2.FromGRPCError(err)
+	if appErr != nil && appErr.HTTPStatus != http.StatusNotFound {
+		logger.Error(ctx, "Failed to get last comment")
+		http2.WriteJSONError(w, appErr)
+		return
+	}
+
 	var postOut forms.PostOut
 	postOut.FromPost(*post)
+
+	if lastComment != nil {
+		userInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, lastComment.UserId)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("Failed to get user info: %s", err.Error()))
+			http2.WriteJSONError(w, err)
+			return
+		}
+
+		var commentOut forms.CommentOut
+		commentOut.FromComment(*lastComment, userInfo)
+		postOut.LastComment = &commentOut
+	}
+
 	if post.CreatorType == models.PostUser {
 		publicAuthorInfo, err := p.profileUseCase.GetPublicUserInfo(ctx, post.CreatorId)
 		if err != nil {
