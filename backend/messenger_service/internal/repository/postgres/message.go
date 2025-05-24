@@ -228,7 +228,7 @@ func (m *MessageRepository) GetMessageById(ctx context.Context, messageId uuid.U
 	return message, nil
 }
 
-func (m *MessageRepository) GetNumUnreadMessages(ctx context.Context, userId uuid.UUID, chatId uuid.UUID) (int, error) {
+func (m *MessageRepository) GetNumUnreadMessages(ctx context.Context, chatId, userId uuid.UUID) (int, error) {
 	var numUnread int
 	err := m.connPool.QueryRowContext(ctx, getNumUnreadMessagesQuery, pgtype.UUID{Bytes: userId, Valid: true}, pgtype.UUID{Bytes: chatId, Valid: true}).Scan(&numUnread)
 	if errors.Is(err, sql.ErrNoRows) {
